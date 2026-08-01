@@ -13,7 +13,7 @@
 
 #include "base/base_inc.h"
 #include "base_ext/base_ext_inc.h"
-#include "window_manager/window_manager_inc."
+#include "window_manager/window_manager_inc.h"
 #include "broken_proxy.h"
 
 #include "base/base_inc.c"

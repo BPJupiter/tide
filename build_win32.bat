@@ -10,7 +10,7 @@
               /Ithird_party\mapbox\include ^
               /Ithird_party\wepoll\include ^
               /Isrc\shared ^
-              /Isrc\shared\bplibxx\include
+              /Isrc\shared\bplibxx\include ^
               /Isrc\proxy ^
               /Ilib
 @set SOURCES=third_party\imgui\src\imgui*.cpp ^

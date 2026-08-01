@@ -243,6 +243,19 @@ internal void t_help(void)
     fprintf(stderr, "    torment +*               Force-run all tests\n");
 }
 
+internal void t_print_hardware_info(void)
+{
+    fprintf(stderr, "--- Hardware Info ----------------------------------------------\n");
+    fprintf(stderr, " Logical Processor Count: %u\n", get_system_info()->logical_processor_count);
+    fprintf(stderr, " Page Size %llu\n", get_system_info()->page_size);
+    fprintf(stderr, " Large Page Size %llu\n", get_system_info()->large_page_size);
+    fprintf(stderr, " Allocation Granularity: %llu\n", get_system_info()->allocation_granularity);
+    fprintf(stderr, " Machine Name: %.*s\n", str8_varg(get_system_info()->machine_name));
+    fprintf(stderr, "--- Network Adapter Info ---------------------------------------\n");
+    fprintf(stderr, "");
+
+}
+
 
 internal void t_entry_point(Cmd_Line *cmdline)
 {
@@ -261,6 +274,8 @@ internal void t_entry_point(Cmd_Line *cmdline)
 
 #define PrintHeader(p) fprintf(stderr, "--- %s %.*s\n", p, Max((80-4) - (int)strlen(p), 3), dashes);
 
+    t_print_hardware_info();
+    
     // Handle help
 
     // Gather tests

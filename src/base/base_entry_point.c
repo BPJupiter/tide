@@ -180,7 +180,7 @@ internal void async_thread_entry_point(void *params)
 {
      Lane_Ctx lctx = *(Lane_Ctx *)params;
      lane_ctx(lctx);
-     is_async_thread = 1;
+     is_async_thread = true;
      ThreadNameF("async_thread_%I64u", lane_idx());
      for(;;) {
          // rjf: wait for signal if we need, otherwise reset loop signal & continue
