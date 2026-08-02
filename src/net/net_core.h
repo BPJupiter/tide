@@ -55,9 +55,10 @@ struct Net_Client {
 };
 
 /////////////////////////////////////
-// @per_os_impl Network Primitives
+// @per_os_impl Networking Primitives
 
 internal Net_Socket net_socket_alloc(Net_TransportProtcol protocol);
+internal void       net_socket_release(Net_Socket socket);
 
 /////////////////////////////////////////////
 // @per_os_impl Network Listener Functions

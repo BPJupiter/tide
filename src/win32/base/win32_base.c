@@ -657,15 +657,6 @@ internal void barrier_wait(Barrier barrier)
     }
 }
 
-////////////////////////////////////////
-// @per_os_impl Networking primitives
-
-internal Net_Completion_Queue net_completion_queue_alloc(void)
-{
-    W32_Entity *entity = w32_entity_alloc(W32_EntityKind_CompletionQueue);
-    
-}
-
 ///////////////////////////////
 // @per_os_impl File System
 
@@ -1342,7 +1333,7 @@ internal Void_Proc *library_load_proc(Library lib, String8 name)
 }
 
 /////////////////////////////////////
-// @per_os_impl Network Primitives
+// @per_os_impl Networking Primitives
 
 internal Net_Socket net_socket_alloc(Net_TransportProtocol protocol)
 {
@@ -1358,8 +1349,128 @@ internal Net_Socket net_socket_alloc(Net_TransportProtocol protocol)
             *entity = socket(AF_INET, SOCK_DGRAM, 0);
         } break;
         default: {
+            *entity = socket(AF_INET, SOCK_RAW, 0);
         }
     }
+    Net_Socket socket = {IntFromPtr(entity)};
+    return socket;
+}
+
+internal void net_socket_release(Net_Socket socket)
+{
+    W32_Entity *entity = (W32_Entity *)PtrFromInt(socket.u64[0]);
+    closesocket(entity->socket);
+    w32_entity_release(entity);
+}
+
+/////////////////////////////////////////////
+// @per_os_impl Network Listener Functions
+
+internal Net_Listener net_listener_alloc(Net_TransportProtocol protocol, u16 port)
+{
+    struct sockaddr_in addr = {0};
+    {
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = INADDR_ANY;
+        addr.sin_port = htons(port);
+    }
+    Net_Listener listener = {0};
+    {
+        listener.port = port;
+        listener.protocol = protocol;
+        listener.socket = net_socket_alloc(protocol);
+    }
+    W32_Entity *entity = (W32_Entity *)PtrFromInt(listener.socket.u64[0]);
+    if (INVALID_SOCKET == entity->socket) {
+        // TODO: Error handling
+    }
+    if (0 > bind(entity->socket, (struct sockaddr *)&addr, sizeof(server_addr))) {
+        // TODO: Error handling
+    }
+    if (0 > listen(entity->socket, SO_MAXCONN)) {
+        // TODO: Errpr handling
+    }
+    return listener;
+}
+
+internal Net_Client net_listener_accept(Net_Listener listener, Arena *arena)
+{
+    struct sockaddr_in addr = {0};
+    socklen_t addrlen = sizeof(addr);
+
+    Net_Socket accept_socket = net_scoket_alloc(listener.protocol);
+    W32_Entity *accept_entity = (W32_Entity *)PtrFromInt(accept_socket.socket.u64[0]);
+    W32_Entity *listen_entity = (W32_Entity *)PtrFromInt(listener.socket.u64[0]);
+    accept_entity->socket = accept(listen_entity->socket, (struct sockaddr *)&addr, &addrlen);
+    if (INVALID_SOCKET == accept_entity->socket) {
+        // TODO: Error handling
+    }
+    Net_Client client = {0};
+    client.arena = arena;
+    client.protocol = listener.protocol;
+    client.socket = accept_socket;
+    
+    client.address.ip.v4 = ntohl(addr.sin_addr.s_addr);
+    client.address.address_type = Net_AddressType_Ipv4;
+    client.address.port = ntohs(addr.sin_port);
+    
+    client.connected = true;
+    // TODO: I need some sort of compass for how large to make these buffers.
+    // Currently 16kB is a wild guess!
+    client.read_buffer = make_ring(arena, Kilobytes(16));
+    client.write_buffer = make_ring(arena, Kilobytes(16));
+    return client;
+}
+
+internal void net_listener_close(Net_Listener listener)
+{
+    net_socket_release(listener.socket);
+}
+
+///////////////////////////////////////////
+// @per_os_impl Network Client Functions
+
+internal Net_Client net_client_connect(Arena *arena, Net_TransportProtocol protocol, Net_Address target)
+{
+    Net_Socket connect_socket = net_socket_alloc(protocol);
+    W32_Entity *entity = (W32_Entity *)PtrFromInt(connect_socket.socket.u64[0]);
+    if (INVALID_SOCKET == entity->socket) {
+        // TODO: Error handling
+    }
+
+    struct sockaddr_in server_address = {0};
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(target.port);
+    if (inet_pton(AF_INET, target.str, &server_address.sin_addr) <= 0) {
+        // TODO: Error handling
+    }
+
+    if (0 < connect(entity->socket, (struct sockaddr *)&server_address, sizeof(server_address))) {
+        // TODO: Error handling
+    }
+    Net_Client client = {0};
+    client.arena = arena;
+    client.protocol = protocol;
+    client.socket = connect_socket;
+    client.address = target;
+    client.connected = true;
+    // TODO: I need some sort of compass for how large to make these buffers.
+    // Currently 16kB is a wild guess!
+    client.read_buffer = make_ring(arena, Kilobytes(16));
+    client.write_buffer = make_ring(arena, Kilobytes(16));
+    return client;
+}
+
+internal u64 net_client_pack_raw(Net_Client client, void *data, u64 size)
+{
+}
+
+internal u64 net_client_unpack_raw(Net_Client client, void *out, u64 size)
+{
+}
+
+internal void net_client_close(Net_Client client)
+{
 }
 
 //////////////////
