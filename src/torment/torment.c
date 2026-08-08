@@ -274,7 +274,7 @@ internal void t_entry_point(Cmd_Line *cmdline)
 
 #define PrintHeader(p) fprintf(stderr, "--- %s %.*s\n", p, Max((80-4) - (int)strlen(p), 3), dashes);
 
-    t_print_hardware_info();
+    //t_print_hardware_info();
     
     // Handle help
 

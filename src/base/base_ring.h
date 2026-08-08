@@ -5,26 +5,23 @@
 #define BASE_RING_H
 
 typedef struct Ring Ring;
-struct Ring
-{
-  u8 *base;
-  u64 size;
-  u64 write_pos;
-  u64 read_pos;
+struct Ring {
+    u8 *base;
+    u64 size;
+    u64 write_pos;
+    u64 read_pos;
 };
 
 typedef struct Guarded_Ring Guarded_Ring;
-struct Guarded_Ring
-{
-  Ring *ring;
-  Mutex mutex;
-  CondVar cv;
+struct Guarded_Ring {
+    Ring *ring;
+    Mutex mutex;
+    CondVar cv;
 };
 
 typedef struct Ring_Guard Ring_Guard;
-struct Ring_Guard
-{
-  Guarded_Ring *r;
+struct Ring_Guard {
+    Guarded_Ring *r;
 };
 
 ////////////////////////////////

@@ -13,16 +13,19 @@
 
 #include "base/base_inc.h"
 #include "base_ext/base_ext_inc.h"
+#include "net/net_inc.h"
 #include "window_manager/window_manager_inc.h"
 #include "torment.h"
 
 
 #include "base/base_inc.c"
 #include "base_ext/base_ext_inc.c"
+#include "net/net_inc.c"
 #include "window_manager/window_manager_inc.c"
 #include "torment.c"
 
 #include "base/tests/base_tests.c"
+#include "net/tests/net_tests.c"
 
 internal bool32 frame(void) { return 0; }
 

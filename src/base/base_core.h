@@ -955,8 +955,19 @@ internal s32 safe_cast_s32(s64 x);
 // Large base type functions
 
 internal u128   u128_zero(void);
-internal u128   u128_make(u64 v0, u64 v1);
+internal u128   u128_make(u64 high, u64 low);
 internal bool32 u128_match(u128 a, u128 b);
+#if ARCH_LITTLE_ENDIAN
+#define u128_lit64(high, low) { .u64 =  { (low), (high) }}
+#define u128_lit32(a, b, c, d) { .u32 = { (d), (c), (b), (a) }}
+#define u128_lit16(a, b, c, d, e, f, g, h) { .u16 = { (h), (g), (f), (e), (d), (c), (b), (a) }}
+#define u128_lit8(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) { .u8 = { (p), (o), (n), (m), (l), (k), (j), (i), (h), (g), (f), (e), (d), (c), (b), (a) }}
+#else
+#define u128_lit64(high, low) { .u64 = { (high), (low) }}
+#define u128_lit32(a, b, c, d) { .u32 = { (a), (b), (c), (d) }}
+#define u128_lit16(a, b, c, d, e, f, g, h) { .u16 = { (a), (b), (c), (d), (e), (f), (g), (h), }}
+#define u128_lit8(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) { .u8 = { (a), (b), (c), (d), (e), (f), (g), (h), (i), (j), (k), (l), (m), (n), (o), (p) }}
+#endif
 
 ///////////////////
 // bit patterns

@@ -1340,16 +1340,16 @@ internal Net_Socket net_socket_alloc(Net_TransportProtocol protocol)
     W32_Entity *entity = w32_entity_alloc(W32_EntityKind_Socket);
     switch (protocol) {
         case Net_TransportProtocol_RAW: {
-            *entity = socket(AF_INET, SOCK_RAW, 0);
+            entity->socket = socket(AF_INET, SOCK_RAW, 0);
         } break;
         case Net_TransportProtocol_TCP: {
-            *entity = socket(AF_INET, SOCK_STREAM, 0);
+            entity->socket = socket(AF_INET, SOCK_STREAM, 0);
         } break;
         case Net_TransportProtocol_UDP: {
-            *entity = socket(AF_INET, SOCK_DGRAM, 0);
+            entity->socket = socket(AF_INET, SOCK_DGRAM, 0);
         } break;
         default: {
-            *entity = socket(AF_INET, SOCK_RAW, 0);
+            entity->socket = socket(AF_INET, SOCK_RAW, 0);
         }
     }
     Net_Socket socket = {IntFromPtr(entity)};
@@ -1384,30 +1384,32 @@ internal Net_Listener net_listener_alloc(Net_TransportProtocol protocol, u16 por
     if (INVALID_SOCKET == entity->socket) {
         // TODO: Error handling
     }
-    if (0 > bind(entity->socket, (struct sockaddr *)&addr, sizeof(server_addr))) {
+    if (0 > bind(entity->socket, (struct sockaddr *)&addr, sizeof(addr))) {
         // TODO: Error handling
     }
-    if (0 > listen(entity->socket, SO_MAXCONN)) {
-        // TODO: Errpr handling
+    if (0 > listen(entity->socket, SOMAXCONN)) {
+        // TODO: Error handling
     }
     return listener;
 }
 
-internal Net_Client net_listener_accept(Net_Listener listener, Arena *arena)
+internal Net_Client net_listener_accept(Arena *arena, Net_Listener listener)
 {
     struct sockaddr_in addr = {0};
-    socklen_t addrlen = sizeof(addr);
+    int addrlen = sizeof(addr);
 
-    Net_Socket accept_socket = net_scoket_alloc(listener.protocol);
-    W32_Entity *accept_entity = (W32_Entity *)PtrFromInt(accept_socket.socket.u64[0]);
+    Net_Socket accept_socket = net_socket_alloc(listener.protocol);
+    W32_Entity *accept_entity = (W32_Entity *)PtrFromInt(accept_socket.u64[0]);
     W32_Entity *listen_entity = (W32_Entity *)PtrFromInt(listener.socket.u64[0]);
     accept_entity->socket = accept(listen_entity->socket, (struct sockaddr *)&addr, &addrlen);
     if (INVALID_SOCKET == accept_entity->socket) {
         // TODO: Error handling
     }
-    Net_Client client = {0};
-    client.arena = arena;
-    client.protocol = listener.protocol;
+    // This is yuck and currently creates a dummy socket that we have to release.
+    // Might be worth duplicating the logic of net_client_alloc
+    // if this ends up being a lot of overhead.
+    Net_Client client = net_client_alloc(arena, listener.protocol);
+    net_socket_release(client.socket);
     client.socket = accept_socket;
     
     client.address.ip.v4 = ntohl(addr.sin_addr.s_addr);
@@ -1415,10 +1417,6 @@ internal Net_Client net_listener_accept(Net_Listener listener, Arena *arena)
     client.address.port = ntohs(addr.sin_port);
     
     client.connected = true;
-    // TODO: I need some sort of compass for how large to make these buffers.
-    // Currently 16kB is a wild guess!
-    client.read_buffer = make_ring(arena, Kilobytes(16));
-    client.write_buffer = make_ring(arena, Kilobytes(16));
     return client;
 }
 
@@ -1430,47 +1428,55 @@ internal void net_listener_close(Net_Listener listener)
 ///////////////////////////////////////////
 // @per_os_impl Network Client Functions
 
-internal Net_Client net_client_connect(Arena *arena, Net_TransportProtocol protocol, Net_Address target)
+internal Net_Client net_client_alloc(Arena *arena, Net_TransportProtocol protocol)
 {
-    Net_Socket connect_socket = net_socket_alloc(protocol);
-    W32_Entity *entity = (W32_Entity *)PtrFromInt(connect_socket.socket.u64[0]);
+    Net_Socket client_socket = net_socket_alloc(protocol);
+    W32_Entity *entity = (W32_Entity *)PtrFromInt(client_socket.u64[0]);
     if (INVALID_SOCKET == entity->socket) {
         // TODO: Error handling
     }
 
-    struct sockaddr_in server_address = {0};
-    server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(target.port);
-    if (inet_pton(AF_INET, target.str, &server_address.sin_addr) <= 0) {
-        // TODO: Error handling
-    }
-
-    if (0 < connect(entity->socket, (struct sockaddr *)&server_address, sizeof(server_address))) {
-        // TODO: Error handling
-    }
     Net_Client client = {0};
     client.arena = arena;
     client.protocol = protocol;
-    client.socket = connect_socket;
-    client.address = target;
-    client.connected = true;
+    client.socket = client_socket; // Make this call the responsibility of the caller?
+    
     // TODO: I need some sort of compass for how large to make these buffers.
-    // Currently 16kB is a wild guess!
+    // Currently 16kB is a wild guess.
     client.read_buffer = make_ring(arena, Kilobytes(16));
     client.write_buffer = make_ring(arena, Kilobytes(16));
     return client;
 }
 
-internal u64 net_client_pack_raw(Net_Client client, void *data, u64 size)
+internal Net_Client net_client_connect(Net_Client client, Net_Address target)
 {
+    struct sockaddr_in server_address = {0};
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(target.port);
+    server_address.sin_addr.s_addr = htonl(target.ip.v4);
+
+    W32_Entity *entity = (W32_Entity *)PtrFromInt(client.socket.u64[0]);
+    if (SOCKET_ERROR == connect(entity->socket, (struct sockaddr *)&server_address, sizeof(server_address))) {
+        // TODO: Error handling
+    }
+    client.address = target;
+    client.connected = true;
+    return client;
 }
 
-internal u64 net_client_unpack_raw(Net_Client client, void *out, u64 size)
+internal bool32 net_client_pack_raw(Net_Client client, u64 size, void *data)
 {
+    return ring_try_write(client.write_buffer, size, data);
+}
+
+internal bool32 net_client_unpack_raw(Net_Client client, u64 size, void *out)
+{
+    return ring_try_read(client.read_buffer, size, out);
 }
 
 internal void net_client_close(Net_Client client)
 {
+    net_socket_release(client.socket);
 }
 
 //////////////////

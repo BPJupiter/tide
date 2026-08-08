@@ -36,8 +36,8 @@ if "%debug%"=="1"   set release=0 && echo [debug mode]
 if "%release%"=="1" set debug=0 && echo [release mode]
 if "%msvc%"=="1"    set clang=0 && echo [msvc compile]
 if "%clang%"=="1"   set msvc=0 && echo [clang compile]
-if "%~1"==""                     echo [default mode, assuming `raddbg` build] && set raddbg=1&& set com_shim=1&& set raddbg_com_shim=1
-if "%~1"=="release" if "%~2"=="" echo [default mode, assuming `raddbg` build] && set raddbg=1&& set com_shim=1&& set raddbg_com_shim=1
+if "%~1"==""                     echo [default mode, assuming `torment` build] && set torment=1&& set com_shim=1&& set raddbg_com_shim=1
+if "%~1"=="release" if "%~2"=="" echo [default mode, assuming `torment` build] && set torment=1&& set com_shim=1&& set raddbg_com_shim=1
 
 :: --- Unpack Command Line Build Arguments ------------------------------------
 set auto_compile_flags=
@@ -128,7 +128,7 @@ popd
 
 :: --- Warn On No Builds ------------------------------------------------------
 if "%didbuild%"=="" (
-  echo [WARNING] no valid build target specified; must use build target names as arguments to this script, like `build raddbg` or `build rdi_from_pdb`.
+  echo [WARNING] no valid build target specified; must use build target names as arguments to this script, like `build torment` or `build rdi_from_pdb`.
   exit /b 1
 )
 

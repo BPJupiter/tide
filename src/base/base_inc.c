@@ -9,7 +9,7 @@
 #include "base_hash.c"
 #include "base_system.c"
 #include "base_threads.c"
-#include "base_profile.c"
+#include "base_ring.c"
 #include "base_thread_context.c"
 #include "base_files.c"
 #include "base_shared_memory.c"

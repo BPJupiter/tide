@@ -32,9 +32,13 @@ internal u128   u128_zero(void)
     return v;
 }
 
-internal u128   u128_make(u64 v0, u64 v1)
+internal u128   u128_make(u64 high, u64 low)
 {
-    u128 v = { .u64 = { v0, v1 }};
+#if ARCH_LITTLE_ENDIAN
+    u128 v = { .u64 = { low, high }};
+#else
+    u128 v = { .u64 = { high, low }};
+#endif
     return v;
 }
 
