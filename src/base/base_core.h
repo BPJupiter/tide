@@ -980,18 +980,29 @@ internal s64 extend_sign64(u64 x, u64 size);
 internal f32 inf32(void);
 internal f32 neg_inf32(void);
 
-internal u16 bswap_u16(u16 x);
-internal u32 bswap_u32(u32 x);
-internal u64 bswap_u64(u64 x);
+internal u16  bswap_u16(u16 x);
+internal u32  bswap_u32(u32 x);
+internal u64  bswap_u64(u64 x);
+internal u128 bswap_u128(u128 x);
 
 #if ARCH_LITTLE_ENDIAN
-# define from_be_u16(x) bswap_u16(x)
-# define from_be_u32(x) bswap_u32(x)
-# define from_be_u64(x) bswap_u64(x)
+# define from_be_u16(x)  bswap_u16(x)
+# define from_be_u32(x)  bswap_u32(x)
+# define from_be_u64(x)  bswap_u64(x)
+# define from_be_u128(x) bswap_u128(x)
+# define from_le_u16(x)  (x)
+# define from_le_u32(x)  (x)
+# define from_le_u64(x)  (x)
+# define from_le_u128(x) (x)
 #else
-# define from_be_u16(x) (x)
-# define from_be_u32(x) (x)
-# define from_be_u64(x) (x)
+# define from_be_u16(x)  (x)
+# define from_be_u32(x)  (x)
+# define from_be_u64(x)  (x)
+# define from_be_u128(x) (x)
+# define from_le_u16(x)  bswap_u16(x)
+# define from_le_u32(x)  bswap_u32(x)
+# define from_le_u64(x)  bswap_u64(x)
+# define from_le_u128(x) bswap_u128(x)
 #endif
 
 internal u64 count_bits_set32(u32 val);

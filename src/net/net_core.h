@@ -55,12 +55,38 @@ struct Net_Client {
     Ring *write_buffer;
 };
 
-///////////////
-// Utilities
+////////////////////////////////////
+// Host <-> Network Byte ordering
 
-internal bool32      net_str8_to_ipv4(String8 s, u32 *out);
-internal bool32      net_str8_to_ipv6(String8 s, u128 *out);
-internal Net_Address net_str8_to_net_address(String8 s);
+#if ARCH_LITTLE_ENDIAN
+# define net_to_host_u16(x)  bswap_u16(x)
+# define net_to_host_u32(x)  bswap_u32(x)
+# define net_to_host_u64(x)  bswap_u64(x)
+# define net_to_host_u128(x) bswap_u128(x)
+# define host_to_net_u16(x)  bswap_u16(x)
+# define host_to_net_u32(x)  bswap_u32(x)
+# define host_to_net_u64(x)  bswap_u64(x)
+# define host_to_net_u128(x) bswap_u128(x)
+#else
+# define net_to_host_u16(x)  (x)
+# define net_to_host_u32(x)  (x)
+# define net_to_host_u64(x)  (x)
+# define net_to_host_u128(x) (x)
+# define host_to_net_u16(x)  (x)
+# define host_to_net_u32(x)  (x)
+# define host_to_net_u64(x)  (x)
+# define host_to_net_u128(x) (x)
+#endif
+
+///////////////////////////////
+// String <-> Binary Formats
+
+internal bool32  net_str8_to_ipv4(String8 s, u32 *out);
+internal bool32  net_str8_to_ipv6(String8 s, u128 *out);
+internal String8 net_ipv4_to_str8(Arena *arena, u32 ip);
+internal String8 net_ipv6_to_str8(Arena *arena, u128 ip);
+internal bool32  net_str8_to_address(String8 s, Net_Address *out);
+internal String8 net_address_to_str8(Arena *arena, Net_Address address);
 
 /////////////////////////////////////
 // @per_os_impl Networking Primitives

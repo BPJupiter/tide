@@ -13,7 +13,7 @@ internal String8 str8_to_fqdn(Arena *arena, String8 s)
 
 internal bool32 str8_is_fqdn(String8 s)
 {
-    return str8_ends_with(s, '.', 0);
+    return str8_ends_with(s, str8_lit("."), 0);
 }
 
 internal String8 str8_to_canonical(Arena *arena, String8 s)

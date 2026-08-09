@@ -122,7 +122,11 @@ internal u32 bswap_u32(u32 x)
 
 internal u64 bswap_u64(u64 x)
 {
-    // TODO: Naive bswap; replcae with something that is faster like an intrinstic
+#if COMPILER_MSVC
+    return _byteswap_uint64(x);
+#elif COMPILER_CLANG || COMPILER_GCC
+    return __builtin_bswap64(x);
+#else
     u64 result = (((x & 0xFF00000000000000ULL) >> 56) |
                   ((x & 0x00FF000000000000ULL) >> 40) |
                   ((x & 0x0000FF0000000000ULL) >> 24) |
@@ -131,6 +135,15 @@ internal u64 bswap_u64(u64 x)
                   ((x & 0x0000000000FF0000ULL) << 24) |
                   ((x & 0x000000000000FF00ULL) << 40) |
                   ((x & 0x00000000000000FFULL) << 56));
+    return result;
+#endif
+}
+
+internal u128 bswap_u128(u128 x)
+{
+    u128 result = {0};
+    result.u64[1] = bswap_u64(x.u64[0]);
+    result.u64[0] = bswap_u64(x.u64[1]);
     return result;
 }
 

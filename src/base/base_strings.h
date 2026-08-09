@@ -239,6 +239,9 @@ internal String8 str8_from_bits_u64(Arena *arena, u64 x);
 internal String8 str8_from_u64(Arena *arena, u64 u64, u32 radix, u8 min_digits, u8 digit_group_separator);
 internal String8 str8_from_s64(Arena *arena, s64 s64, u32 radix, u8 min_digits, u8 digit_group_separator);
 
+internal String8 hexdump_str8(Arena *arena, void *ptr, u64 size);
+#define HexdumpStructStr8(A, S) hexdump_str8((A), &(S), sizeof(S))
+
 ////////////////////////////////
 //~ rjf: String <=> Float Conversions
 

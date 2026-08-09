@@ -5,35 +5,37 @@ internal bool32 net_str8_to_ipv4(String8 string, u32 *out)
     u32 address = 0;
     Temp scratch = scratch_begin(0, 0);
 
-    String8_List parts = str8_split(scratch.arena, string, (u8 *)".", 1, StringSplitFlag_KeepEmpties);
-    if (parts.node_count == 4) {
-        result = true;
-        u32 i = 3;
-        for (String8_Node *n = parts.first; n != 0; n = n->next) {
-            String8 part = n->string;
-            if (part.size == 0 || part.size > 3 || !str8_is_integer(part, 10)) {
-                result = false;
-                break;
+    if (!str8_ends_with(string, str8_lit("."), 0)) {
+        String8_List parts = str8_split(scratch.arena, string, (u8 *)".", 1, StringSplitFlag_KeepEmpties);
+        if (parts.node_count == 4) {
+            result = true;
+            u32 i = 3;
+            for (String8_Node *n = parts.first; n != 0; n = n->next) {
+                String8 part = n->string;
+                if (part.size == 0 || part.size > 3 || !str8_is_integer(part, 10)) {
+                    result = false;
+                    break;
+                }
+                
+                if (part.size > 1 && part.str[0] == '0') {
+                    result = false;
+                    break;
+                }
+                
+                u64 byte = u64_from_str8(part, 10);
+                if (byte > max_u8) {
+                    result = false;
+                    break;
+                }
+                address |= (byte << (8 * i--));
             }
-
-            if (part.size > 1 && part.str[0] == '0') {
-                result = false;
-                break;
-            }
-
-            u64 byte = u64_from_str8(part, 10);
-            if (byte > max_u8) {
-                result = false;
-                break;
-            }
-            address |= (byte << (8 * i--));
         }
     }
-
+        
     if (result && out != 0) {
         *out = address;
     }
-    
+        
     scratch_end(scratch);
     return result;
 }
@@ -78,7 +80,7 @@ internal bool32 net_str8_to_ipv6(String8 string, u128 *out)
             
             String8_List left_groups = str8_split(scratch.arena, left, (u8 *)":", 1, StringSplitFlag_KeepEmpties);
             String8_List right_groups = str8_split(scratch.arena, right, (u8 *)":", 1, StringSplitFlag_KeepEmpties);
-            
+
             // the final group of the address may be an embedded ipv4 literal
             String8_Node *last_node = has_dc ? right_groups.last : left_groups.last;
             bool32 last_is_ipv4 = (last_node != 0) && net_str8_to_ipv4(last_node->string, 0);
@@ -161,32 +163,60 @@ internal bool32 net_str8_to_ipv6(String8 string, u128 *out)
     return ok;
 }
 
-internal Net_Address net_str8_to_net_address(String8 string)
+internal String8 net_ipv4_to_str8(Arena *arena, u32 ip)
+{
+    u8 *ptr = (u8 *)&ip;
+    String8 result = str8f(arena, "%d.%d.%d.%d", ptr[3], ptr[2], ptr[1], ptr[0]);
+    return result;
+}
+
+internal String8 net_ipv6_to_str8(Arena *arena, u128 ip)
+{
+    String8 result = str8f(arena, "%x:%x:%x:%x:%x:%x:%x:%x",
+                           ip.u16[7], ip.u16[6], ip.u16[5], ip.u16[4], ip.u16[3], ip.u16[2], ip.u16[1], ip.u16[0]);
+    return result;
+}
+
+internal bool32 net_str8_to_address(String8 string, Net_Address *out)
 {
     Net_Address result = {0};
     Temp scratch = scratch_begin(0, 0);
 
-    String8_List parts = str8_split(scratch.arena, string, (u8 *)":", 1, StringSplitFlag_KeepEmpties);
+    bool32 ip_ok, port_ok = false;
 
-    if (parts.node_count == 2) {
-        String8 port_part = parts.last->string;
-        u32 port = u32_from_str8(port_part, 10);
-        if (port <= max_u16) {
-            result.port = (u16)port;
-        }
+    if (string.size > 0) {
+        String8_List parts1 = str8_split(scratch.arena, string, (u8 *)"[]", 2, StringSplitFlag_KeepEmpties);
+        String8_List parts2 = str8_split(scratch.arena, parts1.last->string, (u8 *)":", 1, StringSplitFlag_KeepEmpties);
+        if (parts1.node_count == 1 && parts2.node_count == 2) {
+            ip_ok = net_str8_to_ipv4(parts2.first->string, &result.ip.v4);
+            s64 port = s64_from_str8(parts2.last->string, 10);
+            port_ok = (port >= 0 && port <= max_u16);
 
-        String8 ip_part = parts.first->string;
-        /*
-        if (net_str8_is_ipv4(ip_part)) {
-            
+            if (ip_ok && port_ok) {
+                result.address_type = Net_AddressType_Ipv4;
+                result.port = (u16)port;
+            }
         }
-        else if (net_str8_is_ipv6(ip_part)) {
+        else if (parts1.node_count == 3 && parts2.node_count == 2) {
+            ip_ok = net_str8_to_ipv6(parts1.first->next->string, &result.ip.v6);
+            s64 port = s64_from_str8(parts2.last->string, 10);
+            port_ok = (port >= 0 && port <= max_u16);
+        
+            if (ip_ok && port_ok) {
+                result.address_type = Net_AddressType_Ipv6;
+                result.port = (u16)port;
+            }
         }
-        else {
-        }
-        */
     }
-    
+
+    if (ip_ok && port_ok && out != 0) {
+        MemoryCopyStruct(out, &result);
+    }
+
     scratch_end(scratch);
-    return result;
+    return ip_ok && port_ok;
+}
+
+internal String8 net_address_to_str8(Arena *arena, Net_Address address)
+{
 }

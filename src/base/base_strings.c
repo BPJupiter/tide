@@ -728,16 +728,19 @@ str8_is_integer_signed(String8 string, u32 radix)
 internal u64
 u64_from_str8(String8 string, u32 radix)
 {
-  u64 x = 0;
-  if(1 < radix && radix <= 16)
-  {
-    for(u64 i = 0; i < string.size; i += 1)
-    {
-      x *= radix;
-      x += integer_symbol_reverse[string.str[i]&0x7F];
+    u64 x = 0;
+    if(1 < radix && radix <= 16) {
+        for(u64 i = 0; i < string.size; i += 1) {
+            u8 digit = integer_symbol_reverse[string.str[i] & 0x7F];
+            if (digit >= radix) {
+                x = max_u64;
+                break;
+            }
+            x *= radix;
+            x += digit;
+        }
     }
-  }
-  return x;
+    return x;
 }
 
 internal s64
@@ -1032,6 +1035,47 @@ str8_from_s64(Arena *arena, s64 number, u32 radix, u8 min_digits, u8 digit_group
   return result;
 }
 
+internal String8 hexdump_str8(Arena *arena, void *ptr, u64 size)
+{
+    Temp scratch = scratch_begin(&arena, 1);
+    String8 result = str8_lit("                   0  1  2  3  4  5  6  7  8   9  a  b  c  d  e  f\n");
+
+    u8 *byte_ptr = (u8 *)ptr;
+    for (u64 i = 0; i < size; i += 16) {
+        result = str8_cat(scratch.arena, result, str8f(scratch.arena, "%p  ", (void *)(byte_ptr + i)));
+        for (u64 j = 0; j < 16; j++) {
+            if (i + j < size) {
+                result = str8_cat(scratch.arena, result, str8f(scratch.arena, "%02x ", byte_ptr[i + j]));
+            }
+            else {
+                result = str8_cat(scratch.arena, result, str8_lit("   "));
+            }
+
+            if (j == 7) {
+                result = str8_cat(scratch.arena, result, str8_lit(" "));
+            }
+        }
+
+        result = str8_cat(scratch.arena, result, str8_lit(" |"));
+
+        for (u64 j = 0; j < 16; j++) {
+            if (i + j < size) {
+                u8 c = byte_ptr[i + j];
+                result = str8_cat(scratch.arena, result, str8f(scratch.arena, "%c", isprint(c) ? c : '.'));
+            }
+            else {
+                result = str8_cat(scratch.arena, result, str8_lit(" "));
+            }
+        }
+
+        result = str8_cat(scratch.arena, result, str8_lit("|\n"));
+    }
+    
+    result = str8_copy(arena, result);
+    scratch_end(scratch);
+    return result;
+}
+
 ////////////////////////////////
 //~ rjf: String <=> Float Conversions
 
@@ -1262,38 +1306,32 @@ str8_list_substr(Arena *arena, String8_List list, Rng1u64 range)
 internal String8_List
 str8_split(Arena *arena, String8 string, u8 *split_chars, u64 split_char_count, StringSplitFlags flags)
 {
-  String8_List list = {0};
-  bool32 keep_empties = (flags & StringSplitFlag_KeepEmpties);
-  u8 *ptr = string.str;
-  u8 *opl = string.str + string.size;
-  for(;ptr < opl;)
-  {
-    u8 *first = ptr;
-    for(;ptr < opl; ptr += 1)
-    {
-      u8 c = *ptr;
-      bool32 is_split = 0;
-      for(u64 i = 0; i < split_char_count; i += 1)
-      {
-        if(split_chars[i] == c)
-        {
-          is_split = 1;
-          break;
+    String8_List list = {0};
+    bool32 keep_empties = (flags & StringSplitFlag_KeepEmpties);
+    u8 *ptr = string.str;
+    u8 *opl = string.str + string.size;
+    for(;ptr < opl;) {
+        u8 *first = ptr;
+        for(;ptr < opl; ptr += 1) {
+            u8 c = *ptr;
+            bool32 is_split = 0;
+            for(u64 i = 0; i < split_char_count; i += 1) {
+                if(split_chars[i] == c) {
+                    is_split = 1;
+                    break;
+                }
+            }
+            if(is_split) {
+                break;
+            }
         }
-      }
-      if(is_split)
-      {
-        break;
-      }
+        String8 string = str8_range(first, ptr);
+        if(keep_empties || string.size > 0) {
+            str8_list_push(arena, &list, string);
+        }
+        ptr += 1;
     }
-    String8 string = str8_range(first, ptr);
-    if(keep_empties || string.size > 0)
-    {
-      str8_list_push(arena, &list, string);
-    }
-    ptr += 1;
-  }
-  return list;
+    return list;
 }
 
 internal String8_List

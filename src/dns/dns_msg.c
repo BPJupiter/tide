@@ -8,21 +8,21 @@
 // This being a variable the function can be reassigned to a custom function.
 // For instance, to make it return a static value for testing.
 
-internal u16 (*dns_id_func)(void);
+internal u16 dns_id_func_default(void);
+internal u16 (*dns_id_func)(void) = dns_id_func_default;
 
 internal u16 dns_id_func_default(void)
 {
     return 0xCAFE;
 }
-dns_id_func = dns_id_func_default;
 
 Dns_Msg *dns_msg_alloc(Arena *arena, String8 domain, Dns_Type type)
 {
     Dns_Msg *msg = push_array(arena, Dns_Msg, 1);
-    msg->id = dns_id_func();
-    msg->recursion_desired = true;
-    msg->question.header.name = str8_to_fqdn(domain);
-    msg->question.header.class = Dns_Class_INET;
-    msg->quesiton->type = type;
+    msg->header.id = dns_id_func();
+    msg->header.recursion_desired = true;
+    msg->question.name = str8_to_fqdn(arena, domain);
+    msg->question.class = Dns_Class_INET;
+    msg->question.type = type;
     return msg;
 }
