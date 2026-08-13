@@ -32,6 +32,7 @@ internal bool32 ring_try_write(Ring *ring, u64 size, void *ptr);
 internal bool32 ring_try_read(Ring *ring, u64 size, void *ptr);
 #define ring_try_write_struct(ring, ptr) ring_try_write((ring), sizeof(*(ptr)), (ptr))
 #define ring_try_read_struct(ring, ptr) ring_try_read((ring), sizeof(*(ptr)), (ptr))
+#define ring_peek_unread_quantity(ring) (ring->write_pos - ring->read_pos)
 
 ////////////////////////////////
 //~ rjf: Guarded Ring Functions

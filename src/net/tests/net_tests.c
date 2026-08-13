@@ -75,13 +75,13 @@ Test(str8_ipv4_strings)
  
     // Test invalid
     for (u64 i = 0; i < ArrayCount(invalid_seeds); i++) {
-        T_Ok(!net_str8_to_ipv4(invalid_seeds[i], 0));
+        T_Ok(!net_str8_to_ipv4(0, invalid_seeds[i]));
     }
 
     // Test valid
     for (u64 i = 0; i < ArrayCount(valid_seeds); i++) {
         u32 ip = 0;
-        T_Ok(net_str8_to_ipv4(valid_seeds[i], &ip));
+        T_Ok(net_str8_to_ipv4(&ip, valid_seeds[i]));
         T_Ok(seed_to_u32[i] == ip);
 
         String8 string = net_ipv4_to_str8(scratch.arena, seed_to_u32[i]);
@@ -180,21 +180,21 @@ Test(str8_ipv6_strings)
 
     // Test invalid
     for (u64 i = 0; i < ArrayCount(invalid_seeds); i++) {
-        T_Ok(!net_str8_to_ipv6(invalid_seeds[i], 0));
+        T_Ok(!net_str8_to_ipv6(0, invalid_seeds[i]));
     }
 
     // Test valid
     for (u64 i = 0; i < ArrayCount(valid_seeds); i++) {
         u128 ip = {0};
-        T_Ok(net_str8_to_ipv6(valid_seeds[i], &ip));
-        T_Ok(u128_match(seed_to_u128[i], ip));
+        T_Ok(net_str8_to_ipv6(&ip, valid_seeds[i]));
+        T_Ok(u128_match(ip, seed_to_u128[i]));
 
         String8 string = net_ipv6_to_str8(scratch.arena, seed_to_u128[i]);
         // @TODO: make a ipv6_str8_match function
         //T_Ok(str8_match(valid_seeds[i], string, 0));
         
-        T_Ok(net_str8_to_ipv6(string, &ip));
-        T_Ok(u128_match(seed_to_u128[i], ip));
+        T_Ok(net_str8_to_ipv6(&ip, string));
+        T_Ok(u128_match(ip, seed_to_u128[i]));
     }
 
     scratch_end(scratch);
@@ -217,12 +217,15 @@ Test(str8_to_address)
         str8_lit_comp("[::ffff:192.168.1.1]:8080"),
     };
 
-    Net_Address seed_to_struct[] = {
-        { .ip = { ._padding = {0}, .v4 = 0xC0A80101 }, .address_type = Net_AddressType_Ipv4, .port = 8080 },
-        { .ip = { ._padding = {0}, .v4 = 0x7F000001 }, .address_type = Net_AddressType_Ipv4, .port = 80 },
-        { .ip = { ._padding = {0}, .v4 = 0x7F000001 }, .address_type = Net_AddressType_Ipv4, .port = 80 },
-        { .ip = { ._padding = {0}, .v4 = 0x00000000 }, .address_type = Net_AddressType_Ipv4, .port = 443 },
-        { .ip = { ._padding = {0}, .v4 = 0xFFFFFFFF }, .address_type = Net_AddressType_Ipv4, .port = 65535 },
+    // local_persist here stops padded memory from having uninitialized garbage data.
+    local_persist Net_Address seed_to_struct[] = {
+        // We set the last two bytes of our padding to 0xFFFF so that our
+        // ipv4 address is also valid when reading it as an ipv6 address.
+        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0xC0A80101 }, .address_type = Net_AddressType_Ipv4, .port = 8080 },
+        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x7F000001 }, .address_type = Net_AddressType_Ipv4, .port = 80 },
+        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x7F000001 }, .address_type = Net_AddressType_Ipv4, .port = 80 },
+        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x00000000 }, .address_type = Net_AddressType_Ipv4, .port = 443 },
+        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0xFFFFFFFF }, .address_type = Net_AddressType_Ipv4, .port = 65535 },
         
         { .ip = { .v6 = u128_lit64(0x20010DB800000000, 0x0000000000000001) }, .address_type = Net_AddressType_Ipv6, .port = 8000 },
         { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000000000000001) }, .address_type = Net_AddressType_Ipv6, .port = 443 },
@@ -233,9 +236,7 @@ Test(str8_to_address)
 
     for (u64 i = 0; i < ArrayCount(valid_seeds); i++) {
         Net_Address result = {0};
-        T_Ok(net_str8_to_address(valid_seeds[i], &result));
-        //String8 hexdump = HexdumpStructStr8(scratch.arena, result);
-        //printf("\n%.*s\n", str8_varg(hexdump));
+        T_Ok(net_str8_to_address(&result, valid_seeds[i]));
         T_Ok(MemoryMatchStruct(&result, &seed_to_struct[i]));
     }
 
@@ -290,7 +291,45 @@ Test(str8_to_address)
     };
 
     for (u64 i = 0; i < ArrayCount(invalid_seeds); i++) {
-        T_Ok(!net_str8_to_address(invalid_seeds[i], 0));
+        T_Ok(!net_str8_to_address(0, invalid_seeds[i]));
     }
+    scratch_end(scratch);
+}
+
+internal void print_recv_hexdump(Net_Client client)
+{
+    Temp scratch = scratch_begin(0, 0);
+    
+    u64 size = ring_peek_unread_quantity(client.recv_buffer);
+    u8 *buff = push_array(scratch.arena, u8, size);
+    String8 hexdump = hexdump_str8(scratch.arena, buff, size);
+    fprintf(stderr, "\n%.*s\n", str8_varg(hexdump));
+    
+    scratch_end(scratch);
+}
+
+Test(connect_to_server)
+{
+    Temp scratch = scratch_begin(0, 0);
+    {
+        // We can connect to google's public DNS over HTTPS
+        // as they offer web-client to explore responses.
+        String8 request = str8_lit("GET / HTTP/1.1\r\n"
+                                   "Host: 8.8.8.8\r\n"
+                                   "\r\n");
+
+        Net_Address target;
+        T_Ok(net_str8_to_address(&target, str8_lit("8.8.8.8:443")));
+        Net_Client conn = net_client_alloc(scratch.arena,
+                                           target.address_type,
+                                           Net_TransportProtocol_TCP);
+        conn = net_client_connect(conn, target);
+        ring_try_write(conn.send_buffer, request.size, request.str);
+        T_Ok(net_client_send_from_ring(&conn));
+        T_Ok(net_client_recv_to_ring(&conn));
+        T_Ok(0 == ring_peek_unread_quantity(conn.recv_buffer));
+        // We get a FIN & RST response from google because we aren't encrypted :P
+    }
+    
     scratch_end(scratch);
 }

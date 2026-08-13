@@ -246,6 +246,66 @@ struct Dns_Msg {
     u8 *wire;
 };
 
+////////////////////////////////
+// Enum -> String conversions
+
+String8 class_to_str8[] = {
+    [Dns_Class_INET]   = str8_lit_comp("IN"),
+    [Dns_Class_CSNET]  = str8_lit_comp("CS"),
+    [Dns_Class_CHAOS]  = str8_lit_comp("CH"),
+    [Dns_Class_HESIOD] = str8_lit_comp("HS"),
+    [Dns_QClass_NONE]  = str8_lit_comp("NONE"),
+    [Dns_QClass_ANY]   = str8_lit_comp("ANY"),
+};
+
+String8 opcode_to_str8[] = {
+    [Dns_OpCode_Query]    = str8_lit_comp("QUERY"),
+    [Dns_OpCode_IQuery]   = str8_lit_comp("IQUERY"),
+    [Dns_OpCode_Status]   = str8_lit_comp("STATUS"),
+    [Dns_OpCode_Notify]   = str8_lit_comp("NOTIFY"),
+    [Dns_OpCode_Update]   = str8_lit_comp("NOTIFY"),
+    [Dns_OpCode_Stateful] = str8_lit_comp("STATEFUL"),
+};
+
+String8 rcode_to_str8[] = {
+    [Dns_RCode_Success]                = str8_lit_comp("NOERROR"),
+    [Dns_RCode_FormatError]            = str8_lit_comp("FORMERR"),
+    [Dns_RCode_ServerFailure]          = str8_lit_comp("SERVFAIL"),
+    [Dns_RCode_NameError]              = str8_lit_comp("NXDOMAIN"),
+    [Dns_RCode_NotImplemented]         = str8_lit_comp("NOTIMPL"),
+    [Dns_RCode_Refused]                = str8_lit_comp("REFUSED"),
+    [Dns_RCode_YXDomain]               = str8_lit_comp("YXDOMAIN"),
+    [Dns_RCode_YXRRSet]                = str8_lit_comp("YXRRSET"),
+    [Dns_RCode_NXRRSet]                = str8_lit_comp("NXRRSET"),
+    [Dns_RCode_NotAuth]                = str8_lit_comp("NOTAUTH"),
+    [Dns_RCode_NotZone]                = str8_lit_comp("NOTZONE"),
+    [Dns_RCode_StatefulNotImplemented] = str8_lit_comp("DSOTYPENI"),
+    [Dns_RCode_BadVersion]             = str8_lit_comp("BADVERS"),
+    [Dns_RCode_BadSig]                 = str8_lit_comp("BADSIG"),
+    [Dns_RCode_BadTime]                = str8_lit_comp("BADTIME"),
+    [Dns_RCode_BadMode]                = str8_lit_comp("BADMODE"),
+    [Dns_RCode_BadName]                = str8_lit_comp("BADNAME"),
+    [Dns_RCode_BadAlg]                 = str8_lit_comp("BADALG"),
+    [Dns_RCode_BadTrunc]               = str8_lit_comp("BADTRUNC"),
+    [Dns_RCode_BadCookie]              = str8_lit_comp("BADCOOKIE"),
+};
+
+///////////////
+// Constants
+
+// DEFAULT_MSG_SIZE is the default for messages larger than 512 bytes.
+// this limit is the recommendation from rfc 9715
+#define DEFAULT_MSG_SIZE     1400
+#define MIN_MSG_SIZE         512
+#define MAX_MSG_SIZE         max_u16
+#define MSG_HEADER_SIZE      12
+#define MAX_SERIAL_INCREMENT max_u32
+
+///////////////////////////
+// DNS Message Functions
+
+Dns_Msg *dns_msg_alloc(Arena *arena, String8 domain, Dns_Type type);
+
 ///////////////////////
 // Utility Functions
 
@@ -253,5 +313,16 @@ internal String8 str8_to_fqdn(Arena *arena, String8 s);
 internal bool32  str8_is_fqdn(String8 s);
 internal String8 str8_to_canonical(Arena *arena, String8 s);
 internal bool32  str8_is_domain_name(String8 s);
+
+////////////////////
+// Wire <-> Struct
+
+internal u8 *dns_rr_to_bytes(Arena *arena, Dns_RR rr);
+internal u64 dns_bytes_to_rr(Dns_RR *out, u8 *bytes);
+
+////////////////////////////////////////
+// @per_os_impl Sytem DNS Info
+
+internal String8_List dns_get_local_nameservers(Arena *arena);
 
 #endif // DNS_CORE_H

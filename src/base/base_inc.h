@@ -33,7 +33,7 @@
 #elif OS_LINUX
 # include "linux/base/linux_base.h"
 #else
-# error Operating system backing not found for the base layer
+# error Operating system backend not defined for the base layer.
 #endif
 
 #endif // BASE_INC_H

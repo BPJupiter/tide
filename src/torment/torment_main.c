@@ -18,7 +18,6 @@
 #include "window_manager/window_manager_inc.h"
 #include "torment.h"
 
-
 #include "base/base_inc.c"
 #include "base_ext/base_ext_inc.c"
 #include "net/net_inc.c"

@@ -5,7 +5,9 @@
 // Includes
 
 #include <winsock2.h>
+#include <ws2ipdef.h>
 #include <mswsock.h>
+#include <iphlpapi.h>
 #include <windows.h>
 #include <windowsx.h>
 #include <timeapi.h>
@@ -13,6 +15,7 @@
 #include <Shlobj.h>
 #include <processthreadsapi.h>
 #pragma comment(lib, "user32")
+#pragma comment(lib, "Iphlpapi")
 #pragma comment(lib, "ole32")
 #pragma comment(lib, "shell32")
 #pragma comment(lib, "advapi32")

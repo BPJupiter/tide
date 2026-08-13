@@ -29,5 +29,5 @@
 #elif OS_LINUX
 # include "linux/base/linux_base.c"
 #else
-# error Operating system backed not found for the base layer.
+# error Operating system backend not found for the base layer.
 #endif
