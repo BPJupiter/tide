@@ -1,4 +1,8 @@
 
+////////////////////////////
+// Error Printing Helpers
+
+internal void w32_print_winsock_error(const char *msg);
 
 /////////////////////////////////////////////
 // Networking Conversion Helpers

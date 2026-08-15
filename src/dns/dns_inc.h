@@ -2,6 +2,7 @@
 #define DNS_INC_H
 
 #include "dns_core.h"
+#include "dns_pack.h"
 #include "dns_client.h"
 
 #if OS_WINDOWS

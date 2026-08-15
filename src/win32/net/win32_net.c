@@ -1,4 +1,28 @@
 
+////////////////////////////
+// Error Printing Helpers
+
+internal void w32_print_winsock_error(const char *msg)
+{
+    int errorCode = WSAGetLastError();
+    LPSTR errorString = NULL;
+    DWORD size =
+        FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS,
+                       NULL,
+                       errorCode,
+                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                       (LPSTR)&errorString,
+                       0,
+                       NULL);
+
+    if (size > 0 && errorString != NULL) {
+        fprintf(stderr, "%s: %s (Error Code: %d)\n", msg, errorString, errorCode);
+        LocalFree(errorString);
+    } else {
+        printf("%s (Failed to retrieve string. Error code: %d)\n", msg, errorCode);
+    }
+}
+
 ///////////////////////////////////
 // Networking Conversion Helpers
 
@@ -119,12 +143,15 @@ internal Net_Listener net_listener_alloc(Net_AddressType type, Net_TransportProt
     }
     W32_Entity *entity = (W32_Entity *)PtrFromInt(listener.socket.u64[0]);
     if (INVALID_SOCKET == entity->socket) {
+        w32_print_winsock_error("socket");
         // TODO: Error handling
     }
     if (0 > bind(entity->socket, (SOCKADDR *)&storage, sizeof(storage))) {
+        w32_print_winsock_error("bind");
         // TODO: Error handling
     }
     if (0 > listen(entity->socket, SOMAXCONN)) {
+        w32_print_winsock_error("listen");
         // TODO: Error handling
     }
     return listener;
@@ -140,6 +167,7 @@ internal Net_Client net_listener_accept(Arena *arena, Net_Listener listener)
     W32_Entity *listen_entity = (W32_Entity *)PtrFromInt(listener.socket.u64[0]);
     accept_entity->socket = accept(listen_entity->socket, (SOCKADDR *)&storage, &storagelen);
     if (INVALID_SOCKET == accept_entity->socket) {
+        w32_print_winsock_error("accept");
         // TODO: Error handling
     }
     // This is yuck and currently creates a dummy socket that we have to release.
@@ -167,6 +195,7 @@ internal Net_Client net_client_alloc(Arena *arena, Net_AddressType type, Net_Tra
     Net_Socket client_socket = net_socket_alloc(type, protocol);
     W32_Entity *entity = (W32_Entity *)PtrFromInt(client_socket.u64[0]);
     if (INVALID_SOCKET == entity->socket) {
+        w32_print_winsock_error("socket");
         // TODO: Error handling
     }
 
@@ -176,10 +205,8 @@ internal Net_Client net_client_alloc(Arena *arena, Net_AddressType type, Net_Tra
     client.protocol = protocol;
     client.socket = client_socket; // We could make this call the responsibility of the caller?
     
-    // TODO: I need some sort of compass for how large to make these buffers.
-    // Currently 16kB is a wild guess.
-    client.recv_buffer = make_ring(arena, Kilobytes(16));
-    client.send_buffer = make_ring(arena, Kilobytes(16));
+    client.recv_buffer = make_ring(arena, NET_CLIENT_DEFAULT_BUFFER_SIZE);
+    client.send_buffer = make_ring(arena, NET_CLIENT_DEFAULT_BUFFER_SIZE);
     return client;
 }
 
@@ -190,6 +217,7 @@ internal Net_Client net_client_connect(Net_Client client, Net_Address target)
 
     W32_Entity *entity = (W32_Entity *)PtrFromInt(client.socket.u64[0]);
     if (SOCKET_ERROR == connect(entity->socket, (SOCKADDR *)&storage, sizeof(storage))) {
+        w32_print_winsock_error("connect");
         // TODO: Error handling
     }
     client.address = target;
@@ -224,12 +252,14 @@ internal s64 net_client_send_raw(Net_Client *client, u32 size, void *data)
         case Net_TransportProtocol_UDP: {
             W32_Entity *entity = (W32_Entity *)PtrFromInt(client->socket.u64[0]);
             SOCKADDR_STORAGE dest = {0};
+            w32_net_address_to_sockaddr_storage(&dest, &client->address);
             s64 n = sendto(entity->socket, data, size, 0, (SOCKADDR *)&dest, sizeof(dest));
-            w32_sockaddr_storage_to_net_address(&client->address, (SOCKADDR_STORAGE *)&dest);
             if (SOCKET_ERROR == n) {
+                w32_print_winsock_error("sendto");
                 result = -1;
             }
             else if (n != size) {
+                w32_print_winsock_error("sendto");
                 // TODO: Error handling
                 //       this should only happen if the message is truncated,
                 //       which theoretically shouldn't happen

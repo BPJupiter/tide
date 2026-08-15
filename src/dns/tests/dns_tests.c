@@ -20,15 +20,34 @@ Test(example_client_exchange)
     Dns_Client client = dns_client_alloc(scratch.arena, Net_AddressType_Ipv4);
     Net_Address address = {0};
     (void)net_str8_to_address(&address, str8_lit("8.8.8.8:53"));
+
+    // @REMOVE
+    u64 off = dns_pack_msg(msg);
+    String8 hexdump = hexdump_str8(scratch.arena,
+                                   msg->wire,
+                                   off);
+    printf("\n%.*s\n", str8_varg(hexdump));
+    client.dialer.address = address;
+    T_Ok(0 < net_client_send_raw(&client.dialer, off, msg->wire));
+    T_Ok(net_client_recv_to_ring(&client.dialer));
+    hexdump = hexdump_str8(scratch.arena,
+                                   client.dialer.recv_buffer->base + client.dialer.recv_buffer->read_pos,
+                                   ring_peek_unread_quantity(client.dialer.recv_buffer));
+    printf("\n%.*s\n", str8_varg(hexdump));
+    /*
     Dns_Msg *response = dns_client_exchange(client, msg, Net_TransportProtocol_UDP, address);
 
-    for (Dns_RR *n = msg->answer; n != 0; n = n->next) {
-        if (n->type == Dns_Type_A) {
-            String8 address = net_ipv4_to_str8(scratch.arena, n->rdata.A);
+    for (u64 i = 0; i < msg->header.answer_count; i++) {
+        Dns_RR rr = response->answer[i];
+        if (rr.type == Dns_Type_A) {
+            String8 address = net_ipv4_to_str8(scratch.arena, rr.rdata.A.addr);
             fprintf(stderr, "%.*s\n", str8_varg(address));
-            T_Ok(n->rdata.A);
+            T_Ok(rr.rdata.A.addr);
         }
     }
+    */
     
     scratch_end(scratch);
 }
+
+

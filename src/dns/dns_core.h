@@ -5,10 +5,6 @@
 #ifndef DNS_CORE_H
 #define DNS_CORE_H
 
-#define DNS_MAX_LABEL_LEN 63
-#define DNS_MAX_NAME_LEN  255
-#define DNS_MAX_RDATA_LEN (Kilobytes(4096)) // rfc 6891
-
 typedef enum Dns_Type Dns_Type;
 enum Dns_Type {
     /* RESERVED       =   0,    rfc 6895 */
@@ -128,7 +124,7 @@ enum Dns_Type {
 
 // This is a temporary array for me to easily keep track of
 // what is an isn't supported at this time.
-bool32 g_supported_dns_types[1ULL << 16] = {
+global bool32 supported_dns_types[1ULL << 16] = {
     [Dns_Type_A]     = true,
     [Dns_Type_NS]    = true,
     [Dns_Type_CNAME] = true,
@@ -200,8 +196,6 @@ enum Dns_RCode {
 
 typedef struct Dns_RR Dns_RR;
 struct Dns_RR {
-    Dns_RR   *next;
-    
     String8   name;
     Dns_Type  type;
     Dns_Class class;
@@ -209,10 +203,18 @@ struct Dns_RR {
     
     union
     {
-        u32     A;
-        String8 NS;
-        String8 CNAME;
-        u128    AAAA;
+        struct {
+            u32 addr;
+        } A;
+        struct {
+            String8 ns;
+        } NS;
+        struct {
+            String8 target;
+        } CNAME;
+        struct {
+            u128 addr;
+        } AAAA;
     } rdata;
 };
 
@@ -243,13 +245,129 @@ struct Dns_Msg {
     Dns_RR *answer;
     Dns_RR *ns;
     Dns_RR *extra;
+
+    Arena *wire_arena;
     u8 *wire;
 };
 
 ////////////////////////////////
 // Enum -> String conversions
 
-String8 class_to_str8[] = {
+global String8 dns_type_to_str8[] = {
+#if COMPILER_CLANG || COMPILER_GCC
+    [0 ... max_u16]   = str8_lit_comp("UNKNOWN_DNS_TYPE"),
+#endif
+    /* [0] IS RESERVED */
+    [Dns_Type_A]      = str8_lit_comp("A"),
+    [Dns_Type_NS]     = str8_lit_comp("NS"),
+    [Dns_Type_MD]     = str8_lit_comp("MD"),
+    [Dns_Type_MF]     = str8_lit_comp("MF"),
+    [Dns_Type_CNAME]  = str8_lit_comp("CNAME"),
+    [Dns_Type_SOA]    = str8_lit_comp("SOA"),
+    [Dns_Type_MB]     = str8_lit_comp("MB"),
+    [Dns_Type_MG]     = str8_lit_comp("MG"),
+    [Dns_Type_MR]     = str8_lit_comp("MR"),
+    [Dns_Type_NULL]   = str8_lit_comp("NULL"),
+    [Dns_Type_WKS]    = str8_lit_comp("WKS"),
+    [Dns_Type_PTR]    = str8_lit_comp("PTR"),
+    [Dns_Type_HINFO]  = str8_lit_comp("HINFO"),
+    [Dns_Type_MINFO]  = str8_lit_comp("MINFO"),
+    [Dns_Type_MX]     = str8_lit_comp("MX"),
+    [Dns_Type_TXT]    = str8_lit_comp("TXT"),
+    [Dns_Type_RP]     = str8_lit_comp("RP"),
+    [Dns_Type_AFSDB]  = str8_lit_comp("AFSDB"),
+    [Dns_Type_X25]    = str8_lit_comp("X25"),
+    [Dns_Type_ISDN]   = str8_lit_comp("ISDN"),
+    [Dns_Type_RT]     = str8_lit_comp("RT"),
+    [Dns_Type_NSAP]   = str8_lit_comp("NSAP"),
+    [Dns_Type_NSAPPTR] = str8_lit_comp("NSAPPTR"),
+    [Dns_Type_SIG]    = str8_lit_comp("SIG"),
+    [Dns_Type_KEY]    = str8_lit_comp("KEY"),
+    [Dns_Type_PX]     = str8_lit_comp("PX"),
+    [Dns_Type_GPOS]   = str8_lit_comp("GPOS"),
+    [Dns_Type_AAAA]   = str8_lit_comp("AAAA"),
+    [Dns_Type_LOC]    = str8_lit_comp("LOC"),
+    [Dns_Type_NXT]    = str8_lit_comp("NXT"),
+    [Dns_Type_EID]    = str8_lit_comp("EID"),
+    [Dns_Type_NIMLOC] = str8_lit_comp("NIMLOC"),
+    [Dns_Type_NB]     = str8_lit_comp("NB"),
+    [Dns_Type_NBSTAT] = str8_lit_comp("NBSTAT"),
+    [Dns_Type_SRV]    = str8_lit_comp("SRV"),
+    [Dns_Type_ATMA]   = str8_lit_comp("ATMA"),
+    [Dns_Type_NAPTR]  = str8_lit_comp("NAPTR"),
+    [Dns_Type_KX]     = str8_lit_comp("KX"),
+    [Dns_Type_CERT]   = str8_lit_comp("CERT"),
+    [Dns_Type_A6]     = str8_lit_comp("A6"),
+    [Dns_Type_DNAME]  = str8_lit_comp("DNAME"),
+    [Dns_Type_SINK]   = str8_lit_comp("SINK"),
+    [Dns_Type_OPT]    = str8_lit_comp("OPT"),
+    [Dns_Type_APL]    = str8_lit_comp("APL"),
+    [Dns_Type_DS]     = str8_lit_comp("DS"),
+    [Dns_Type_SSHFP]  = str8_lit_comp("SSHFP"),
+    [Dns_Type_IPSECKEY] = str8_lit_comp("IPSECKEY"),
+    [Dns_Type_RRSIG]  = str8_lit_comp("RRSIG"),
+    [Dns_Type_NSEC]   = str8_lit_comp("NSEC"),
+    [Dns_Type_DNSKEY] = str8_lit_comp("DNSKEY"),
+    [Dns_Type_DHCID]  = str8_lit_comp("DHCID"),
+    [Dns_Type_NSEC3]  = str8_lit_comp("NSEC3"),
+    [Dns_Type_NSEC3PARAM] = str8_lit_comp("NSEC3PARAM"),
+    [Dns_Type_TLSA]   = str8_lit_comp("TLSA"),
+    [Dns_Type_SMIMEA] = str8_lit_comp("SMIMEA"),
+    /* UNASSIGNED     =  54,             */
+    [Dns_Type_HIP]    = str8_lit_comp("HIP"),
+    [Dns_Type_NINFO]  = str8_lit_comp("NINFO"),
+    [Dns_Type_RKEY]   = str8_lit_comp("RKEY"),
+    [Dns_Type_TALINK] = str8_lit_comp("TALINK"),
+    [Dns_Type_CDS]    = str8_lit_comp("CDS"),
+    [Dns_Type_CDNSKEY] = str8_lit_comp("CDNSKEY"),
+    [Dns_Type_OPENPGPKEY] = str8_lit_comp("OPENPGPKEY"),
+    [Dns_Type_CSYNC]  = str8_lit_comp("CSYNC"),
+    [Dns_Type_ZONEMD] = str8_lit_comp("ZONEMD"),
+    [Dns_Type_SVCB]   = str8_lit_comp("SVCB"),
+    [Dns_Type_HTTPS]  = str8_lit_comp("HTTPS"),
+    [Dns_Type_DSYNC]  = str8_lit_comp("DSYNC"),
+    [Dns_Type_HHIT]   = str8_lit_comp("HHIT"),
+    [Dns_Type_BRID]   = str8_lit_comp("BRID"),
+    /* UNASSIGNED     =  69,
+                      =  98,             */
+    [Dns_Type_SPF]    = str8_lit_comp("SPF"),
+    [Dns_Type_UINFO]  = str8_lit_comp("UINFO"),
+    [Dns_Type_UID]    = str8_lit_comp("UID"),
+    [Dns_Type_GID]    = str8_lit_comp("GID"),
+    [Dns_Type_UNSPEC] = str8_lit_comp("UNSPEC"),
+    [Dns_Type_NID]    = str8_lit_comp("NID"),
+    [Dns_Type_L32]    = str8_lit_comp("L32"),
+    [Dns_Type_L64]    = str8_lit_comp("L64"),
+    [Dns_Type_LP]     = str8_lit_comp("LP"),
+    [Dns_Type_EUI48]  = str8_lit_comp("EUI48"),
+    [Dns_Type_EUI64]  = str8_lit_comp("EUI64"),
+    /* UNASSIGNED     = 110,
+                      = 127,             */
+    [Dns_Type_NXNAME] = str8_lit_comp("NXNAME"),
+    /* UNASSIGNED     = 129,
+                      = 248,             */
+    [Dns_Type_TKEY]   = str8_lit_comp("TKEY"),
+    [Dns_Type_TSIG]   = str8_lit_comp("TSIG"),
+    [Dns_QType_IXFR]  = str8_lit_comp("IXFR"),
+    [Dns_QType_AXFR]  = str8_lit_comp("AXFR"),
+    [Dns_QType_MAILB] = str8_lit_comp("MAILB"),
+    [Dns_QType_MAILA] = str8_lit_comp("MAILA"),
+    [Dns_QType_ANY]   = str8_lit_comp("ANY"),
+    [Dns_Type_URI]    = str8_lit_comp("URI"),
+    [Dns_Type_CAA]    = str8_lit_comp("CAA"),
+    [Dns_Type_DOA]    = str8_lit_comp("DOA"),
+    [Dns_Type_AMTRELAY] = str8_lit_comp("AMTRELAY"),
+    [Dns_Type_RESINFO] = str8_lit_comp("RESINFO"),
+    [Dns_Type_WALLET] = str8_lit_comp("WALLET"),
+    [Dns_Type_CLA]    = str8_lit_comp("CLA"),
+    [Dns_Type_IPN]    = str8_lit_comp("IPN"),
+    /* UNASSIGNED     = 265,
+                      = 32767       */
+    [Dns_Type_TA]     = str8_lit_comp("TA"),
+    [Dns_Type_DLV]    = str8_lit_comp("DLV"),
+};
+
+global String8 dns_class_to_str8[] = {
     [Dns_Class_INET]   = str8_lit_comp("IN"),
     [Dns_Class_CSNET]  = str8_lit_comp("CS"),
     [Dns_Class_CHAOS]  = str8_lit_comp("CH"),
@@ -258,7 +376,7 @@ String8 class_to_str8[] = {
     [Dns_QClass_ANY]   = str8_lit_comp("ANY"),
 };
 
-String8 opcode_to_str8[] = {
+global String8 dns_opcode_to_str8[] = {
     [Dns_OpCode_Query]    = str8_lit_comp("QUERY"),
     [Dns_OpCode_IQuery]   = str8_lit_comp("IQUERY"),
     [Dns_OpCode_Status]   = str8_lit_comp("STATUS"),
@@ -267,7 +385,7 @@ String8 opcode_to_str8[] = {
     [Dns_OpCode_Stateful] = str8_lit_comp("STATEFUL"),
 };
 
-String8 rcode_to_str8[] = {
+global String8 dns_rcode_to_str8[] = {
     [Dns_RCode_Success]                = str8_lit_comp("NOERROR"),
     [Dns_RCode_FormatError]            = str8_lit_comp("FORMERR"),
     [Dns_RCode_ServerFailure]          = str8_lit_comp("SERVFAIL"),
@@ -295,16 +413,32 @@ String8 rcode_to_str8[] = {
 
 // DEFAULT_MSG_SIZE is the default for messages larger than 512 bytes.
 // this limit is the recommendation from rfc 9715
-#define DEFAULT_MSG_SIZE     1400
-#define MIN_MSG_SIZE         512
-#define MAX_MSG_SIZE         max_u16
-#define MSG_HEADER_SIZE      12
-#define MAX_SERIAL_INCREMENT max_u32
+#define DNS_DEFAULT_MSG_SIZE     1400
+#define DNS_MIN_MSG_SIZE         512
+#define DNS_MAX_MSG_SIZE         max_u16
+#define DNS_MSG_HEADER_SIZE      12
+#define DNS_MAX_SERIAL_INCREMENT max_u32
 
-///////////////////////////
-// DNS Message Functions
+#define DNS_MAX_LABEL_LEN 63
+#define DNS_MAX_NAME_LEN  255
+#define DNS_MAX_RDATA_LEN (Kilobytes(4096)) // rfc 6891
 
-Dns_Msg *dns_msg_alloc(Arena *arena, String8 domain, Dns_Type type);
+//////////////////////////////////
+// @REMOVE: Supported Dns Check
+
+#define DNS_CRASH_THE_PROGRAM_IF_THIS_TYPE_IS_SUPPORTED(type)                                \
+    do {                                                                                     \
+        if (supported_dns_types[type]) {                                                     \
+            fprintf(stderr, "////////////////////////////////////////////////////////\n");   \
+            fprintf(stderr, " SUPPORTED DNS TYPE NOT IMPLEMENTED! : %.*s\n ",                \
+                    str8_varg(dns_type_to_str8[type]));                                      \
+            fprintf(stderr, "////////////////////////////////////////////////////////\n");   \
+            u64 *SUPPORTED_DNS_TYPE_NOT_IMPLEMENTED = 0;                                     \
+            SUPPORTED_DNS_TYPE_NOT_IMPLEMENTED[0] = 1;                                       \
+        }                                                                                    \
+    } while(0)
+
+internal Dns_Msg *dns_msg_alloc(Arena *arena, String8 domain, Dns_Type type);
 
 ///////////////////////
 // Utility Functions
@@ -312,13 +446,15 @@ Dns_Msg *dns_msg_alloc(Arena *arena, String8 domain, Dns_Type type);
 internal String8 str8_to_fqdn(Arena *arena, String8 s);
 internal bool32  str8_is_fqdn(String8 s);
 internal String8 str8_to_canonical(Arena *arena, String8 s);
+internal String8 str8_to_domain_name(Arena *arena, String8 s);
 internal bool32  str8_is_domain_name(String8 s);
 
-////////////////////
-// Wire <-> Struct
+/////////////
+// Wire Lengths
 
-internal u8 *dns_rr_to_bytes(Arena *arena, Dns_RR rr);
-internal u64 dns_bytes_to_rr(Dns_RR *out, u8 *bytes);
+internal u64 dns_rdata_wire_length(Dns_RR *rr);
+internal u64 dns_rr_wire_length(Dns_RR *rr);
+internal u64 dns_msg_wire_length(Dns_Msg *msg);
 
 ////////////////////////////////////////
 // @per_os_impl Sytem DNS Info

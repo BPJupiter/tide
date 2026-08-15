@@ -2,11 +2,6 @@
 #ifndef NET_CORE_H
 #define NET_CORE_H
 
-//////////////////////////
-// Networking Constants
-
-#define UDP_MTU 1500
-
 ///////////////////////////
 // Networking Structures
 
@@ -61,6 +56,13 @@ struct Net_Client {
     Ring *recv_buffer;
     Ring *send_buffer;
 };
+
+
+//////////////////////////
+// Networking Constants
+
+#define NET_UDP_MTU 1500
+#define NET_CLIENT_DEFAULT_BUFFER_SIZE Kilobytes(64)
 
 ////////////////////////////////////
 // Host <-> Network Byte ordering
