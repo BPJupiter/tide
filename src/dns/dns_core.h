@@ -128,6 +128,7 @@ global bool32 supported_dns_types[1ULL << 16] = {
     [Dns_Type_A]     = true,
     [Dns_Type_NS]    = true,
     [Dns_Type_CNAME] = true,
+    [Dns_Type_SOA]   = true,
     [Dns_Type_AAAA]  = true,
 };
 
@@ -212,6 +213,15 @@ struct Dns_RR {
         struct {
             String8 target;
         } CNAME;
+        struct {
+            String8 master_name;
+            String8 responsible_name;
+            u32 serial;
+            u32 refresh;
+            u32 retry;
+            u32 expire;
+            u32 minimum;
+        } SOA;
         struct {
             u128 addr;
         } AAAA;

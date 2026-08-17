@@ -13,11 +13,27 @@ internal bool32 dns_pack_rdata(Ring *ring, Dns_RR *rr)
         } break;
         case Dns_Type_NS: {
             String8 ns = str8_to_name_labels(scratch.arena, rr->rdata.NS.ns);
-            result &= ring_try_write(ring, ns.size, &ns.str);
+            result &= ring_try_write(ring, ns.size, ns.str);
         } break;
         case Dns_Type_CNAME: {
             String8 cname = str8_to_name_labels(scratch.arena, rr->rdata.CNAME.target);
-            result &= ring_try_write(ring, cname.size, &cname.str);
+            result &= ring_try_write(ring, cname.size, cname.str);
+        } break;
+        case Dns_Type_SOA: {
+            String8 mname = str8_to_name_labels(scratch.arena, rr->rdata.SOA.master_name);
+            String8 rname = str8_to_name_labels(scratch.arena, rr->rdata.SOA.responsible_name);
+            u32 serial  = host_to_net_u32(rr->rdata.SOA.serial);
+            u32 refresh = host_to_net_u32(rr->rdata.SOA.refresh);
+            u32 retry   = host_to_net_u32(rr->rdata.SOA.retry);
+            u32 expire  = host_to_net_u32(rr->rdata.SOA.expire);
+            u32 minimum = host_to_net_u32(rr->rdata.SOA.minimum);
+            result &= ring_try_write(ring, mname.size, mname.str);
+            result &= ring_try_write(ring, rname.size, rname.str);
+            result &= ring_try_write_struct(ring, &serial);
+            result &= ring_try_write_struct(ring, &refresh);
+            result &= ring_try_write_struct(ring, &retry);
+            result &= ring_try_write_struct(ring, &expire);
+            result &= ring_try_write_struct(ring, &minimum);
         } break;
         case Dns_Type_AAAA: {
             u128 addr = host_to_net_u128(rr->rdata.AAAA.addr);
@@ -297,6 +313,21 @@ internal bool32 dns_unpack_rdata(Arena *arena, Ring *ring, Dns_RR *rr, u16 rdlen
         } break;
         case Dns_Type_CNAME: {
             result &= dns_unpack_labels(arena, ring, &rr->rdata.CNAME.target);
+        } break;
+        case Dns_Type_SOA: {
+            result &= dns_unpack_labels(arena, ring, &rr->rdata.SOA.master_name);
+            result &= dns_unpack_labels(arena, ring, &rr->rdata.SOA.responsible_name);
+            u32 serial, refresh, retry, expire, minimum;
+            result &= ring_try_read_struct(ring, &serial);
+            result &= ring_try_read_struct(ring, &refresh);
+            result &= ring_try_read_struct(ring, &retry);
+            result &= ring_try_read_struct(ring, &expire);
+            result &= ring_try_read_struct(ring, &minimum);
+            rr->rdata.SOA.serial  = net_to_host_u32(serial);
+            rr->rdata.SOA.refresh = net_to_host_u32(refresh);
+            rr->rdata.SOA.retry   = net_to_host_u32(retry);
+            rr->rdata.SOA.expire  = net_to_host_u32(expire);
+            rr->rdata.SOA.minimum = net_to_host_u32(minimum);
         } break;
         case Dns_Type_AAAA: {
             u128 addr;
