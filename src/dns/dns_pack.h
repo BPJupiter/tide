@@ -16,19 +16,17 @@
 #define _CO (1 << 14)
 #define _DE (1 << 13)
 
-//////////////////
-// Wire Packing
+////////////////////////////
+// Wire Packing/Unpacking
 
-// @TODO: Redo packing with a ring buffer.
-internal u64 dns_pack_u8(u8 i, u8 *wire, u64 off);
-internal u64 dns_pack_u16(u16 i, u8 *wire, u64 off);
-internal u64 dns_pack_u32(u32 i, u8 *wire, u64 off);
-internal u64 dns_pack_u64(u64 i, u8 *wire, u64 off);
-internal u64 dns_pack_u128(u128 i, u8 *wire, u64 off);
-internal u64 dns_pack_str8(String8 s, u8 *wire, u64 off);
+internal bool32 dns_pack_rdata   (Ring *ring, Dns_RR *rr);
+internal bool32 dns_pack_question(Ring *ring, Dns_RR *rr);
+internal bool32 dns_pack_rr      (Ring *ring, Dns_RR *rr);
+internal bool32 dns_pack_msg     (Ring *ring, Dns_Msg *msg);
 
-internal u64 dns_pack_question(Dns_RR rr, u8* wire, u64 off);
-internal u64 dns_pack_rdata(Dns_RR rr, u8 *wire, u64 off);
-internal u64 dns_pack_rr(Dns_RR rr, u8 *wire, u64 off);
-internal u64 dns_pack_msg(Dns_Msg *msg);
+internal bool32 dns_unpack_labels  (Arena *arena, Ring *ring, String8 *out);
+internal bool32 dns_unpack_rdata   (Arena *arena, Ring *ring, Dns_RR *rr, u16 rdlength);
+internal bool32 dns_unpack_question(Arena *arena, Ring *ring, Dns_RR *rr);
+internal bool32 dns_unpack_rr      (Arena *arena, Ring *ring, Dns_RR *rr);
+internal bool32 dns_unpack_msg     (Arena *arena, Ring *ring, Dns_Msg *msg);
 

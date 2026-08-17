@@ -38,7 +38,7 @@ internal String8_List dns_get_local_nameservers(Arena *arena)
             // This MAY break because I have no idea what standard
             // practice is around dns suffix advertisement.
             if ((pCurrAddresses->OperStatus == IfOperStatusUp)
-                && (0 != wcslen(pCurrAddresses->DnsSuffix))) {
+                /*&& (0 != wcslen(pCurrAddresses->DnsSuffix))*/) {
 
                 pDns = pCurrAddresses->FirstDnsServerAddress;
                 if (pDns) {

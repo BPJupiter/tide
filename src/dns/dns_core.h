@@ -232,7 +232,8 @@ struct Dns_Msg_Header {
     bool32 authenticated_data;
     bool32 checking_disabled;
     Dns_RCode rcode;
-    
+
+    u16 question_count;
     u16 answer_count;
     u16 nameserver_count;
     u16 additional_count;
@@ -241,13 +242,11 @@ struct Dns_Msg_Header {
 typedef struct Dns_Msg Dns_Msg;
 struct Dns_Msg {
     Dns_Msg_Header header;
-    Dns_RR question;
+    Dns_RR *question; // the only reason this is an array is because some clients MAY send more than one question.
+                      // we will only ever write one ourselves.
     Dns_RR *answer;
     Dns_RR *ns;
     Dns_RR *extra;
-
-    Arena *wire_arena;
-    u8 *wire;
 };
 
 ////////////////////////////////
@@ -419,6 +418,7 @@ global String8 dns_rcode_to_str8[] = {
 #define DNS_MSG_HEADER_SIZE      12
 #define DNS_MAX_SERIAL_INCREMENT max_u32
 
+#define DNS_MAX_COMPRESSION_JUMPS 16 // arbitrary
 #define DNS_MAX_LABEL_LEN 63
 #define DNS_MAX_NAME_LEN  255
 #define DNS_MAX_RDATA_LEN (Kilobytes(4096)) // rfc 6891
@@ -438,7 +438,7 @@ global String8 dns_rcode_to_str8[] = {
         }                                                                                    \
     } while(0)
 
-internal Dns_Msg *dns_msg_alloc(Arena *arena, String8 domain, Dns_Type type);
+internal Dns_Msg dns_msg_alloc(Arena *arena, String8 domain, Dns_Type type);
 
 ///////////////////////
 // Utility Functions
@@ -446,8 +446,8 @@ internal Dns_Msg *dns_msg_alloc(Arena *arena, String8 domain, Dns_Type type);
 internal String8 str8_to_fqdn(Arena *arena, String8 s);
 internal bool32  str8_is_fqdn(String8 s);
 internal String8 str8_to_canonical(Arena *arena, String8 s);
-internal String8 str8_to_domain_name(Arena *arena, String8 s);
-internal bool32  str8_is_domain_name(String8 s);
+internal String8 str8_to_name_labels(Arena *arena, String8 s);
+internal bool32  str8_is_name_labels(String8 s);
 
 /////////////
 // Wire Lengths

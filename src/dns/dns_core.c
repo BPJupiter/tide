@@ -21,15 +21,16 @@ internal u16 dns_id_func_default(void)
 ///////////////////////////
 // DNS Message Functions
 
-Dns_Msg *dns_msg_alloc(Arena *arena, String8 domain, Dns_Type type)
+Dns_Msg dns_msg_alloc(Arena *arena, String8 domain, Dns_Type type)
 {
-    Dns_Msg *msg = push_array(arena, Dns_Msg, 1);
-    msg->header.id = dns_id_func();
-    msg->header.recursion_desired = true;
-    msg->question.name = str8_to_fqdn(arena, domain);
-    msg->question.class = Dns_Class_INET;
-    msg->question.type = type;
-    msg->wire_arena = arena;
+    Dns_Msg msg = {0};
+    msg.header.id = dns_id_func();
+    msg.header.recursion_desired = true;
+    msg.header.question_count = 1;
+    msg.question = push_array(arena, Dns_RR, 1);
+    msg.question[0].name = str8_to_fqdn(arena, domain);
+    msg.question[0].class = Dns_Class_INET;
+    msg.question[0].type = type;
     return msg;
 }
 
@@ -59,7 +60,7 @@ internal String8 str8_to_canonical(Arena *arena, String8 s)
     return result;
 }
 
-internal String8 str8_to_domain_name(Arena *arena, String8 s)
+internal String8 str8_to_name_labels(Arena *arena, String8 s)
 {
     Temp scratch = scratch_begin(&arena, 1);
 
@@ -109,7 +110,7 @@ internal String8 str8_to_domain_name(Arena *arena, String8 s)
     return result;
 }
 
-internal bool32 str8_is_domain_name(String8 s)
+internal bool32 str8_is_name_labels(String8 s)
 {
     bool32 result = true;
     const u64 msg_len = 256;
@@ -211,13 +212,17 @@ internal u64 dns_rr_wire_length(Dns_RR *rr)
 
 internal u64 dns_msg_wire_length(Dns_Msg *msg)
 {
+    u64 i = 0;
     u64 l = DNS_MSG_HEADER_SIZE;
 
     // we always add a +1, even if the name is a root label.
     // 4 is for the type and class.
-    l += msg->question.name.size + 1 + 4;
 
-    u64 i = 0;
+    for (i = 0; i < msg->header.question_count; i++) {
+        l += msg->question[i].name.size + 1;
+    }
+    l += 4;
+
     for (i = 0; i < msg->header.answer_count; i++) {
         l += dns_rr_wire_length(&msg->answer[i]);
     }

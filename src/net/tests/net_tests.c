@@ -190,8 +190,6 @@ Test(str8_ipv6_strings)
         T_Ok(u128_match(ip, seed_to_u128[i]));
 
         String8 string = net_ipv6_to_str8(scratch.arena, seed_to_u128[i]);
-        // @TODO: make a ipv6_str8_match function
-        //T_Ok(str8_match(valid_seeds[i], string, 0));
         
         T_Ok(net_str8_to_ipv6(&ip, string));
         T_Ok(u128_match(ip, seed_to_u128[i]));
