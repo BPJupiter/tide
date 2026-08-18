@@ -4,7 +4,7 @@
 
 internal void lnx_sockaddr_storage_to_net_address(Net_Address *out, struct sockaddr_storage *in)
 {
-    switch (in->sa_family) {
+    switch (in->ss_family) {
         case AF_INET: {
             struct sockaddr_in *addr = (struct sockaddr_in *)in;
 
@@ -20,7 +20,7 @@ internal void lnx_sockaddr_storage_to_net_address(Net_Address *out, struct socka
             MemoryCopyArray(out->ip.v6.u8, addr->sin6_addr.s6_addr);
         } break;
         default: {
-            MemoryZero(out);
+            MemoryZeroStruct(out);
         } break;
     }
 }
@@ -58,5 +58,299 @@ internal Net_Socket net_socket_alloc(Net_AddressType type, Net_TransportProtocol
 {
     LNX_Entity *entity = lnx_entity_alloc(LNX_EntityKind_Socket);
 
-    // @TODO: Finish
+    u16 family = 0;
+    switch (type) {
+        default:
+        case Net_AddressType_Any:
+        case Net_AddressType_Ipv4: {
+            family = AF_INET;
+        } break;
+        case Net_AddressType_Ipv6: {
+            family = AF_INET6;
+        } break;
+    }
+
+    switch (protocol) {
+        default:
+        case Net_TransportProtocol_RAW: {
+            entity->socket = socket(family, SOCK_RAW, 0);
+        } break;
+        case Net_TransportProtocol_TCP: {
+            entity->socket = socket(family, SOCK_STREAM, 0);
+        } break;
+        case Net_TransportProtocol_UDP: {
+            entity->socket = socket(family, SOCK_DGRAM, 0);
+        } break;
+    }
+
+    Net_Socket socket = {IntFromPtr(entity)};
+    return socket;
+}
+
+internal void net_socket_release(Net_Socket socket)
+{
+    LNX_Entity *entity = (LNX_Entity *)PtrFromInt(socket.u64[0]);
+    close(entity->socket);
+    lnx_entity_release(entity);
+}
+
+/////////////////////////////////////////////
+// @per_os_impl Network Listener Functions
+
+internal Net_Listener net_listener_alloc(Net_AddressType type, Net_TransportProtocol protocol, u16 port)
+{
+    struct sockaddr_storage storage = {0};
+    Net_Address address = {0};
+    address.address_type = type;
+    address.port = port;
+    lnx_net_address_to_sockaddr_storage(&storage, &address);
+    Net_Listener listener = {0};
+    {
+        listener.port = port;
+        listener.type = type;
+        listener.protocol = protocol;
+        listener.socket = net_socket_alloc(type, protocol);
+    }
+    LNX_Entity *entity = (LNX_Entity *)PtrFromInt(listener.socket.u64[0]);
+    if (-1 == entity->socket) {
+        // @TODO: Error handling
+        perror("socket");
+        fprintf(stderr, "LNX NET ERROR AT %s %d\n", __FILE__, __LINE__);
+    }
+    // Do some linux-specific options to make life easier
+    {
+        int opt = 1;
+        if (0 > setsockopt(entity->socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
+            // @TODO: Error handling
+            perror("setsockopt");
+            fprintf(stderr, "LNX NET ERROR AT %s %d\n", __FILE__, __LINE__);        
+        }
+        if (0 > setsockopt(entity->socket, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt))) {
+            // @TODO: Error handling
+            perror("setsockopt");
+            fprintf(stderr, "LNX NET ERROR AT %s %d\n", __FILE__, __LINE__);
+        }
+    }
+    if (0 > bind(entity->socket, (struct sockaddr *)&storage, sizeof(storage))) {
+        // @TODO: Error handling
+        perror("bind");
+        fprintf(stderr, "LNX NET ERROR AT %s %d\n", __FILE__, __LINE__);
+    }
+    if (0 > listen(entity->socket, SOMAXCONN)) {
+        // @TODO: Error handling
+        perror("listen");
+        fprintf(stderr, "LNX NET ERROR AT %s %d\n", __FILE__, __LINE__);
+    }
+    return listener;
+}
+
+internal Net_Client net_listener_accept(Arena *arena, Net_Listener listener)
+{
+    struct sockaddr_storage storage = {0};
+    socklen_t storagelen = sizeof(storage);
+
+    LNX_Entity *listen_entity = (LNX_Entity *)PtrFromInt(listener.socket.u64[0]);
+    int socket = accept(listen_entity->socket, (struct sockaddr *)&storage, &storagelen);
+    if (-1 == socket) {
+        // @TODO: Error handling
+        perror("accept");
+        fprintf(stderr, "LNX NET ERROR AT %s %d\n", __FILE__, __LINE__);
+    }
+    LNX_Entity *accept_entity = lnx_entity_alloc(LNX_EntityKind_Socket);
+    accept_entity->socket = socket;
+    Net_Socket accept_socket = {IntFromPtr(accept_entity)};
+    // This is yuck and currently creates a dummy socket that we have to release.
+    // Might be worth duplicating the logic of net_client_alloc
+    // if this ends up being a lot of overhead.
+    Net_Client client = net_client_alloc(arena, listener.type, listener.protocol);
+    net_socket_release(client.socket);
+    client.socket = accept_socket;
+    lnx_sockaddr_storage_to_net_address(&client.address, &storage);
+    client.connected = true;
+
+    return client;
+}
+
+internal void net_listener_close(Net_Listener listener)
+{
+    net_socket_release(listener.socket);
+}
+
+///////////////////////////////////////////
+// @per_os_impl Network Client Functions
+
+internal Net_Client net_client_alloc(Arena *arena, Net_AddressType type, Net_TransportProtocol protocol)
+{
+    Net_Socket client_socket = net_socket_alloc(type, protocol);
+    LNX_Entity *entity = (LNX_Entity *)PtrFromInt(client_socket.u64[0]);
+    if (-1 == entity->socket) {
+        // @TODO: Error handling
+        perror("socket");
+        fprintf(stderr, "LNX NET ERROR AT %s %d\n", __FILE__, __LINE__);
+    }
+
+    Net_Client client = {0};
+    client.arena = arena;
+    client.type = type;
+    client.protocol = protocol;
+    client.socket = client_socket;
+    client.recv_buffer = make_ring(arena, NET_CLIENT_DEFAULT_BUFFER_SIZE);
+    client.send_buffer = make_ring(arena, NET_CLIENT_DEFAULT_BUFFER_SIZE);
+    return client;
+}
+
+internal Net_Client net_client_connect(Net_Client client, Net_Address target)
+{
+    struct sockaddr_storage storage = {0};
+    lnx_net_address_to_sockaddr_storage(&storage, &target);
+
+    LNX_Entity *entity = (LNX_Entity *)PtrFromInt(client.socket.u64[0]);
+    if (-1 == connect(entity->socket, (struct sockaddr *)&storage, sizeof(storage))) {
+        // @TODO: Error handling
+        perror("connect");
+        fprintf(stderr, "LNX NET ERROR AT %s %d\n", __FILE__, __LINE__);
+    }
+    client.address = target;
+    client.connected = true;
+    return client;
+}
+
+internal s64 net_client_send_raw(Net_Client *client, u32 size, void *data)
+{
+    s64 result = -1;
+
+    switch (client->protocol)
+    {
+        case Net_TransportProtocol_TCP: {
+            LNX_Entity *entity = (LNX_Entity *)PtrFromInt(client->socket.u64[0]);
+            u64 total = 0;
+            u64 remaining = size;
+            s64 n = 0;
+            while (total < size) {
+                n = send(entity->socket, (u8 *)data + total, remaining, 0);
+                if (-1 == n) {
+                    perror("send");
+                    result = -1;
+                    break;
+                }
+                total += n;
+                remaining -= n;
+            }
+            if (-1 != n) {
+                result = total;
+            }
+        } break;
+        case Net_TransportProtocol_UDP: {
+            LNX_Entity *entity = (LNX_Entity *)PtrFromInt(client->socket.u64[0]);
+            struct sockaddr_storage dest = {0};
+            lnx_net_address_to_sockaddr_storage(&dest, &client->address);
+            s64 n = sendto(entity->socket, data, size, 0, (struct sockaddr *)&dest, sizeof(dest));
+            if (-1 == n) {
+                perror("sendto");
+                result = -1;
+            }
+            else if (n != size) {
+                perror("sendto");
+                // @TODO: Error handling
+                //        this should only happen if the message is truncated,
+                //        which theoretically shouldn't happen.
+            }
+            else {
+                result = n;
+            }
+        } break;
+        default: {
+        } break;
+    }
+
+    return result;
+}
+
+internal s64 net_client_recv_raw(Net_Client *client, u32 size, void *out)
+{
+    s64 result = -1;
+
+    switch (client->protocol)
+    {
+        case Net_TransportProtocol_TCP: {
+            LNX_Entity *entity = (LNX_Entity *)PtrFromInt(client->socket.u64[0]);
+            u64 total = 0;
+            u64 remaining = size;
+            s64 n = 0;
+
+            while (total < size) {
+                n = recv(entity->socket, (u8 *)out + total, remaining, 0);
+                if (0 == n) {
+                    // peer closed the connection
+                    break;
+                }
+                else if (-1 == n) {
+                    perror("recv");
+                    result = -1;
+                    break;
+                }
+                total += n;
+                remaining -= n;
+            }
+            if (-1 != n) {
+                result = total;
+            }
+        } break;
+        case Net_TransportProtocol_UDP: {
+            LNX_Entity *entity = (LNX_Entity *)PtrFromInt(client->socket.u64[0]);
+            struct sockaddr_storage from = {0};
+            socklen_t fromsize = sizeof(from);
+
+            s64 n = recvfrom(entity->socket, out, size, 0, (struct sockaddr *)&from, &fromsize);
+            if (-1 == n) {
+                result = -1;
+            }
+            else {
+                result = n;
+            }
+        } break;
+        default: {
+        } break;
+    }
+    return result;
+}
+
+internal bool32 net_client_send_from_ring(Net_Client *client)
+{
+    bool32 result = false;
+    Temp scratch = scratch_begin(0, 0);
+
+    u64 size = client->send_buffer->write_pos - client->send_buffer->read_pos;
+    u8 *data = push_array(scratch.arena, u8, size);
+    result = ring_try_read(client->send_buffer, size, data);
+    if (result) {
+        s64 amount = net_client_send_raw(client, size, data);
+        if (-1 == amount) {
+            result = false;
+        }
+    }
+
+    scratch_end(scratch);
+    return result;
+}
+
+internal bool32 net_client_recv_to_ring(Net_Client *client)
+{
+    bool32 result = false;
+    Temp scratch = scratch_begin(0, 0);
+
+    u64 size = client->recv_buffer->size;
+    u8 *data = push_array(scratch.arena, u8, size);
+    s64 amount = net_client_recv_raw(client, size, data);
+    if (-1 != amount) {
+        result = ring_try_write(client->recv_buffer, amount, data);
+    }
+
+    scratch_end(scratch);
+    return result;
+}
+
+internal void net_client_close(Net_Client client)
+{
+    net_socket_release(client.socket);
 }

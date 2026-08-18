@@ -264,7 +264,7 @@ struct Dns_Msg {
 
 global String8 dns_type_to_str8[] = {
 #if COMPILER_CLANG || COMPILER_GCC
-    [0 ... max_u16]   = str8_lit_comp("UNKNOWN_DNS_TYPE"),
+    [0 ... 0xffff]   = str8_lit_comp("UNKNOWN_DNS_TYPE"),
 #endif
     /* [0] IS RESERVED */
     [Dns_Type_A]      = str8_lit_comp("A"),

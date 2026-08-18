@@ -4,6 +4,7 @@
 ///////////////
 // Includes
 
+#include <ctype.h>
 #include <dirent.h>
 #include <dlfcn.h>
 #include <dlfcn.h>
@@ -12,6 +13,7 @@
 #include <fcntl.h>
 #include <features.h>
 #include <linux/limits.h>
+#include <netinet/in.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <signal.h>
@@ -20,6 +22,7 @@
 #include <sys/mman.h>
 #include <sys/random.h>
 #include <sys/sendfile.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/sysinfo.h>

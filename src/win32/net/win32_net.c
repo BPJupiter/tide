@@ -142,15 +142,15 @@ internal Net_Listener net_listener_alloc(Net_AddressType type, Net_TransportProt
     W32_Entity *entity = (W32_Entity *)PtrFromInt(listener.socket.u64[0]);
     if (INVALID_SOCKET == entity->socket) {
         w32_print_winsock_error("socket");
-        // TODO: Error handling
+        // @TODO: Error handling
     }
     if (0 > bind(entity->socket, (SOCKADDR *)&storage, sizeof(storage))) {
         w32_print_winsock_error("bind");
-        // TODO: Error handling
+        // @TODO: Error handling
     }
     if (0 > listen(entity->socket, SOMAXCONN)) {
         w32_print_winsock_error("listen");
-        // TODO: Error handling
+        // @TODO: Error handling
     }
     return listener;
 }
@@ -160,14 +160,15 @@ internal Net_Client net_listener_accept(Arena *arena, Net_Listener listener)
     SOCKADDR_STORAGE storage = {0};
     int storagelen = sizeof(storage);
 
-    Net_Socket accept_socket = net_socket_alloc(listener.type, listener.protocol);
-    W32_Entity *accept_entity = (W32_Entity *)PtrFromInt(accept_socket.u64[0]);
     W32_Entity *listen_entity = (W32_Entity *)PtrFromInt(listener.socket.u64[0]);
-    accept_entity->socket = accept(listen_entity->socket, (SOCKADDR *)&storage, &storagelen);
-    if (INVALID_SOCKET == accept_entity->socket) {
+    SOCKET socket = accept(listen_entity->socket, (SOCKADDR *)&storage, &storagelen);
+    if (INVALID_SOCKET == socket) {
         w32_print_winsock_error("accept");
-        // TODO: Error handling
+        // @TODO: Error handling
     }
+    W32_Entity *accept_entity = w32_entity_alloc(W32_EntityKind_Socket);
+    accept_entity->socket = socket;
+    Net_Socket accept_socket = {IntFromPtr(accept_entity)};
     // This is yuck and currently creates a dummy socket that we have to release.
     // Might be worth duplicating the logic of net_client_alloc
     // if this ends up being a lot of overhead.
@@ -194,15 +195,14 @@ internal Net_Client net_client_alloc(Arena *arena, Net_AddressType type, Net_Tra
     W32_Entity *entity = (W32_Entity *)PtrFromInt(client_socket.u64[0]);
     if (INVALID_SOCKET == entity->socket) {
         w32_print_winsock_error("socket");
-        // TODO: Error handling
+        // @TODO: Error handling
     }
 
     Net_Client client = {0};
     client.arena = arena;
     client.type = type;
     client.protocol = protocol;
-    client.socket = client_socket; // We could make this call the responsibility of the caller?
-    
+    client.socket = client_socket;
     client.recv_buffer = make_ring(arena, NET_CLIENT_DEFAULT_BUFFER_SIZE);
     client.send_buffer = make_ring(arena, NET_CLIENT_DEFAULT_BUFFER_SIZE);
     return client;
@@ -216,7 +216,7 @@ internal Net_Client net_client_connect(Net_Client client, Net_Address target)
     W32_Entity *entity = (W32_Entity *)PtrFromInt(client.socket.u64[0]);
     if (SOCKET_ERROR == connect(entity->socket, (SOCKADDR *)&storage, sizeof(storage))) {
         w32_print_winsock_error("connect");
-        // TODO: Error handling
+        // @TODO: Error handling
     }
     client.address = target;
     client.connected = true;
@@ -237,6 +237,7 @@ internal s64 net_client_send_raw(Net_Client *client, u32 size, void *data)
             while (total < size) {
                 n = send(entity->socket, (u8 *)data + total, remaining, 0);
                 if (SOCKET_ERROR == n) {
+                    w32_print_winsock_error("send");
                     result = -1;
                     break;
                 }
@@ -258,7 +259,7 @@ internal s64 net_client_send_raw(Net_Client *client, u32 size, void *data)
             }
             else if (n != size) {
                 w32_print_winsock_error("sendto");
-                // TODO: Error handling
+                // @TODO: Error handling
                 //       this should only happen if the message is truncated,
                 //       which theoretically shouldn't happen
             }
@@ -292,7 +293,7 @@ internal s64 net_client_recv_raw(Net_Client *client, u32 size, void *out)
                     break;
                 }
                 else if (SOCKET_ERROR == n) {
-                    // network error
+                    w32_print_winsock_error("recv");
                     result = -1;
                     break;
                 }
@@ -304,7 +305,7 @@ internal s64 net_client_recv_raw(Net_Client *client, u32 size, void *out)
             }
         } break;
         case Net_TransportProtocol_UDP: {
-            W32_Entity *entity =(W32_Entity *)PtrFromInt(client->socket.u64[0]);
+            W32_Entity *entity = (W32_Entity *)PtrFromInt(client->socket.u64[0]);
             SOCKADDR_STORAGE from = {0};
             int fromsize = sizeof(from);
 
