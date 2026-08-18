@@ -1,5 +1,4 @@
 
-
 /////////////
 // Globals
 
@@ -21,7 +20,7 @@ internal u16 dns_id_func_default(void)
 ///////////////////////////
 // DNS Message Functions
 
-Dns_Msg dns_msg_alloc(Arena *arena, String8 domain, Dns_Type type)
+internal Dns_Msg dns_msg_alloc(Arena *arena, String8 domain, Dns_Type type)
 {
     Dns_Msg msg = {0};
     msg.header.id = dns_id_func();
@@ -32,6 +31,47 @@ Dns_Msg dns_msg_alloc(Arena *arena, String8 domain, Dns_Type type)
     msg.question[0].class = Dns_Class_INET;
     msg.question[0].type = type;
     return msg;
+}
+
+internal String8 dns_msg_header_to_str8(Arena *arena, Dns_Msg_Header h)
+{
+    Temp scratch = scratch_begin(&arena, 1);
+    
+    String8_List sb;
+    str8_serial_begin(scratch.arena, &sb);
+    (void)str8_serial_push_string(scratch.arena, &sb, s(";; "));
+    (void)str8_serial_push_string(scratch.arena, &sb, dns_opcode_to_str8[h.opcode]);
+    (void)str8_serial_push_string(scratch.arena, &sb, s(", rcode: "));
+    (void)str8_serial_push_string(scratch.arena, &sb, dns_rcode_to_str8[h.rcode]);
+    (void)str8_serial_push_string(scratch.arena, &sb, s(", id: "));
+    (void)str8_serial_push_string(scratch.arena, &sb, str8f(scratch.arena, "%hu", h.id));
+    (void)str8_serial_push_string(scratch.arena, &sb, s(","));
+
+    (void)str8_serial_push_string(scratch.arena, &sb, s(" flags:"));
+    if (h.query_response)      (void)str8_serial_push_string(scratch.arena, &sb, s(" qr"));
+    if (h.authoritative)       (void)str8_serial_push_string(scratch.arena, &sb, s(" aa"));
+    if (h.truncated)           (void)str8_serial_push_string(scratch.arena, &sb, s(" tc"));
+    if (h.recursion_desired)   (void)str8_serial_push_string(scratch.arena, &sb, s(" rd"));
+    if (h.recursion_available) (void)str8_serial_push_string(scratch.arena, &sb, s(" ra"));
+    if (h.zero)                (void)str8_serial_push_string(scratch.arena, &sb, s(" z"));
+    if (h.authenticated_data)  (void)str8_serial_push_string(scratch.arena, &sb, s(" ad"));
+    if (h.checking_disabled)   (void)str8_serial_push_string(scratch.arena, &sb, s(" cd"));
+
+    (void)str8_serial_push_string(scratch.arena, &sb, s("\n"));
+    (void)str8_serial_push_string(scratch.arena, &sb, s(";; "));
+    (void)str8_serial_push_string(scratch.arena, &sb, s("QUESTION: "));
+    (void)str8_serial_push_string(scratch.arena, &sb, str8f(scratch.arena, "%hu", h.question_count));
+    (void)str8_serial_push_string(scratch.arena, &sb, s(", ANSWER: "));
+    (void)str8_serial_push_string(scratch.arena, &sb, str8f(scratch.arena, "%hu", h.answer_count));
+    (void)str8_serial_push_string(scratch.arena, &sb, s(", AUTHORTIY: "));
+    (void)str8_serial_push_string(scratch.arena, &sb, str8f(scratch.arena, "%hu", h.nameserver_count));
+    (void)str8_serial_push_string(scratch.arena, &sb, s(", ADDITIONAL: "));
+    (void)str8_serial_push_string(scratch.arena, &sb, str8f(scratch.arena, "%hu", h.additional_count));
+    (void)str8_serial_push_string(scratch.arena, &sb, s("\n"));
+    String8 result = str8_serial_end(arena, &sb);
+    
+    scratch_end(scratch);
+    return result;
 }
 
 

@@ -15,22 +15,9 @@ Test(get_local_dns)
 internal void print_msg_data(Dns_Msg *msg)
 {
     Temp scratch = scratch_begin(0, 0);
-    fprintf(stderr, "\nID: 0x%hX\n",                msg->header.id);
-    fprintf(stderr, "Is Query Response: %d\n",      msg->header.query_response);
-    fprintf(stderr, "OpCode: %.*s\n",               str8_varg(dns_opcode_to_str8[msg->header.opcode]));
-    fprintf(stderr, "Is Authoritative: %d\n",       msg->header.authoritative);
-    fprintf(stderr, "Is Truncated: %d\n",           msg->header.truncated);
-    fprintf(stderr, "Is Recursion Desired: %d\n",   msg->header.recursion_desired);
-    fprintf(stderr, "Is Recursion Available: %d\n", msg->header.recursion_available);
-    fprintf(stderr, "Is Authenticated Data: %d\n",  msg->header.authenticated_data);
-    fprintf(stderr, "Is Checking Disabled: %d\n",   msg->header.checking_disabled);
-    fprintf(stderr, "Response Code: %.*s\n",        str8_varg(dns_rcode_to_str8[msg->header.rcode]));
-    fprintf(stderr, "Question Count: %hu\n",        msg->header.question_count);
-    fprintf(stderr, "Answer Count: %hu\n",          msg->header.answer_count);
-    fprintf(stderr, "Nameserver Count: %hu\n",      msg->header.nameserver_count);
-    fprintf(stderr, "Additional Count: %hu\n",      msg->header.additional_count);
-    fprintf(stderr, "\n");
 
+    String8 header_string = dns_msg_header_to_str8(scratch.arena, msg->header);
+    fprintf(stderr, "%.*s\n", str8_varg(header_string));
 
     for (u64 i = 0; i < msg->header.answer_count; i++) {
         switch (msg->answer[i].type) {
@@ -59,7 +46,7 @@ internal void print_msg_data(Dns_Msg *msg)
     scratch_end(scratch);
 }
 
-Test(example_client_exchange)
+Test(stub_client_exchange)
 {
     Temp scratch = scratch_begin(0, 0);
     Dns_Type question_type = Dns_Type_A;
@@ -76,11 +63,12 @@ Test(example_client_exchange)
     for (u64 i = 0; i < response.header.answer_count; i++) {
         T_Ok(response.answer[i].type == question_type);
     }
+    print_msg_data(&response);
     
     scratch_end(scratch);
 }
 
-Test(example_client_exchange_nxdomain)
+Test(stub_client_exchange_nxdomain)
 {
     Temp scratch = scratch_begin(0, 0);
     Dns_Type question_type = Dns_Type_A;
@@ -100,5 +88,20 @@ Test(example_client_exchange_nxdomain)
         T_Ok(response.ns[i].type == Dns_Type_SOA);
     }
     
+    scratch_end(scratch);
+}
+
+Test(iterative_lookup)
+{
+    Temp scratch = scratch_begin(0, 0);
+
+    Dns_Type question_type = Dns_Type_A;
+
+    Dns_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("www.auckland.ac.nz"), question_type);
+    msg.header.recursion_desired = false;
+    Dns_Client client = dns_client_alloc(scratch.arena, Net_AddressType_Ipv4);
+    Net_Address address = {0};
+    // @TODO: Root server ip here...
+
     scratch_end(scratch);
 }
