@@ -73,11 +73,14 @@ struct LNX_Safe_Call_Chain {
 // Entities
 
 typedef enum LNX_EntityKind {
+    // Threading
     LNX_EntityKind_Thread,
     LNX_EntityKind_Mutex,
     LNX_EntityKind_RWMutex,
     LNX_EntityKind_ConditionVariable,
     LNX_EntityKind_Barrier,
+    // Networking
+    LNX_EntityKind_Socket,
 } LNX_EntityKind;
 
 typedef struct LNX_Entity LNX_Entity;
@@ -86,6 +89,7 @@ struct LNX_Entity {
     LNX_EntityKind kind;
     union
     {
+        // Threading
         struct {
             pthread_t handle;
             Thread_Entry_Point_Function_Type *func;
@@ -98,6 +102,8 @@ struct LNX_Entity {
             pthread_mutex_t rwlock_mutex_handle;
         } cv;
         pthread_barrier_t barrier;
+        // Networking
+        int socket;
     };
 };
 

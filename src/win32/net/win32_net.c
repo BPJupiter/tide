@@ -48,8 +48,7 @@ internal void w32_sockaddr_storage_to_net_address(Net_Address *out, SOCKADDR_STO
             MemoryCopyArray(out->ip.v6.u8, addr->sin6_addr.u.Byte);
         } break;
         default: {
-            // TODO: Error handling
-            MemoryZero(out, sizeof(*out));
+            MemoryZeroStruct(out);
         } break;
     }
 }
@@ -75,8 +74,7 @@ internal void w32_net_address_to_sockaddr_storage(SOCKADDR_STORAGE *out, Net_Add
             addr->sin6_scope_id = 0;
         } break;
         default: {
-            // TODO: Error handling
-            MemoryZero(out, sizeof(*out));
+            MemoryZeroStruct(out);
         } break;
     }
 }
