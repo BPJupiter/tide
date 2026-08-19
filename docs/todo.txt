@@ -1,3 +1,5 @@
+NOT PROXY RELATED DIRECTLY: Make a test website that pulls in a bunch of random test crap,
+                            (google maps, other services, etc.)
 OS: Linux net/ and dns/ implementation
 Proxy: Measurement Caching
 Proxy: Implement blocked IPs

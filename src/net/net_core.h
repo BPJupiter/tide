@@ -26,7 +26,7 @@ struct Net_Address {
             u32 v4;
         };
     } ip;
-    Net_AddressType address_type;
+    Net_AddressFamily family;
     u16 port;
 };
 
@@ -40,7 +40,7 @@ typedef enum Net_TransportProtocol {
 typedef struct Net_Listener Net_Listener;
 struct Net_Listener {
     u16 port;
-    Net_AddressType type;
+    Net_AddressFamily family;
     Net_TransportProtocol protocol;
     Net_Socket socket;
 };
@@ -48,7 +48,7 @@ struct Net_Listener {
 typedef struct Net_Client Net_Client;
 struct Net_Client {
     Arena *arena;
-    Net_AddressType type;
+    Net_AddressFamily family;
     Net_TransportProtocol protocol;
     Net_Socket socket;
     Net_Address address;
@@ -100,13 +100,13 @@ internal String8 net_address_to_str8(Arena *arena, Net_Address address);
 /////////////////////////////////////
 // @per_os_impl Networking Primitives
 
-internal Net_Socket net_socket_alloc(Net_AddressType type, Net_TransportProtocol protocol);
+internal Net_Socket net_socket_alloc(Net_AddressFamily family, Net_TransportProtocol protocol);
 internal void       net_socket_release(Net_Socket socket);
 
 /////////////////////////////////////////////
 // @per_os_impl Network Listener Functions
 
-internal Net_Listener net_listener_alloc(Net_AddressType type, Net_TransportProtocol protocol, u16 port);
+internal Net_Listener net_listener_alloc(Net_AddressFamily family, Net_TransportProtocol protocol, u16 port);
 internal Net_Client   net_listener_accept(Arena *arena, Net_Listener listener);
 internal void         net_listener_close(Net_Listener listener);
 
@@ -120,7 +120,7 @@ internal void         net_listener_close(Net_Listener listener);
 //       is bundled within the Net_Client structure and should be written to
 //       and from as appropriate when performing UDP operations.
 
-internal Net_Client net_client_alloc(Arena *arena, Net_AddressType type, Net_TransportProtocol protocol);
+internal Net_Client net_client_alloc(Arena *arena, Net_AddressFamily family, Net_TransportProtocol protocol);
 internal Net_Client net_client_connect(Net_Client client, Net_Address target);
 internal s64        net_client_send_raw(Net_Client *client, u32 size, void *data);
 internal s64        net_client_recv_raw(Net_Client *client, u32 size, void *out);

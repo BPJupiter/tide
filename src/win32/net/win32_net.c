@@ -33,7 +33,7 @@ internal void w32_sockaddr_storage_to_net_address(Net_Address *out, SOCKADDR_STO
         case AF_INET: {
             SOCKADDR_IN *addr = (SOCKADDR_IN *)in;
             
-            out->address_type = Net_AddressType_IPv4;
+            out->family = Net_AddressFamily_IPv4;
             out->port = net_to_host_u16(addr->sin_port);
             out->ip.v4 = net_to_host_u32(addr->sin_addr.S_un.S_addr);
         } break;
@@ -43,7 +43,7 @@ internal void w32_sockaddr_storage_to_net_address(Net_Address *out, SOCKADDR_STO
             // should be in network byte order, except for the family.
             SOCKADDR_IN6_LH *addr = (SOCKADDR_IN6_LH *)in;
 
-            out->address_type = Net_AddressType_IPv6;
+            out->family = Net_AddressFamily_IPv6;
             out->port = net_to_host_u16(addr->sin6_port);
             MemoryCopyArray(out->ip.v6.u8, addr->sin6_addr.u.Byte);
         } break;
@@ -55,16 +55,16 @@ internal void w32_sockaddr_storage_to_net_address(Net_Address *out, SOCKADDR_STO
 
 internal void w32_net_address_to_sockaddr_storage(SOCKADDR_STORAGE *out, Net_Address *in)
 {
-    switch (in->address_type)
+    switch (in->family)
     {
-        case Net_AddressType_IPv4: {
+        case Net_AddressFamily_IPv4: {
             SOCKADDR_IN *addr = (SOCKADDR_IN *)out;
 
             addr->sin_family = AF_INET;
             addr->sin_port = host_to_net_u16(in->port);
             addr->sin_addr.S_un.S_addr = host_to_net_u32(in->ip.v4);
         } break;
-        case Net_AddressType_IPv6: {
+        case Net_AddressFamily_IPv6: {
             SOCKADDR_IN6_LH *addr = (SOCKADDR_IN6_LH *)out;
 
             addr->sin6_family = AF_INET6;
@@ -82,32 +82,32 @@ internal void w32_net_address_to_sockaddr_storage(SOCKADDR_STORAGE *out, Net_Add
 /////////////////////////////////////
 // @per_os_impl Networking Primitives
 
-internal Net_Socket net_socket_alloc(Net_AddressType type, Net_TransportProtocol protocol)
+internal Net_Socket net_socket_alloc(Net_AddressFamily family, Net_TransportProtocol protocol)
 {
     W32_Entity *entity = w32_entity_alloc(W32_EntityKind_Socket);
     
-    u16 family = 0;
-    switch(type) {
+    u16 af = 0;
+    switch(family) {
         default:
-        case Net_AddressType_Any:
-        case Net_AddressType_IPv4: {
-            family = AF_INET;
+        case Net_AddressFamily_Any:
+        case Net_AddressFamily_IPv4: {
+            af = AF_INET;
         } break;
-        case Net_AddressType_IPv6: {
-            family = AF_INET6;
+        case Net_AddressFamily_IPv6: {
+            af = AF_INET6;
         } break;
     }
     
     switch (protocol) {
         default:
         case Net_TransportProtocol_RAW: {
-            entity->socket = socket(family, SOCK_RAW, 0);
+            entity->socket = socket(af, SOCK_RAW, 0);
         } break;
         case Net_TransportProtocol_TCP: {
-            entity->socket = socket(family, SOCK_STREAM, 0);
+            entity->socket = socket(af, SOCK_STREAM, 0);
         } break;
         case Net_TransportProtocol_UDP: {
-            entity->socket = socket(family, SOCK_DGRAM, 0);
+            entity->socket = socket(af, SOCK_DGRAM, 0);
         } break;
     }
     
@@ -125,19 +125,19 @@ internal void net_socket_release(Net_Socket socket)
 /////////////////////////////////////////////
 // @per_os_impl Network Listener Functions
 
-internal Net_Listener net_listener_alloc(Net_AddressType type, Net_TransportProtocol protocol, u16 port)
+internal Net_Listener net_listener_alloc(Net_AddressFamily family, Net_TransportProtocol protocol, u16 port)
 {
     SOCKADDR_STORAGE storage = {0};
     Net_Address address = {0};
-    address.address_type = type;
+    address.family = family;
     address.port = port;
     w32_net_address_to_sockaddr_storage(&storage, &address);
     Net_Listener listener = {0};
     {
         listener.port = port;
-        listener.type = type;
+        listener.family = family;
         listener.protocol = protocol;
-        listener.socket = net_socket_alloc(type, protocol);
+        listener.socket = net_socket_alloc(family, protocol);
     }
     W32_Entity *entity = (W32_Entity *)PtrFromInt(listener.socket.u64[0]);
     if (INVALID_SOCKET == entity->socket) {
@@ -172,7 +172,7 @@ internal Net_Client net_listener_accept(Arena *arena, Net_Listener listener)
     // This is yuck and currently creates a dummy socket that we have to release.
     // Might be worth duplicating the logic of net_client_alloc
     // if this ends up being a lot of overhead.
-    Net_Client client = net_client_alloc(arena, listener.type, listener.protocol);
+    Net_Client client = net_client_alloc(arena, listener.family, listener.protocol);
     net_socket_release(client.socket);
     client.socket = accept_socket;
     w32_sockaddr_storage_to_net_address(&client.address, &storage);
@@ -189,9 +189,9 @@ internal void net_listener_close(Net_Listener listener)
 ///////////////////////////////////////////
 // @per_os_impl Network Client Functions
 
-internal Net_Client net_client_alloc(Arena *arena, Net_AddressType type, Net_TransportProtocol protocol)
+internal Net_Client net_client_alloc(Arena *arena, Net_AddressFamily family, Net_TransportProtocol protocol)
 {
-    Net_Socket client_socket = net_socket_alloc(type, protocol);
+    Net_Socket client_socket = net_socket_alloc(family, protocol);
     W32_Entity *entity = (W32_Entity *)PtrFromInt(client_socket.u64[0]);
     if (INVALID_SOCKET == entity->socket) {
         w32_print_winsock_error("socket");
@@ -200,7 +200,7 @@ internal Net_Client net_client_alloc(Arena *arena, Net_AddressType type, Net_Tra
 
     Net_Client client = {0};
     client.arena = arena;
-    client.type = type;
+    client.family = family;
     client.protocol = protocol;
     client.socket = client_socket;
     client.recv_buffer = make_ring(arena, NET_CLIENT_DEFAULT_BUFFER_SIZE);
@@ -226,11 +226,11 @@ internal Net_Client net_client_connect(Net_Client client, Net_Address target)
 internal s64 net_client_send_raw(Net_Client *client, u32 size, void *data)
 {
     s64 result = -1;
+    W32_Entity *entity = (W32_Entity *)PtrFromInt(client->socket.u64[0]);
     
     switch (client->protocol)
     {
         case Net_TransportProtocol_TCP: {
-            W32_Entity *entity = (W32_Entity *)PtrFromInt(client->socket.u64[0]);
             u64 total = 0;
             u64 remaining = size;
             s64 n = 0;
@@ -249,22 +249,21 @@ internal s64 net_client_send_raw(Net_Client *client, u32 size, void *data)
             }
         } break;
         case Net_TransportProtocol_UDP: {
-            W32_Entity *entity = (W32_Entity *)PtrFromInt(client->socket.u64[0]);
             SOCKADDR_STORAGE dest = {0};
             w32_net_address_to_sockaddr_storage(&dest, &client->address);
-            s64 n = sendto(entity->socket, data, size, 0, (SOCKADDR *)&dest, sizeof(dest));
+            int n = sendto(entity->socket, data, size, 0, (SOCKADDR *)&dest, sizeof(dest));
             if (SOCKET_ERROR == n) {
                 w32_print_winsock_error("sendto");
                 result = -1;
             }
             else if (n != size) {
-                w32_print_winsock_error("sendto");
+                result = -1;
                 // @TODO: Error handling
-                //       this should only happen if the message is truncated,
-                //       which theoretically shouldn't happen
+                //        this should only happen if the message is truncated,
+                //        which theoretically shouldn't happen
             }
             else {
-                result = n;
+                result = (s64)n;
             }
         } break;
         default: {
@@ -277,35 +276,21 @@ internal s64 net_client_send_raw(Net_Client *client, u32 size, void *data)
 internal s64 net_client_recv_raw(Net_Client *client, u32 size, void *out)
 {
     s64 result = -1;
+    W32_Entity *entity = (W32_Entity *)PtrFromInt(client->socket.u64[0]);
 
     switch (client->protocol)
     {
         case Net_TransportProtocol_TCP: {
-            W32_Entity *entity = (W32_Entity *)PtrFromInt(client->socket.u64[0]);
-            u64 total = 0;
-            u64 remaining = size;
-            s64 n = 0;
-
-            while (total < size) {
-                n = recv(entity->socket, (u8 *)out + total, remaining, 0);
-                if (0 == n) {
-                    // peer closed the connection
-                    break;
-                }
-                else if (SOCKET_ERROR == n) {
-                    w32_print_winsock_error("recv");
-                    result = -1;
-                    break;
-                }
-                total += n;
-                remaining -= n;
+            int n = recv(entity->socket, (char *)out, (int)size, 0);
+            if (0 == n) {
+                // peer closed the connection
             }
-            if (SOCKET_ERROR != n) {
-                result = total;
+            else if (SOCKET_ERROR == n) {
+                w32_print_winsock_error("recv");
             }
+            result = (s64)n;
         } break;
         case Net_TransportProtocol_UDP: {
-            W32_Entity *entity = (W32_Entity *)PtrFromInt(client->socket.u64[0]);
             SOCKADDR_STORAGE from = {0};
             int fromsize = sizeof(from);
 

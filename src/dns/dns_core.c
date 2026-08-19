@@ -77,25 +77,26 @@ internal String8 dns_msg_header_to_str8(Arena *arena, Dns_Msg_Header h)
 //////////////////////
 // Client Functions
 
-internal Dns_Client dns_client_alloc(Arena *arena, Net_AddressType type, Dns_TransportProtocol protocol)
+internal Dns_Client dns_client_alloc(Arena *arena, Net_AddressFamily family, Dns_TransportProtocol protocol)
 {
     Dns_Client client = {0};
+    
     client.dns_protocol = protocol;
+    Net_TransportProtocol ipproto = 0;
     switch (protocol)
     {
-        case Dns_TransportProtocol_UDP: {
-            client.dialer = net_client_alloc(arena, type, Net_TransportProtocol_UDP);
-        } break;
+        case Dns_TransportProtocol_TLS:
+        case Dns_TransportProtocol_HTTPS:
         case Dns_TransportProtocol_TCP: {
-            client.dialer = net_client_alloc(arena, type, Net_TransportProtocol_TCP);
+            ipproto = Net_TransportProtocol_TCP;
         } break;
-        case Dns_TransportProtocol_TLS: {
-            client.dialer = net_client_alloc(arena, type, Net_TransportProtocol_TCP);
-        } break;
-        case Dns_TransportProtocol_HTTPS: {
-            client.dialer = net_client_alloc(arena, type, Net_TransportProtocol_TCP);
+        case Dns_TransportProtocol_UDP: {
+            ipproto = Net_TransportProtocol_UDP;
         } break;
     }
+
+    client.dialer = net_client_alloc(arena, family, ipproto);
+    
     return client;
 }
 
@@ -106,7 +107,10 @@ internal void dns_client_release(Dns_Client client)
 
 internal Dns_Msg dns_client_exchange(Arena *arena, Dns_Client client, Dns_Msg msg, Net_Address address)
 {
+    // @Cleanup: make this not have 1 million dns_protocol checks.
+    //           probably dispatch instead.
     Dns_Msg result = {0};
+    
     bool32 ok = true;
     if (client.dns_protocol == Dns_TransportProtocol_TCP) {
         (void)net_client_connect(client.dialer, address);
@@ -121,13 +125,23 @@ internal Dns_Msg dns_client_exchange(Arena *arena, Dns_Client client, Dns_Msg ms
         if (ok) {
             ok = net_client_recv_to_ring(&client.dialer);
             if (ok) {
+                u16 unpacklen = 0;
+                if (client.dns_protocol == Dns_TransportProtocol_TCP) {
+                    ok &= ring_try_read(client.dialer.recv_buffer, 2, &unpacklen);
+                }
+                u16 unread = ring_peek_unread_quantity(client.dialer.recv_buffer);
                 ok = dns_unpack_msg(arena, client.dialer.recv_buffer, &result);
+                if (client.dns_protocol == Dns_TransportProtocol_TCP) {
+                    //ok &= (unpacklen == unread);
+                    //printf("%hu, %hu\n", unpacklen, unread);
+                }
             }
         }
     }
     if (!ok) {
         MemoryZeroStruct(&result);
     }
+
     return result;
 }
 
@@ -339,8 +353,8 @@ internal bool32 dns_is_blocked_on_this_network(Dns_TransportProtocol protocol)
     bool32 result = true;
     Temp scratch = scratch_begin(0, 0);
 
-    Dns_Client udp_client = dns_client_alloc(scratch.arena, Net_AddressType_IPv4, Dns_TransportProtocol_UDP);
-    Dns_Client tcp_client = dns_client_alloc(scratch.arena, Net_AddressType_IPv4, Dns_TransportProtocol_TCP);
+    Dns_Client udp_client = dns_client_alloc(scratch.arena, Net_AddressFamily_IPv4, Dns_TransportProtocol_UDP);
+    Dns_Client tcp_client = dns_client_alloc(scratch.arena, Net_AddressFamily_IPv4, Dns_TransportProtocol_TCP);
     for (u64 i = 0; i < Dns_RootServer_COUNT; i++) {
         Dns_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("www.example.org"), Dns_Type_A);
         Net_Address address;

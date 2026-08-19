@@ -48,11 +48,12 @@ internal void print_msg_data(Dns_Msg *msg)
 
 Test(stub_client_exchange)
 {
+    // @TODO: Make this work with TCP
     Temp scratch = scratch_begin(0, 0);
     Dns_Type question_type = Dns_Type_A;
 
     Dns_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("www.example.org"), question_type);
-    Dns_Client client = dns_client_alloc(scratch.arena, Net_AddressType_IPv4, Dns_TransportProtocol_TCP);
+    Dns_Client client = dns_client_alloc(scratch.arena, Net_AddressFamily_IPv4, Dns_TransportProtocol_UDP);
     Net_Address address = {0};
     (void)net_str8_to_address(&address, str8_lit("8.8.8.8:53"));
 
@@ -63,7 +64,6 @@ Test(stub_client_exchange)
     for (u64 i = 0; i < response.header.answer_count; i++) {
         T_Ok(response.answer[i].type == question_type);
     }
-    print_msg_data(&response);
     
     scratch_end(scratch);
 }
@@ -74,7 +74,7 @@ Test(stub_client_exchange_nxdomain)
     Dns_Type question_type = Dns_Type_A;
 
     Dns_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("iasldjkosajdf"), question_type);
-    Dns_Client client = dns_client_alloc(scratch.arena, Net_AddressType_IPv4, Dns_TransportProtocol_TCP);
+    Dns_Client client = dns_client_alloc(scratch.arena, Net_AddressFamily_IPv4, Dns_TransportProtocol_UDP);
     Net_Address address = {0};
     (void)net_str8_to_address(&address, str8_lit("8.8.8.8:53"));
 
@@ -91,7 +91,6 @@ Test(stub_client_exchange_nxdomain)
     scratch_end(scratch);
 }
 
-/*
 Test(iterative_lookup)
 {
     Temp scratch = scratch_begin(0, 0);
@@ -100,7 +99,7 @@ Test(iterative_lookup)
 
     Dns_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("www.auckland.ac.nz"), question_type);
     msg.header.recursion_desired = false;
-    Dns_Client client = dns_client_alloc(scratch.arena, Net_AddressType_IPv4, Dns_TransportProtocol_UDP);
+    Dns_Client client = dns_client_alloc(scratch.arena, Net_AddressFamily_IPv4, Dns_TransportProtocol_UDP);
     Net_Address address = {0};
     String8 root_ip = net_ipv4_to_str8(scratch.arena, dns_root_server_to_ipv4[Dns_RootServer_A]);
     root_ip = str8_cat(scratch.arena, root_ip, s(":53"));
@@ -113,4 +112,3 @@ Test(iterative_lookup)
 
     scratch_end(scratch);
 }
-*/

@@ -547,7 +547,7 @@ internal String8 dns_msg_header_to_str8(Arena *arena, Dns_Msg_Header h);
 //////////////////////
 // Client Functions
 
-internal Dns_Client dns_client_alloc(Arena *arena, Net_AddressType type, Dns_TransportProtocol protocol);
+internal Dns_Client dns_client_alloc(Arena *arena, Net_AddressFamily family, Dns_TransportProtocol protocol);
 internal void       dns_client_release(Dns_Client client);
 internal Dns_Msg    dns_client_exchange(Arena *arena, Dns_Client client, Dns_Msg msg, Net_Address address);
 
