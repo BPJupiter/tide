@@ -10,12 +10,12 @@ struct Net_Socket {
     u64 u64[1];
 };
 
-typedef enum Net_AddressType {
-    Net_AddressType_Any,
-    Net_AddressType_Ipv4,
-    Net_AddressType_Ipv6,
-    Net_AddressType_COUNT
-} Net_AddressType;
+typedef enum Net_AddressFamily {
+    Net_AddressFamily_Any,
+    Net_AddressFamily_IPv4,
+    Net_AddressFamily_IPv6,
+    Net_AddressFamily_COUNT
+} Net_AddressFamily;
 
 typedef struct Net_Address Net_Address;
 struct Net_Address {

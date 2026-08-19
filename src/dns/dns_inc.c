@@ -2,7 +2,6 @@
 
 #include "dns_core.c"
 #include "dns_pack.c"
-#include "dns_client.c"
 
 #if OS_WINDOWS
 # include "win32/dns/win32_dns.c"

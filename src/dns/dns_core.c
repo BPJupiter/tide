@@ -74,6 +74,62 @@ internal String8 dns_msg_header_to_str8(Arena *arena, Dns_Msg_Header h)
     return result;
 }
 
+//////////////////////
+// Client Functions
+
+internal Dns_Client dns_client_alloc(Arena *arena, Net_AddressType type, Dns_TransportProtocol protocol)
+{
+    Dns_Client client = {0};
+    client.dns_protocol = protocol;
+    switch (protocol)
+    {
+        case Dns_TransportProtocol_UDP: {
+            client.dialer = net_client_alloc(arena, type, Net_TransportProtocol_UDP);
+        } break;
+        case Dns_TransportProtocol_TCP: {
+            client.dialer = net_client_alloc(arena, type, Net_TransportProtocol_TCP);
+        } break;
+        case Dns_TransportProtocol_TLS: {
+            client.dialer = net_client_alloc(arena, type, Net_TransportProtocol_TCP);
+        } break;
+        case Dns_TransportProtocol_HTTPS: {
+            client.dialer = net_client_alloc(arena, type, Net_TransportProtocol_TCP);
+        } break;
+    }
+    return client;
+}
+
+internal void dns_client_release(Dns_Client client)
+{
+    net_client_close(client.dialer);
+}
+
+internal Dns_Msg dns_client_exchange(Arena *arena, Dns_Client client, Dns_Msg msg, Net_Address address)
+{
+    Dns_Msg result = {0};
+    bool32 ok = true;
+    if (client.dns_protocol == Dns_TransportProtocol_TCP) {
+        (void)net_client_connect(client.dialer, address);
+        u64 length64 = dns_msg_wire_length(&msg);
+        u16 length16 = safe_cast_u16(safe_cast_u32(length64));
+        ok &= ring_try_write(client.dialer.send_buffer, 2, &length16);
+    }
+    ok &= dns_pack_msg(client.dialer.send_buffer, &msg);
+    if (ok) {
+        client.dialer.address = address;
+        ok = net_client_send_from_ring(&client.dialer);
+        if (ok) {
+            ok = net_client_recv_to_ring(&client.dialer);
+            if (ok) {
+                ok = dns_unpack_msg(arena, client.dialer.recv_buffer, &result);
+            }
+        }
+    }
+    if (!ok) {
+        MemoryZeroStruct(&result);
+    }
+    return result;
+}
 
 ////////////////////
 // Utility Functions
@@ -276,4 +332,24 @@ internal u64 dns_msg_wire_length(Dns_Msg *msg)
     }
 
     return Min(l, DNS_MAX_MSG_SIZE);
+}
+
+internal bool32 dns_is_blocked_on_this_network(Dns_TransportProtocol protocol)
+{
+    bool32 result = true;
+    Temp scratch = scratch_begin(0, 0);
+
+    Dns_Client udp_client = dns_client_alloc(scratch.arena, Net_AddressType_IPv4, Dns_TransportProtocol_UDP);
+    Dns_Client tcp_client = dns_client_alloc(scratch.arena, Net_AddressType_IPv4, Dns_TransportProtocol_TCP);
+    for (u64 i = 0; i < Dns_RootServer_COUNT; i++) {
+        Dns_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("www.example.org"), Dns_Type_A);
+        Net_Address address;
+        String8 root_ip = net_ipv4_to_str8(scratch.arena, dns_root_server_to_ipv4[i]);
+        (void)net_str8_to_address(&address, str8_cat(scratch.arena, root_ip, str8_lit(":53")));
+        bool32 ok = dns_pack_msg(udp_client.dialer.send_buffer, &msg);
+        ok &= dns_pack_msg(tcp_client.dialer.send_buffer, &msg);
+    }
+
+    scratch_end(scratch);
+    return result;
 }

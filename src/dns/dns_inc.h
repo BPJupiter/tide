@@ -3,7 +3,6 @@
 
 #include "dns_core.h"
 #include "dns_pack.h"
-#include "dns_client.h"
 
 #if OS_WINDOWS
 # include "win32/dns/win32_dns.h"

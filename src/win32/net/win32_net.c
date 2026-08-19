@@ -33,7 +33,7 @@ internal void w32_sockaddr_storage_to_net_address(Net_Address *out, SOCKADDR_STO
         case AF_INET: {
             SOCKADDR_IN *addr = (SOCKADDR_IN *)in;
             
-            out->address_type = Net_AddressType_Ipv4;
+            out->address_type = Net_AddressType_IPv4;
             out->port = net_to_host_u16(addr->sin_port);
             out->ip.v4 = net_to_host_u32(addr->sin_addr.S_un.S_addr);
         } break;
@@ -43,7 +43,7 @@ internal void w32_sockaddr_storage_to_net_address(Net_Address *out, SOCKADDR_STO
             // should be in network byte order, except for the family.
             SOCKADDR_IN6_LH *addr = (SOCKADDR_IN6_LH *)in;
 
-            out->address_type = Net_AddressType_Ipv6;
+            out->address_type = Net_AddressType_IPv6;
             out->port = net_to_host_u16(addr->sin6_port);
             MemoryCopyArray(out->ip.v6.u8, addr->sin6_addr.u.Byte);
         } break;
@@ -57,14 +57,14 @@ internal void w32_net_address_to_sockaddr_storage(SOCKADDR_STORAGE *out, Net_Add
 {
     switch (in->address_type)
     {
-        case Net_AddressType_Ipv4: {
+        case Net_AddressType_IPv4: {
             SOCKADDR_IN *addr = (SOCKADDR_IN *)out;
 
             addr->sin_family = AF_INET;
             addr->sin_port = host_to_net_u16(in->port);
             addr->sin_addr.S_un.S_addr = host_to_net_u32(in->ip.v4);
         } break;
-        case Net_AddressType_Ipv6: {
+        case Net_AddressType_IPv6: {
             SOCKADDR_IN6_LH *addr = (SOCKADDR_IN6_LH *)out;
 
             addr->sin6_family = AF_INET6;
@@ -90,10 +90,10 @@ internal Net_Socket net_socket_alloc(Net_AddressType type, Net_TransportProtocol
     switch(type) {
         default:
         case Net_AddressType_Any:
-        case Net_AddressType_Ipv4: {
+        case Net_AddressType_IPv4: {
             family = AF_INET;
         } break;
-        case Net_AddressType_Ipv6: {
+        case Net_AddressType_IPv6: {
             family = AF_INET6;
         } break;
     }

@@ -195,7 +195,7 @@ internal bool32 net_str8_to_address(Net_Address *out, String8 string)
             port_ok = (port >= 0 && port <= max_u16);
 
             if (ip_ok && port_ok) {
-                result.address_type = Net_AddressType_Ipv4;
+                result.address_type = Net_AddressType_IPv4;
                 result.port = (u16)port;
             }
         }
@@ -205,7 +205,7 @@ internal bool32 net_str8_to_address(Net_Address *out, String8 string)
             port_ok = (port >= 0 && port <= max_u16);
         
             if (ip_ok && port_ok) {
-                result.address_type = Net_AddressType_Ipv6;
+                result.address_type = Net_AddressType_IPv6;
                 result.port = (u16)port;
             }
         }

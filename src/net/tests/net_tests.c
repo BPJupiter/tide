@@ -219,17 +219,17 @@ Test(str8_to_address)
     local_persist Net_Address seed_to_struct[] = {
         // We set the last two bytes of our padding to 0xFFFF so that our
         // ipv4 address is also valid when reading it as an ipv6 address.
-        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0xC0A80101 }, .address_type = Net_AddressType_Ipv4, .port = 8080 },
-        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x7F000001 }, .address_type = Net_AddressType_Ipv4, .port = 80 },
-        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x7F000001 }, .address_type = Net_AddressType_Ipv4, .port = 80 },
-        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x00000000 }, .address_type = Net_AddressType_Ipv4, .port = 443 },
-        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0xFFFFFFFF }, .address_type = Net_AddressType_Ipv4, .port = 65535 },
+        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0xC0A80101 }, .address_type = Net_AddressType_IPv4, .port = 8080 },
+        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x7F000001 }, .address_type = Net_AddressType_IPv4, .port = 80 },
+        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x7F000001 }, .address_type = Net_AddressType_IPv4, .port = 80 },
+        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x00000000 }, .address_type = Net_AddressType_IPv4, .port = 443 },
+        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0xFFFFFFFF }, .address_type = Net_AddressType_IPv4, .port = 65535 },
         
-        { .ip = { .v6 = u128_lit64(0x20010DB800000000, 0x0000000000000001) }, .address_type = Net_AddressType_Ipv6, .port = 8000 },
-        { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000000000000001) }, .address_type = Net_AddressType_Ipv6, .port = 443 },
-        { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000000000000000) }, .address_type = Net_AddressType_Ipv6, .port = 0 },
-        { .ip = { .v6 = u128_lit64(0x20010DB885A30000, 0x00008A2E03707334) }, .address_type = Net_AddressType_Ipv6, .port = 22 },
-        { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000FFFFC0A80101) }, .address_type = Net_AddressType_Ipv6, .port = 8080 },
+        { .ip = { .v6 = u128_lit64(0x20010DB800000000, 0x0000000000000001) }, .address_type = Net_AddressType_IPv6, .port = 8000 },
+        { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000000000000001) }, .address_type = Net_AddressType_IPv6, .port = 443 },
+        { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000000000000000) }, .address_type = Net_AddressType_IPv6, .port = 0 },
+        { .ip = { .v6 = u128_lit64(0x20010DB885A30000, 0x00008A2E03707334) }, .address_type = Net_AddressType_IPv6, .port = 22 },
+        { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000FFFFC0A80101) }, .address_type = Net_AddressType_IPv6, .port = 8080 },
     };
 
     for (u64 i = 0; i < ArrayCount(valid_seeds); i++) {

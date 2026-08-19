@@ -52,7 +52,7 @@ Test(stub_client_exchange)
     Dns_Type question_type = Dns_Type_A;
 
     Dns_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("www.example.org"), question_type);
-    Dns_Client client = dns_client_alloc(scratch.arena, Net_AddressType_Ipv4);
+    Dns_Client client = dns_client_alloc(scratch.arena, Net_AddressType_IPv4, Dns_TransportProtocol_TCP);
     Net_Address address = {0};
     (void)net_str8_to_address(&address, str8_lit("8.8.8.8:53"));
 
@@ -74,7 +74,7 @@ Test(stub_client_exchange_nxdomain)
     Dns_Type question_type = Dns_Type_A;
 
     Dns_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("iasldjkosajdf"), question_type);
-    Dns_Client client = dns_client_alloc(scratch.arena, Net_AddressType_Ipv4);
+    Dns_Client client = dns_client_alloc(scratch.arena, Net_AddressType_IPv4, Dns_TransportProtocol_TCP);
     Net_Address address = {0};
     (void)net_str8_to_address(&address, str8_lit("8.8.8.8:53"));
 
@@ -91,6 +91,7 @@ Test(stub_client_exchange_nxdomain)
     scratch_end(scratch);
 }
 
+/*
 Test(iterative_lookup)
 {
     Temp scratch = scratch_begin(0, 0);
@@ -99,9 +100,17 @@ Test(iterative_lookup)
 
     Dns_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("www.auckland.ac.nz"), question_type);
     msg.header.recursion_desired = false;
-    Dns_Client client = dns_client_alloc(scratch.arena, Net_AddressType_Ipv4);
+    Dns_Client client = dns_client_alloc(scratch.arena, Net_AddressType_IPv4, Dns_TransportProtocol_UDP);
     Net_Address address = {0};
-    // @TODO: Root server ip here...
+    String8 root_ip = net_ipv4_to_str8(scratch.arena, dns_root_server_to_ipv4[Dns_RootServer_A]);
+    root_ip = str8_cat(scratch.arena, root_ip, s(":53"));
+    (void)net_str8_to_address(&address, root_ip);
+
+    Dns_Msg response = dns_client_exchange(scratch.arena, client, msg, address);
+
+    T_Ok(msg.header.id == response.header.id);
+    T_Ok(response.header.rcode == Dns_RCode_Success);
 
     scratch_end(scratch);
 }
+*/

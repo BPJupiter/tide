@@ -5,6 +5,9 @@
 #ifndef DNS_CORE_H
 #define DNS_CORE_H
 
+///////////////
+// DNS Enums
+
 typedef enum Dns_Type Dns_Type;
 enum Dns_Type {
     /* RESERVED       =   0,    rfc 6895 */
@@ -195,6 +198,15 @@ enum Dns_RCode {
     /* RESERVED       = 65535              */
 };
 
+typedef enum Dns_TransportProtocol Dns_TransportProtocol;
+enum Dns_TransportProtocol {
+    Dns_TransportProtocol_UDP,
+    Dns_TransportProtocol_TCP,
+    Dns_TransportProtocol_TLS,
+    Dns_TransportProtocol_HTTPS,
+    Dns_TransportProtocol_COUNT
+};
+
 typedef enum Dns_RootServer Dns_RootServer;
 enum Dns_RootServer {
     Dns_RootServer_A,
@@ -212,6 +224,9 @@ enum Dns_RootServer {
     Dns_RootServer_M,
     Dns_RootServer_COUNT
 };
+
+////////////////////////
+// Message Structures
 
 typedef struct Dns_RR Dns_RR;
 struct Dns_RR {
@@ -275,6 +290,15 @@ struct Dns_Msg {
     Dns_RR *answer;
     Dns_RR *ns;
     Dns_RR *extra;
+};
+
+///////////////////////
+// Client Structures
+
+typedef struct Dns_Client Dns_Client;
+struct Dns_Client {
+    Net_Client dialer;
+    Dns_TransportProtocol dns_protocol;
 };
 
 ////////////////////////////////
@@ -520,6 +544,14 @@ global u128 dns_root_server_to_ipv6[] = {
 internal Dns_Msg dns_msg_alloc(Arena *arena, String8 domain, Dns_Type type);
 internal String8 dns_msg_header_to_str8(Arena *arena, Dns_Msg_Header h);
 
+//////////////////////
+// Client Functions
+
+internal Dns_Client dns_client_alloc(Arena *arena, Net_AddressType type, Dns_TransportProtocol protocol);
+internal void       dns_client_release(Dns_Client client);
+internal Dns_Msg    dns_client_exchange(Arena *arena, Dns_Client client, Dns_Msg msg, Net_Address address);
+
+
 ///////////////////////
 // Utility Functions
 
@@ -529,12 +561,20 @@ internal String8 str8_to_canonical(Arena *arena, String8 s);
 internal String8 str8_to_name_labels(Arena *arena, String8 s);
 internal bool32  str8_is_name_labels(String8 s);
 
-/////////////
+//////////////////
 // Wire Lengths
 
 internal u64 dns_rdata_wire_length(Dns_RR *rr);
 internal u64 dns_rr_wire_length(Dns_RR *rr);
 internal u64 dns_msg_wire_length(Dns_Msg *msg);
+
+//////////////////////////////
+// DNS Diagnostic Functions
+
+//~ fbt: This function pings each root server A-M and then attemps a single DNS query to each one
+//       if servers respond to a ping, but NONE respond to our DNS query, then we figure
+//       our local network blocks outbound DNS not headed for the local resolver.
+internal bool32 dns_is_blocked_on_this_network(Dns_TransportProtocol protocol);
 
 ////////////////////////////////////////
 // @per_os_impl Sytem DNS Info
