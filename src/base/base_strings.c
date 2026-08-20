@@ -1734,10 +1734,10 @@ str8_path_list_join_by_style(Arena *arena, String8_List *path, PathStyle style)
   return result;
 }
 
-internal String8_TxtPt_Pair
+internal String8_Txt_Pt_Pair
 str8_txt_pt_pair_from_string(String8 string)
 {
-  String8_TxtPt_Pair pair = {0};
+  String8_Txt_Pt_Pair pair = {0};
   {
     String8 file_part = {0};
     String8 line_part = {0};

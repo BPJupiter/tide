@@ -664,16 +664,16 @@ enum
 /////////////////////////////////////
 // Text 2D Croodinates and Ranges
 
-typedef struct TxtPt TxtPt;
-struct TxtPt {
+typedef struct Txt_Pt Txt_Pt;
+struct Txt_Pt {
     s64 line;
     s64 column;
 };
 
-typedef struct TxtRng TxtRng;
-struct TxtRng {
-    TxtPt min;
-    TxtPt max;
+typedef struct Txt_Rng Txt_Rng;
+struct Txt_Rng {
+    Txt_Pt min;
+    Txt_Pt max;
 };
 
 //////////////////////////
@@ -1035,15 +1035,15 @@ internal u64 memory_read64(void *ptr);
 /////////////////////////////////////////
 // Text 2D Coordinate/Range Functions
 
-internal TxtPt txt_pt(s64 line, s64 column);
-internal bool32 txt_pt_match(TxtPt a, TxtPt b);
-internal bool32 txt_pt_less_than(TxtPt a, TxtPt b);
-internal TxtPt txt_pt_min(TxtPt a, TxtPt b);
-internal TxtPt txt_pt_max(TxtPt a, TxtPt b);
-internal TxtRng txt_rng(TxtPt min, TxtPt max);
-internal TxtRng txt_rng_intersect(TxtRng a, TxtRng b);
-internal TxtRng txt_rng_union(TxtRng a, TxtRng b);
-internal bool32 txt_rng_contains(TxtRng r, TxtPt pt);
+internal Txt_Pt txt_pt(s64 line, s64 column);
+internal bool32 txt_pt_match(Txt_Pt a, Txt_Pt b);
+internal bool32 txt_pt_less_than(Txt_Pt a, Txt_Pt b);
+internal Txt_Pt txt_pt_min(Txt_Pt a, Txt_Pt b);
+internal Txt_Pt txt_pt_max(Txt_Pt a, Txt_Pt b);
+internal Txt_Rng txt_rng(Txt_Pt min, Txt_Pt max);
+internal Txt_Rng txt_rng_intersect(Txt_Rng a, Txt_Rng b);
+internal Txt_Rng txt_rng_union(Txt_Rng a, Txt_Rng b);
+internal bool32 txt_rng_contains(Txt_Rng r, Txt_Pt pt);
 
 //////////////////////////////////////////
 // toolchain/environent enum functions

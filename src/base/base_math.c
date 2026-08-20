@@ -721,23 +721,23 @@ rgba_from_u32(u32 hex)
 //~ rjf: List Type Functions
 
 internal void
-rng1u64_list_push_node(Rng1u64List *list, Rng1u64Node *n)
+rng1u64_list_push_node(Rng1u64_List *list, Rng1u64_Node *n)
 {
   SLLQueuePush(list->first, list->last, n);
   list->count += 1;
 }
 
-internal Rng1u64Node *
-rng1u64_list_push(Arena *arena, Rng1u64List *list, Rng1u64 rng)
+internal Rng1u64_Node *
+rng1u64_list_push(Arena *arena, Rng1u64_List *list, Rng1u64 rng)
 {
-  Rng1u64Node *n = push_array(arena, Rng1u64Node, 1);
+  Rng1u64_Node *n = push_array(arena, Rng1u64_Node, 1);
   MemoryCopyStruct(&n->v, &rng);
   rng1u64_list_push_node(list, n);
   return n;
 }
 
 internal void
-rng1u64_list_concat(Rng1u64List *list, Rng1u64List *to_concat)
+rng1u64_list_concat(Rng1u64_List *list, Rng1u64_List *to_concat)
 {
   if(to_concat->first)
   {
@@ -756,14 +756,14 @@ rng1u64_list_concat(Rng1u64List *list, Rng1u64List *to_concat)
   }
 }
 
-internal Rng1u64Array
-rng1u64_array_from_list(Arena *arena, Rng1u64List *list)
+internal Rng1u64_Array
+rng1u64_array_from_list(Arena *arena, Rng1u64_List *list)
 {
-  Rng1u64Array arr = {0};
+  Rng1u64_Array arr = {0};
   arr.count        = list->count;
   arr.v            = push_array_no_zero(arena, Rng1u64, arr.count);
   u64 idx = 0;
-  for(Rng1u64Node *n = list->first; n != 0; n = n->next)
+  for(Rng1u64_Node *n = list->first; n != 0; n = n->next)
   {
     arr.v[idx] = n->v;
     idx += 1;
@@ -772,7 +772,7 @@ rng1u64_array_from_list(Arena *arena, Rng1u64List *list)
 }
 
 internal u64
-rng1u64_array_num_from_value__binary_search(Rng1u64Array *array, u64 value)
+rng1u64_array_num_from_value__binary_search(Rng1u64_Array *array, u64 value)
 {
   u64 result = 0;
   if(array->count > 0 && array->v[0].min <= value && value < array->v[array->count-1].max)
@@ -801,22 +801,22 @@ rng1u64_array_num_from_value__binary_search(Rng1u64Array *array, u64 value)
 }
 
 internal void
-rng1s64_list_push(Arena *arena, Rng1s64List *list, Rng1s64 rng)
+rng1s64_list_push(Arena *arena, Rng1s64_List *list, Rng1s64 rng)
 {
-  Rng1s64Node *n = push_array(arena, Rng1s64Node, 1);
+  Rng1s64_Node *n = push_array(arena, Rng1s64_Node, 1);
   MemoryCopyStruct(&n->v, &rng);
   SLLQueuePush(list->first, list->last, n);
   list->count += 1;
 }
 
-internal Rng1s64Array
-rng1s64_array_from_list(Arena *arena, Rng1s64List *list)
+internal Rng1s64_Array
+rng1s64_array_from_list(Arena *arena, Rng1s64_List *list)
 {
-  Rng1s64Array arr = {0};
+  Rng1s64_Array arr = {0};
   arr.count = list->count;
   arr.v = push_array_no_zero(arena, Rng1s64, arr.count);
   u64 idx = 0;
-  for(Rng1s64Node *n = list->first; n != 0; n = n->next)
+  for(Rng1s64_Node *n = list->first; n != 0; n = n->next)
   {
     arr.v[idx] = n->v;
     idx += 1;

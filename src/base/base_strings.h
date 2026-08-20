@@ -87,10 +87,10 @@ struct String_Join {
 ////////////////////////////////
 //~ rjf: String Pair Types
 
-typedef struct String8_TxtPt_Pair String8_TxtPt_Pair;
-struct String8_TxtPt_Pair {
+typedef struct String8_Txt_Pt_Pair String8_Txt_Pt_Pair;
+struct String8_Txt_Pt_Pair {
     String8 string;
-    TxtPt pt;
+    Txt_Pt pt;
 };
 
 ////////////////////////////////
@@ -320,7 +320,7 @@ internal String8_List str8_split_path(Arena *arena, String8 string);
 internal void        str8_path_list_resolve_dots_in_place(String8_List *path, PathStyle style);
 internal String8     str8_path_list_join_by_style(Arena *arena, String8_List *path, PathStyle style);
 
-internal String8_TxtPt_Pair str8_txt_pt_pair_from_string(String8 string);
+internal String8_Txt_Pt_Pair str8_txt_pt_pair_from_string(String8 string);
 
 ////////////////////////////////
 //~ rjf: Relative <-> Absolute Path

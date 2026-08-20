@@ -25,7 +25,7 @@ struct MD_Msg_List {
     MD_Msg *first;
     MD_Msg *last;
     u64 count;
-    MD_MsgKind worse_message_kind;
+    MD_MsgKind worst_message_kind;
 };
 
 /////////////////
@@ -117,8 +117,8 @@ typedef enum MD_NodeKind {
 typedef u32 MD_NodeFlags;
 enum {
     MD_NodeFlag_MaskSetDelimiters       = (0x3F << 0),
-    MD_NodeFlag_HasParentLeft           = (1 << 0),
-    MD_NodeFlag_HasParentRight          = (1 << 1),
+    MD_NodeFlag_HasParenLeft           = (1 << 0),
+    MD_NodeFlag_HasParenRight          = (1 << 1),
     MD_NodeFlag_HasBracketLeft          = (1 << 2),
     MD_NodeFlag_HasBracketRight         = (1 << 3),
     MD_NodeFlag_HasBraceLeft            = (1 << 4),
@@ -126,7 +126,7 @@ enum {
 
     MD_NodeFlag_MaskSeparators          = (0xF << 6),
     MD_NodeFlag_IsBeforeSemicolon       = (1 << 6),
-    MD_NodeFlag_IsAfterSemiColon        = (1 << 7),
+    MD_NodeFlag_IsAfterSemicolon        = (1 << 7),
     MD_NodeFlag_IsBeforeComma           = (1 << 8),
     MD_NodeFlag_IsAfterComma            = (1 << 9),
 
@@ -232,7 +232,7 @@ global read_only MD_Node md_nil_node = {
 // Message Type Functions
 
 internal void md_msg_list_push(Arena *arena, MD_Msg_List *msgs, MD_Node *node, MD_MsgKind kind, String8 string);
-internal void md_msg_list_pushf(Arena *arena, MD_Msg_LIst *msgs, MD_Node *node, MD_MsgKind kind, char *fmt, ...);
+internal void md_msg_list_pushf(Arena *arena, MD_Msg_List *msgs, MD_Node *node, MD_MsgKind kind, char *fmt, ...);
 internal void md_msg_list_concat_in_place(MD_Msg_List *dst, MD_Msg_List *to_push);
 
 //////////////////////////
@@ -288,7 +288,7 @@ internal String8  md_string_from_children(Arena *arena, MD_Node *root);
 
 // tree comparison
 internal bool32 md_tree_match(MD_Node *a, MD_Node *b, StringMatchFlags flags);
-internal bool32 md_node_match(MD_NOde *a, MD_Node *b, StringMatchFlags flags);
+internal bool32 md_node_match(MD_Node *a, MD_Node *b, StringMatchFlags flags);
 
 // tree duplication
 internal MD_Node *md_tree_copy(Arena *arena, MD_Node *src_root);
@@ -301,6 +301,25 @@ internal MD_Tokenise_Result md_tokenise_from_text(Arena *arena, String8 text);
 //////////////////////////////
 // Tokens -> Tree Functions
 
+internal MD_Parse_Result md_parse_from_text_tokens(Arena *arena, String8 filename, String8 text, MD_Token_Array tokens);
 
+////////////////////////////////////
+// Bundled Text -> Tree Functions
+
+internal MD_Parse_Result md_parse_from_text(Arena *arena, String8 filename, String8 text);
+#define md_tree_from_string(arena, string) (md_parse_from_text((arena), str8_zero(), (string)).root)
+
+////////////////////////////
+// Tree -> Text Functions
+
+internal String8_List md_debug_string_list_from_tree(Arena *arena, MD_Node *root);
+internal String8_List md_string_list_from_tree(Arena *arena, MD_Node *root);
+internal String8 md_string_from_tree(Arena *arena, MD_Node *root);
+
+/////////////////////////////////
+// Node Pointer List Functions
+
+internal void md_node_ptr_list_push(Arena *arena, MD_Node_Ptr_List *list, MD_Node *node);
+internal void md_node_ptr_list_push_front(Arena *arena, MD_Node_Ptr_List *list, MD_Node *node);
 
 #endif // MDESK_H

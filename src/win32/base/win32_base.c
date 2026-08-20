@@ -709,7 +709,7 @@ internal u64 file_read(File file, Rng1u64 rng, void *out_data)
     u64     off    = rng.min;
     while(off != rng.max) {
         u64        amt64      = rng.max - off;
-        u32        amt32      = (u32)Min(MB(32), amt64);
+        u32        amt32      = (u32)Min(Megabytes(32), amt64);
         DWORD      read_size  = 0;
         OVERLAPPED overlapped = { .Offset = (u32)off, .OffsetHigh = (u32)(off >> 32) };
         if( ! ReadFile(handle, ptr, amt32, &read_size, &overlapped)) {
@@ -733,7 +733,7 @@ internal u64 file_write(File file, Rng1u64 rng, void *data)
     for(;;) {
         void *bytes_src = (u8 *)data + src_off;
         u64 bytes_left = total_write_size - src_off;
-        DWORD write_size = Min(MB(1), bytes_left);
+        DWORD write_size = Min(Megabytes(1), bytes_left);
         DWORD bytes_written = 0;
         OVERLAPPED overlapped = {0};
         overlapped.Offset = (dst_off&0x00000000ffffffffull);

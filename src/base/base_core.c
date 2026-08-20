@@ -315,20 +315,20 @@ internal u64 UBSAN_NO_ALIGN memory_read64(void *ptr)
 /////////////////////////////////////////
 // Text 2D Coordinate/Range Functions
 
-internal TxtPt txt_pt(s64 line, s64 column)
+internal Txt_Pt txt_pt(s64 line, s64 column)
 {
-    TxtPt p = {0};
+    Txt_Pt p = {0};
     p.line = line;
     p.column = column;
     return p;
 }
 
-internal bool32 txt_pt_match(TxtPt a, TxtPt b)
+internal bool32 txt_pt_match(Txt_Pt a, Txt_Pt b)
 {
     return a.line == b.line && a.column == b.column;
 }
 
-internal bool32 txt_pt_less_than(TxtPt a, TxtPt b)
+internal bool32 txt_pt_less_than(Txt_Pt a, Txt_Pt b)
 {
     bool32 result = false;
     if (a.line < b.line) {
@@ -340,27 +340,27 @@ internal bool32 txt_pt_less_than(TxtPt a, TxtPt b)
     return result;
 }
 
-internal TxtPt txt_pt_min(TxtPt a, TxtPt b)
+internal Txt_Pt txt_pt_min(Txt_Pt a, Txt_Pt b)
 {
-    TxtPt result = b;
+    Txt_Pt result = b;
     if (txt_pt_less_than(a, b)) {
         result = a;
     }
     return result;
 }
 
-internal TxtPt txt_pt_max(TxtPt a, TxtPt b)
+internal Txt_Pt txt_pt_max(Txt_Pt a, Txt_Pt b)
 {
-    TxtPt result = a;
+    Txt_Pt result = a;
     if (txt_pt_less_than(a, b)) {
         result = b;
     }
     return result;
 }
 
-internal TxtRng txt_rng(TxtPt min, TxtPt max)
+internal Txt_Rng txt_rng(Txt_Pt min, Txt_Pt max)
 {
-    TxtRng range = {0};
+    Txt_Rng range = {0};
     if (txt_pt_less_than(min, max)) {
         range.min = min;
         range.max = max;
@@ -372,9 +372,9 @@ internal TxtRng txt_rng(TxtPt min, TxtPt max)
     return range;
 }
 
-internal TxtRng txt_rng_intersect(TxtRng a, TxtRng b)
+internal Txt_Rng txt_rng_intersect(Txt_Rng a, Txt_Rng b)
 {
-    TxtRng result = {0};
+    Txt_Rng result = {0};
     result.min = txt_pt_max(a.min, b.min);
     result.max = txt_pt_min(a.max, b.max);
     if (txt_pt_less_than(result.max, result.min)) {
@@ -383,15 +383,15 @@ internal TxtRng txt_rng_intersect(TxtRng a, TxtRng b)
     return result;
 }
 
-internal TxtRng txt_rng_union(TxtRng a, TxtRng b)
+internal Txt_Rng txt_rng_union(Txt_Rng a, Txt_Rng b)
 {
-    TxtRng result = {0};
+    Txt_Rng result = {0};
     result.min = txt_pt_min(a.min, b.min);
     result.max = txt_pt_max(a.max, b.max);
     return result;
 }
 
-internal bool32 txt_rng_contains(TxtRng r, TxtPt pt)
+internal bool32 txt_rng_contains(Txt_Rng r, Txt_Pt pt)
 {
     bool32 result = ((txt_pt_less_than(r.min, pt) || txt_pt_match(r.min, pt)) &&
                      txt_pt_less_than(pt, r.max));

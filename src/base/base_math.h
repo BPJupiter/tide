@@ -340,13 +340,13 @@ struct Rng1u64_Array
 };
 
 typedef struct Rng1s64_Node Rng1s64_Node;
-struct Rng1s64Node {
+struct Rng1s64_Node {
     Rng1s64_Node *next;
     Rng1s64 v;
 };
 
 typedef struct Rng1s64_List Rng1s64_List;
-struct Rng1s64List {
+struct Rng1s64_List {
     Rng1s64_Node *first;
     Rng1s64_Node *last;
     u64 count;

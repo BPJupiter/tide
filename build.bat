@@ -120,6 +120,18 @@ if not exist local mkdir local
 for /f %%i in ('call git describe --always --dirty')   do set compile=%compile% -DBUILD_GIT_HASH=\"%%i\"
 for /f %%i in ('call git rev-parse HEAD')              do set compile=%compile% -DBUILD_GIT_HASH_FULL=\"%%i\"
 
+:: --- Build & Run Metaprogram ------------------------------------------------
+pushd build
+if "%meta%"=="1" (
+  echo [building metagen]
+  %compile_debug% ..\src\metagen\metagen_main.c %compile_link% %out%metagen.exe || exit /b 1
+)
+if "%no_meta%"=="" if exist metagen.exe (
+  echo [running metagen]
+  metagen.exe || exit /b 1
+)
+popd
+
 :: --- Build Everything (@build_targets) --------------------------------------
 pushd build
 if "%torment%"=="1"        set didbuild=1 && %compile% ..\src\torment\torment_main.c                      %compile_link% %out%torment.exe || exit /b 1
