@@ -1,10 +1,13 @@
 NOT PROXY RELATED DIRECTLY: Make a test website that pulls in a bunch of random test crap,
                             (google maps, other services, etc.)
-OS: Linux net/ and dns/ implementation
 Proxy: Measurement Caching
 Proxy: Implement blocked IPs
-DNS: DNS protocol options (TCP, HTTPS, etc.)
+DNS: DNS protocol options:
+     TCP,
+     TLS,
+     HTTPS
 DNS: Random DNS ids
 DNS: Message Compression on sent messages
 DNS: Opt & EDNS0
 win32: net/ error handling
+Rendering: webGPU backend; Emscripten to webassembly for website?

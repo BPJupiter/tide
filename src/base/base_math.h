@@ -317,48 +317,45 @@ union Rng2s64
 ////////////////////////////////
 //~ rjf: Range List Types
 
-typedef struct Rng1u64Node Rng1u64Node;
-struct Rng1u64Node
+typedef struct Rng1u64_Node Rng1u64_Node;
+struct Rng1u64_Node
 {
-  Rng1u64Node *next;
+  Rng1u64_Node *next;
   Rng1u64 v;
 };
 
-typedef struct Rng1u64List Rng1u64List;
-struct Rng1u64List
+typedef struct Rng1u64_List Rng1u64_List;
+struct Rng1u64_List
 {
-  Rng1u64Node *first;
-  Rng1u64Node *last;
+  Rng1u64_Node *first;
+  Rng1u64_Node *last;
   u64 count;
 };
 
-typedef struct Rng1u64Array Rng1u64Array;
-struct Rng1u64Array
+typedef struct Rng1u64_Array Rng1u64_Array;
+struct Rng1u64_Array
 {
   Rng1u64 *v;
   u64 count;
 };
 
-typedef struct Rng1s64Node Rng1s64Node;
-struct Rng1s64Node
-{
-  Rng1s64Node *next;
-  Rng1s64 v;
+typedef struct Rng1s64_Node Rng1s64_Node;
+struct Rng1s64Node {
+    Rng1s64_Node *next;
+    Rng1s64 v;
 };
 
-typedef struct Rng1s64List Rng1s64List;
-struct Rng1s64List
-{
-  Rng1s64Node *first;
-  Rng1s64Node *last;
-  u64 count;
+typedef struct Rng1s64_List Rng1s64_List;
+struct Rng1s64List {
+    Rng1s64_Node *first;
+    Rng1s64_Node *last;
+    u64 count;
 };
 
-typedef struct Rng1s64Array Rng1s64Array;
-struct Rng1s64Array
-{
-  Rng1s64 *v;
-  u64 count;
+typedef struct Rng1s64_Array Rng1s64_Array;
+struct Rng1s64_Array {
+    Rng1s64 *v;
+    u64 count;
 };
 
 ////////////////////////////////
@@ -699,14 +696,14 @@ internal Vec4f32 rgba_from_u32(u32 hex);
 ////////////////////////////////
 //~ rjf: List Type Functions
 
-internal void rng1u64_list_push_node(Rng1u64List *list, Rng1u64Node *n);
-internal Rng1u64Node * rng1u64_list_push(Arena *arena, Rng1u64List *list, Rng1u64 rng);
-internal void rng1u64_list_concat(Rng1u64List *list, Rng1u64List *to_concat);
-internal Rng1u64Array rng1u64_array_from_list(Arena *arena, Rng1u64List *list);
-internal u64 rng1u64_array_num_from_value__binary_search(Rng1u64Array *array, u64 value);
+internal void rng1u64_list_push_node(Rng1u64_List *list, Rng1u64_Node *n);
+internal Rng1u64_Node * rng1u64_list_push(Arena *arena, Rng1u64_List *list, Rng1u64 rng);
+internal void rng1u64_list_concat(Rng1u64_List *list, Rng1u64_List *to_concat);
+internal Rng1u64_Array rng1u64_array_from_list(Arena *arena, Rng1u64_List *list);
+internal u64 rng1u64_array_num_from_value__binary_search(Rng1u64_Array *array, u64 value);
 
-internal void rng1s64_list_push(Arena *arena, Rng1s64List *list, Rng1s64 rng);
-internal Rng1s64Array rng1s64_array_from_list(Arena *arena, Rng1s64List *list);
+internal void rng1s64_list_push(Arena *arena, Rng1s64_List *list, Rng1s64 rng);
+internal Rng1s64_Array rng1s64_array_from_list(Arena *arena, Rng1s64_List *list);
 
 ////////////////////////////////
 //~ rjf: N -> M Element Subdivision
