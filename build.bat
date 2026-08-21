@@ -134,8 +134,9 @@ popd
 
 :: --- Build Everything (@build_targets) --------------------------------------
 pushd build
-if "%torment%"=="1"        set didbuild=1 && %compile% ..\src\torment\torment_main.c                      %compile_link% %out%torment.exe || exit /b 1
-if "%brokenproxy%"=="1"     set didbuild=1 && %compile% ..\src\broken_proxy\broken_proxy_main.c            %compile_link% %out%brokenproxy.exe || exit /b 1
+if "%torment%"=="1"          set didbuild=1 && %compile% ..\src\torment\torment_main.c                      %compile_link% %out%torment.exe || exit /b 1
+if "%brokenproxy%"=="1"      set didbuild=1 && %compile% ..\src\broken_proxy\broken_proxy_main.c            %compile_link% %out%brokenproxy.exe || exit /b 1
+if "%wgpu_scratch%"=="1"     set didbuild=1 && %compile% ..\src\scratch\wgpu_scratch.c                      %compile_link% %out%wgpu_scratch.exe || exit /b 1
 popd
 
 :: --- Warn On No Builds ------------------------------------------------------

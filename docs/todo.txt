@@ -11,3 +11,29 @@ DNS: Message Compression on sent messages
 DNS: Opt & EDNS0
 win32: net/ error handling
 Rendering: webGPU backend; Emscripten to webassembly for website?
+
+Proxy: Each DNS step produces a List of DNS Nodes. Then the next step generates another List from the
+       selected Node of the previous.
+Proxy: Traceroute engine: Traceroute measurements are stored as Lists of Hop nodes, where Hop contains
+                          Net_Address and Latency, and perhaps more information
+
+// SOMETHING like
+
+struct Hop {
+    Net_Address address;
+    u32 rtt;
+};
+
+struct Hop_Node {
+    Hop_Node *next;
+    Hop v;
+};
+
+struct Hop_List {
+    Hop_Node *first;
+    Hop_Node *last;
+    u64 count;
+};
+
+also: Edit Dns_Msg to use Dns_RR_Node rather than just an array of them?
+      or convert Dns_Msg to a node-based format for iterative DNS solutions for the broken proxy.
