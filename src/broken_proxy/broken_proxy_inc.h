@@ -1,0 +1,4 @@
+#ifndef BROKEN_PROXY_INC_H
+#define BROKEN_PROXY_INC_H
+
+#endif // BROKEN_PROXY_INC
