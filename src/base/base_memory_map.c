@@ -30,3 +30,12 @@ internal u64 memory_map_read(Memory_Map *map, Rng1u64 range, void *dst)
     u64 bytes_read = (dst_vaddr - range.min);
     return bytes_read;
 }
+
+internal String8 memory_map_data_from_range(Arena *arena, Memory_Map *map, Rng1u64 range)
+{
+    String8 result = {0};
+    result.size = dim_1u64(range);
+    result.str = push_array(arena, u8, result.size);
+    memory_map_read(map, range, result.str);
+    return result;
+}

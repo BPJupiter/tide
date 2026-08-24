@@ -15,15 +15,15 @@ struct Lane_Ctx {
 ///////////////////
 // Access Scopes
 
-typedef struct Access_Point Access_Point;
-struct Access_Point {
+typedef struct Access_Pt Access_Pt;
+struct Access_Pt {
     u64 access_refcount;
     u64 last_time_touched_us;
     u64 last_update_idx_touched;
 };
 
-typedef struct Access_Point_Expire_Params Access_Point_Expire_Params;
-struct Access_Point_Expire_Params {
+typedef struct Access_Pt_Expire_Params Access_Pt_Expire_Params;
+struct Access_Pt_Expire_Params {
     u64 time;
     u64 update_idxs;
 };
@@ -31,7 +31,7 @@ struct Access_Point_Expire_Params {
 typedef struct Touch Touch;
 struct Touch {
     Touch *next;
-    Access_Point *point;
+    Access_Pt *point;
     CondVar cv;
 };
 
@@ -101,11 +101,11 @@ internal void tctx_read_srcloc(char **file_name, u64 *line_number);
 //- rjf: access scopes
 internal Access *access_open(void);
 internal void access_close(Access *access);
-internal void access_touch(Access *access, Access_Point *pt, CondVar cv);
+internal void access_touch(Access *access, Access_Pt *pt, CondVar cv);
 
 //- rjf: access points
-internal bool32 access_pt_is_expired_(Access_Point *pt, Access_Point_Expire_Params *params);
-#define access_pt_is_expired(pt, ...) access_pt_is_expired_((pt), &(Access_Point_Expire_Params){.time = 2000000, .update_idxs = 2, __VA_ARGS__})
+internal bool32 access_pt_is_expired_(Access_Pt *pt, Access_Pt_Expire_Params *params);
+#define access_pt_is_expired(pt, ...) access_pt_is_expired_((pt), &(Access_Pt_Expire_Params){.time = 2000000, .update_idxs = 2, __VA_ARGS__})
 
 //- rjf: progress counters
 #define set_progress_ptr(ptr) (tctx_selected()->progress_counter_ptr = (ptr))

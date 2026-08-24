@@ -195,7 +195,7 @@ access_close(Access *access)
 }
 
 internal void
-access_touch(Access *access, Access_Point *pt, CondVar cv)
+access_touch(Access *access, Access_Pt *pt, CondVar cv)
 {
   ins_atomic_u64_inc_eval(&pt->access_refcount);
   ins_atomic_u64_eval_assign(&pt->last_time_touched_us, now_time_us());
@@ -218,7 +218,7 @@ access_touch(Access *access, Access_Point *pt, CondVar cv)
 //- rjf: access points
 
 internal bool32
-access_pt_is_expired_(Access_Point *pt, Access_Point_Expire_Params *params)
+access_pt_is_expired_(Access_Pt *pt, Access_Pt_Expire_Params *params)
 {
   u64 access_refcount = ins_atomic_u64_eval(&pt->access_refcount);
   u64 last_time_touched_us = ins_atomic_u64_eval(&pt->last_time_touched_us);

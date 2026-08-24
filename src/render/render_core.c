@@ -9,11 +9,10 @@
 /////////////
 // Helpers
 
-internal u64 r_bytes_per_pixel_from_tex2d_fmt(R_Tex2D_Fmt fmt)
+internal u64 r_bytes_per_pixel_from_tex2d_fmt(R_Tex2DFmt fmt)
 {
     u64 num_bits = 0;
-    //for EachIndex(channel_idx, 4) {
-    {
+    for EachIndex(channel_idx, 4) {
         R_ChannelSizeKind size_kind = r_size_kind_from_tex2d_fmt_channel(fmt, channel_idx);
         switch (size_kind)
         {
@@ -34,7 +33,7 @@ internal u64 r_bytes_per_pixel_from_tex2d_fmt(R_Tex2D_Fmt fmt)
     return num_bytes;
 }
 
-internal Mat4x4f32 r_sample_channel_map_from_tex2d_fmt(R_Tex2D_Fmt fmt)
+internal Mat4x4f32 r_sample_channel_map_from_tex2d_fmt(R_Tex2DFmt fmt)
 {
     Mat4x4f32 result = {
         {
@@ -47,7 +46,7 @@ internal Mat4x4f32 r_sample_channel_map_from_tex2d_fmt(R_Tex2D_Fmt fmt)
     return result;
 }
 
-internal Mat4x4f32 r_sample_channel_map_from_tex2d_format(R_Tex2D_Format fmt)
+internal Mat4x4f32 r_sample_channel_map_from_tex2d_format(R_Tex2DFormat fmt)
 {
     Mat4x4f32 result = {
         {
@@ -60,7 +59,7 @@ internal Mat4x4f32 r_sample_channel_map_from_tex2d_format(R_Tex2D_Format fmt)
     switch (fmt)
     {
         default:{}break;
-        case R_Tex2D_Format_R8: {
+        case R_Tex2DFormat_R8: {
             MemoryZeroArray(result.v[0]);
             result.v[0][0] = result.v[0][1] = result.v[0][2] = result.v[0][3] = 1.f;
         } break;
@@ -87,7 +86,7 @@ internal bool32 r_handle_match(R_Handle a, R_Handle b)
 
 internal R_Batch_List r_batch_list_make(u64 instance_size)
 {
-    R_Batch_List lsit = {0};
+    R_Batch_List list = {0};
     list.bytes_per_inst = instance_size;
     return list;
 }
@@ -102,7 +101,7 @@ internal void *r_batch_list_push_inst(Arena *arena, R_Batch_List *list, u64 batc
             n->v.byte_cap = batch_inst_cap * list->bytes_per_inst;
             n->v.v = push_array_no_zero(arena, u8, n->v.byte_cap);
             SLLQueuePush(list->first, list->last, n);
-            liast->batch_count += 1;
+            list->batch_count += 1;
         }
         inst = n->v.v + n->v.byte_count;
         n->v.byte_count += list->bytes_per_inst;

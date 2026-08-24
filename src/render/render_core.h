@@ -9,7 +9,7 @@
 ////////////////////
 // Generated Code
 
-#include "generate/render.meta.h"
+#include "generated/render.meta.h"
 
 ///////////
 // Enums
@@ -21,7 +21,7 @@ typedef enum R_ChannelCodeEnum {
     R_ChannelCode_G,
     R_ChannelCode_B,
     R_ChannelCode_A
-} R_ChannelCodeEnum
+} R_ChannelCodeEnum;
 
 typedef u8 R_ChannelSizeKind; // 3 bits
 typedef enum R_ChannelSizeKindEnum {
@@ -45,7 +45,7 @@ typedef enum R_ChannelTypeKindEnum {
     R_ChannelTypeKind_float,
 } R_ChannelTypeKindEnum;
 
-typedef u64 R_Tex2D_Fmt;
+typedef u64 R_Tex2DFmt;
 //
 // set of channels, each channel including {code, size, type kind}, 3 bits each:
 // [0, 3) -> channel code
@@ -59,10 +59,10 @@ typedef u64 R_Tex2D_Fmt;
 #define r_size_kind_from_tex2d_fmt_channel(fmt, channel_idx) ((R_ChannelSizeKind)(((fmt) & (0x38 << ((channel_idx) * 9))) >> ((channel_idx) * 9 + 3)))
 #define r_type_kind_from_tex2d_fmt_channel(fmt, channel_idx) ((R_ChannelTypeKind)(((fmt) & (0x1c0 << ((channel_idx) * 9))) >> ((channel_idx) * 9 + 6)))
 
-#define R_Tex2D_Fmt_R8    (R_Channel(0, R, 8, uint))
-#define R_Tex2D_Fmt_RG8   (R_Channel(0, R, 8, uint) | R_Channel(1, G, 8, uint))
-#define R_Tex2D_Fmt_RGB8  (R_Channel(0, R, 8, uint) | R_Channel(1, G, 8, uint) | R_Channel(2, B, 8, uint))
-#define R_Tex2D_Fmt_RGBA8 (R_Channel(0, R, 8, uint) | R_Channel(1, G, 8, uint) | R_Channel(2, B, 8, uint) | R_Channel(3, A, 8, uint))
+#define R_Tex2DFmt_R8    (R_Channel(0, R, 8, uint))
+#define R_Tex2DFmt_RG8   (R_Channel(0, R, 8, uint) | R_Channel(1, G, 8, uint))
+#define R_Tex2DFmt_RGB8  (R_Channel(0, R, 8, uint) | R_Channel(1, G, 8, uint) | R_Channel(2, B, 8, uint))
+#define R_Tex2DFmt_RGBA8 (R_Channel(0, R, 8, uint) | R_Channel(1, G, 8, uint) | R_Channel(2, B, 8, uint) | R_Channel(3, A, 8, uint))
 
 typedef u32 R_GeoVertexFlags;
 enum {
@@ -86,7 +86,7 @@ union R_Handle {
 // Instance Types
 
 typedef struct R_Rect2D_Inst R_Rect2D_Inst;
-struct R_Rect2DInst {
+struct R_Rect2D_Inst {
     Rng2f32 dst;
     Rng2f32 src;
     Vec4f32 colors[Corner_COUNT];
@@ -191,7 +191,7 @@ struct R_Pass_Params_Blur {
     f32 corner_radii[Corner_COUNT];
 };
 
-typedef struct R_Pass_Params_Geo3D R_PassParams_Geo3D;
+typedef struct R_Pass_Params_Geo3D R_Pass_Params_Geo3D;
 struct R_Pass_Params_Geo3D {
     Rng2f32 viewport;
     Rng2f32 clip;
@@ -228,9 +228,9 @@ struct R_Pass_List {
 /////////////
 // Helpers
 
-internal u64 r_bytes_per_pixel_from_tex2d_fmt(R_Tex2D_Fmt fmt);
-internal Mat4x4f32 r_sample_channel_map_from_tex2d_fmt(R_Tex2D_Fmt fmt);
-internal Mat4x4f32 r_sample_channel_map_from_tex2d_format(R_Tex2D_Format fmt);
+internal u64 r_bytes_per_pixel_from_tex2d_fmt(R_Tex2DFmt fmt);
+internal Mat4x4f32 r_sample_channel_map_from_tex2d_fmt(R_Tex2DFmt fmt);
+internal Mat4x4f32 r_sample_channel_map_from_tex2d_format(R_Tex2DFormat fmt);
 
 ///////////////////////////
 // Handle Type Functions
@@ -260,11 +260,11 @@ r_hook R_Handle       r_window_equip(WM_Window window);
 r_hook void           r_window_unequip(WM_Window window, R_Handle window_equip);
 
 // textures
-r_hook R_Handle       r_tex2d_alloc(R_ResourceKind kind, Vec2s32 size, R_Tex2D_Format format, void *data);
+r_hook R_Handle       r_tex2d_alloc(R_ResourceKind kind, Vec2s32 size, R_Tex2DFormat format, void *data);
 r_hook void           r_tex2d_release(R_Handle texture);
 r_hook R_ResourceKind r_kind_from_tex2d(R_Handle texture);
 r_hook Vec2s32        r_size_from_tex2d(R_Handle texture);
-r_hook R_Tex2D_Format r_format_from_tex2d(R_Handle texture);
+r_hook R_Tex2DFormat  r_format_from_tex2d(R_Handle texture);
 r_hook void           r_fill_tex2d_region(R_Handle texture, Rng2s32 subrect, void *data);
 
 // buffers

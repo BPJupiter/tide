@@ -367,7 +367,7 @@ internal void entry_point(Cmd_Line *cmdline)
         MG_Layer *layer = mg_layer_from_key(layer_key);
         String8 data = data_from_file_path(mg_arena, node->first->string);
         String8 embed_string = mg_c_array_literal_contents_from_data(data);
-        str8_list_pushf(mg_arena, &layer->h_tables, "read_only global U8 %S__data[] =\n{\n", node->string);
+        str8_list_pushf(mg_arena, &layer->h_tables, "read_only global u8 %S__data[] =\n{\n", node->string);
         str8_list_push (mg_arena, &layer->h_tables, embed_string);
         str8_list_pushf(mg_arena, &layer->h_tables, "};\n\n");
         str8_list_pushf(mg_arena, &layer->h_tables, "read_only global String8 %S = {%S__data, sizeof(%S__data)};\n",

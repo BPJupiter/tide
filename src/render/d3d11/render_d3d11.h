@@ -72,8 +72,8 @@ struct R_D3D11_Tex2D
   ID3D11Texture2D *texture;
   ID3D11ShaderResourceView *view;
   R_ResourceKind kind;
-  Vec2S32 size;
-  R_Tex2D_Format format;
+  Vec2s32 size;
+  R_Tex2DFormat format;
 };
 
 typedef struct R_D3D11_Buffer R_D3D11_Buffer;

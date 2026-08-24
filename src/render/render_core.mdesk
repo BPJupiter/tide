@@ -100,7 +100,7 @@ R_PassKindTable:
   @expand(R_Tex2DFormatTable a) `str8_lit_comp("$(a.display_string)")`;
 }
 
-@data(U8) r_tex2d_format_bytes_per_pixel_table:
+@data(u8) r_tex2d_format_bytes_per_pixel_table:
 {
   @expand(R_Tex2DFormatTable a) `$(a.bytes_per_pixel)`;
 }
@@ -120,12 +120,12 @@ R_PassKindTable:
   @expand(R_PassKindTable a) `str8_lit_comp("$(a.display_string)")`;
 }
 
-@data(U8) r_pass_kind_batch_table:
+@data(u8) r_pass_kind_batch_table:
 {
   @expand(R_PassKindTable a) `$(a.batch)`;
 }
 
-@data(U64) @c_file r_pass_kind_params_size_table:
+@data(u64) @c_file r_pass_kind_params_size_table:
 {
-  @expand(R_PassKindTable a) `sizeof(R_PassParams_$(a.name))`;
+  @expand(R_PassKindTable a) `sizeof(R_Pass_Params_$(a.name))`;
 }

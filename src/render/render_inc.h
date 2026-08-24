@@ -33,7 +33,7 @@
 # include "stub/render_stub.h"
 #elif R_BACKEND == R_BACKEND_D3D11
 # include "d3d11/render_d3d11.h"
-#elfi R_BACKEND == R_BACKEND_OPENGL
+#elif R_BACKEND == R_BACKEND_OPENGL
 # include "opengl/render_opengl.h"
 #elif R_BACKEND == R_BACKEND_DAWN
 # include "dawn/render_dawn.h"

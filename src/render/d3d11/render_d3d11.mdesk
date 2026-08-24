@@ -513,7 +513,7 @@ r_d3d11_g_vshad_kind_elements_ptr_table:
   @expand(R_D3D11_VShadTable a) `$(a.ilay_table)`;
 }
 
-@c_file @data(U64)
+@c_file @data(u64)
 r_d3d11_g_vshad_kind_elements_count_table:
 {
   @expand(R_D3D11_VShadTable a) `$(a.ilay_table != 0 -> "ArrayCount("..a.ilay_table..")") $(a.ilay_table == 0 -> "0")`;
@@ -531,7 +531,7 @@ r_d3d11_g_pshad_kind_source_name_table:
   @expand(R_D3D11_PShadTable a) `str8_lit_comp("$(a.source)")`;
 }
 
-@c_file @data(U64)
+@c_file @data(u64)
 r_d3d11_g_uniform_type_kind_size_table:
 {
   @expand(R_D3D11_UniformTypeTable a) `sizeof(R_D3D11_Uniforms_$(a.name))`;

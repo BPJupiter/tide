@@ -34,7 +34,7 @@ typed_data_rebase_ptrs(Type *type, String8 data, void *base_ptr)
   {
     Rebase_Type_Task *next;
     Type *type;
-    U8 *ptr;
+    u8 *ptr;
   };
   Rebase_Type_Task start_task = {0, type, data.str};
   Rebase_Type_Task *first_task = &start_task;

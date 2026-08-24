@@ -549,8 +549,8 @@ typedef enum Axis2 {
     Axis2_Invalid = -1,
     Axis2_X,
     Axis2_Y,
-    Axis2_COUNT,
-} Axis;
+    Axis2_COUNT
+} Axis2;
 #define axis2_flip(a) ((Axis2)(!(a)))
 
 typedef enum Corner {
