@@ -134,9 +134,10 @@ popd
 
 :: --- Build Everything (@build_targets) --------------------------------------
 pushd build
-if "%torment%"=="1"          set didbuild=1 && %compile% ..\src\torment\torment_main.c                      %compile_link% %out%torment.exe || exit /b 1
-if "%tide%"=="1"             set didbuild=1 && %compile% ..\src\tide\tide_main.c                            %compile_link% %out%tide.exe || exit /b 1
-if "%critters%"=="1"         set didbuild=1 && %compile% ..\src\scratch\critters.c                          %compile_link% %out%critters.exe || exit /b 1
+if "%torment%"=="1"           set didbuild=1 && %compile% ..\src\torment\torment_main.c                 %compile_link% %out%torment.exe || exit /b 1
+if "%tide%"=="1"              set didbuild=1 && %compile% ..\src\tide\tide_main.c                       %compile_link% %out%tide.exe || exit /b 1
+if "%critters%"=="1"          set didbuild=1 && %compile% ..\src\scratch\critters.c                     %compile_link% %out%critters.exe || exit /b 1
+if "%borked_dns_server%"=="1" set didbuild=1 && %compile% ..\src\scratch\borked_dns_server.c            %compile_link% %out%borked_dns_server.exe || exit /b 1
 popd
 
 :: --- Warn On No Builds ------------------------------------------------------

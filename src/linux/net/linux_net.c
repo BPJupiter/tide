@@ -8,14 +8,14 @@ internal void lnx_sockaddr_storage_to_net_address(Net_Address *out, struct socka
         case AF_INET: {
             struct sockaddr_in *addr = (struct sockaddr_in *)in;
 
-            out->address_type = Net_AddressType_IPv4;
+            out->family = Net_AddressFamily_IPv4;
             out->port = net_to_host_u16(addr->sin_port);
             out->ip.v4 = net_to_host_u32(addr->sin_addr.s_addr);
         } break;
         case AF_INET6: {
             struct sockaddr_in6 *addr = (struct sockaddr_in6 *)in;
 
-            out->address_type = Net_AddressType_IPv6;
+            out->family = Net_AddressFamily_IPv6;
             out->port = net_to_host_u16(addr->sin6_port);
             MemoryCopyArray(out->ip.v6.u8, addr->sin6_addr.s6_addr);
         } break;
@@ -27,16 +27,16 @@ internal void lnx_sockaddr_storage_to_net_address(Net_Address *out, struct socka
 
 internal void lnx_net_address_to_sockaddr_storage(struct sockaddr_storage *out, Net_Address *in)
 {
-    switch (in->address_type)
+    switch (in->family)
     {
-        case Net_AddressType_IPv4: {
+        case Net_AddressFamily_IPv4: {
             struct sockaddr_in *addr = (struct sockaddr_in *)out;
 
             addr->sin_family = AF_INET;
             addr->sin_port = host_to_net_u16(in->port);
             addr->sin_addr.s_addr = host_to_net_u32(in->ip.v4);
         } break;
-        case Net_AddressType_IPv6: {
+        case Net_AddressFamily_IPv6: {
             struct sockaddr_in6 *addr = (struct sockaddr_in6 *)out;
 
             addr->sin6_family = AF_INET6;
@@ -54,32 +54,32 @@ internal void lnx_net_address_to_sockaddr_storage(struct sockaddr_storage *out, 
 ////////////////////////////////////////
 // @per_os_impl Networking Primitives
 
-internal Net_Socket net_socket_alloc(Net_AddressType type, Net_TransportProtocol protocol)
+internal Net_Socket net_socket_alloc(Net_AddressFamily family, Net_TransportProtocol protocol)
 {
     LNX_Entity *entity = lnx_entity_alloc(LNX_EntityKind_Socket);
 
-    u16 family = 0;
-    switch (type) {
+    u16 af = 0;
+    switch (family) {
         default:
-        case Net_AddressType_Any:
-        case Net_AddressType_IPv4: {
-            family = AF_INET;
+        case Net_AddressFamily_Any:
+        case Net_AddressFamily_IPv4: {
+            af = AF_INET;
         } break;
-        case Net_AddressType_IPv6: {
-            family = AF_INET6;
+        case Net_AddressFamily_IPv6: {
+            af = AF_INET6;
         } break;
     }
 
     switch (protocol) {
         default:
         case Net_TransportProtocol_RAW: {
-            entity->socket = socket(family, SOCK_RAW, 0);
+            entity->socket = socket(af, SOCK_RAW, 0);
         } break;
         case Net_TransportProtocol_TCP: {
-            entity->socket = socket(family, SOCK_STREAM, 0);
+            entity->socket = socket(af, SOCK_STREAM, 0);
         } break;
         case Net_TransportProtocol_UDP: {
-            entity->socket = socket(family, SOCK_DGRAM, 0);
+            entity->socket = socket(af, SOCK_DGRAM, 0);
         } break;
     }
 
@@ -97,19 +97,19 @@ internal void net_socket_release(Net_Socket socket)
 /////////////////////////////////////////////
 // @per_os_impl Network Listener Functions
 
-internal Net_Listener net_listener_alloc(Net_AddressType type, Net_TransportProtocol protocol, u16 port)
+internal Net_Listener net_listener_alloc(Net_AddressFamily family, Net_TransportProtocol protocol, u16 port)
 {
     struct sockaddr_storage storage = {0};
     Net_Address address = {0};
-    address.address_type = type;
+    address.family = family;
     address.port = port;
     lnx_net_address_to_sockaddr_storage(&storage, &address);
     Net_Listener listener = {0};
     {
         listener.port = port;
-        listener.type = type;
+        listener.family = family;
         listener.protocol = protocol;
-        listener.socket = net_socket_alloc(type, protocol);
+        listener.socket = net_socket_alloc(family, protocol);
     }
     LNX_Entity *entity = (LNX_Entity *)PtrFromInt(listener.socket.u64[0]);
     if (-1 == entity->socket) {
@@ -162,7 +162,7 @@ internal Net_Client net_listener_accept(Arena *arena, Net_Listener listener)
     // This is yuck and currently creates a dummy socket that we have to release.
     // Might be worth duplicating the logic of net_client_alloc
     // if this ends up being a lot of overhead.
-    Net_Client client = net_client_alloc(arena, listener.type, listener.protocol);
+    Net_Client client = net_client_alloc(arena, listener.family, listener.protocol);
     net_socket_release(client.socket);
     client.socket = accept_socket;
     lnx_sockaddr_storage_to_net_address(&client.address, &storage);
@@ -179,9 +179,9 @@ internal void net_listener_close(Net_Listener listener)
 ///////////////////////////////////////////
 // @per_os_impl Network Client Functions
 
-internal Net_Client net_client_alloc(Arena *arena, Net_AddressType type, Net_TransportProtocol protocol)
+internal Net_Client net_client_alloc(Arena *arena, Net_AddressFamily family, Net_TransportProtocol protocol)
 {
-    Net_Socket client_socket = net_socket_alloc(type, protocol);
+    Net_Socket client_socket = net_socket_alloc(family, protocol);
     LNX_Entity *entity = (LNX_Entity *)PtrFromInt(client_socket.u64[0]);
     if (-1 == entity->socket) {
         // @TODO: Error handling
@@ -191,7 +191,7 @@ internal Net_Client net_client_alloc(Arena *arena, Net_AddressType type, Net_Tra
 
     Net_Client client = {0};
     client.arena = arena;
-    client.type = type;
+    client.family = family;
     client.protocol = protocol;
     client.socket = client_socket;
     client.recv_buffer = make_ring(arena, NET_CLIENT_DEFAULT_BUFFER_SIZE);

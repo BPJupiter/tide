@@ -137,7 +137,7 @@
 // Branch Hredictor Hints
 
 #if defined(__clang__)
-# define Expect(expr, val) __builtin_except((expr), (val))
+# define Expect(expr, val) __builtin_expect((expr), (val))
 #else
 # define Expect(expr, val) (expr)
 #endif
