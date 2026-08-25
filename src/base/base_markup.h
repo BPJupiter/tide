@@ -5,7 +5,7 @@
 #define BASE_MARKUP_H
 
 #define RADDBG_MARKUP_IMPLEMENTATION
-#define RADDBG_MARKUP_VSNPRINTF bplib_vsnprintf
+#define RADDBG_MARKUP_VSNPRINTF tide_vsnprintf
 #if OS_LINUX
 # define RADDBG_MARKUP_STUBS
 #endif

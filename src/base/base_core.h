@@ -15,7 +15,7 @@
 ///////////////////////////
 // Third Party Includes
 
-#define STB_SPRINTF_DECORATE(name) bplib_##name
+#define STB_SPRINTF_DECORATE(name) tide_##name
 #define STB_SPRINTF_STATIC
 #include "third_party/stb/stb_sprintf.h"
 

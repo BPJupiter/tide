@@ -1,7 +1,0 @@
-<?xml version="1.0"?>
-<ROOT>
-	<DO_PING>TRUE</DO_PING> <!-- Do a ping measurement on every address touched by the Proxy. -->
-	<DO_TRACEROUTE>FALSE</DO_TRACEROUTE> <!-- Do a traceroute measurement on every address touched by the Proxy. -->
-	<USE_LOCAL_DNS>TRUE</USE_LOCAL_DNS> <!-- Use the local DNS resolver rather than the Proxy's custom iterative one. -->
-	<MAX_LATENCY>800</MAX_LATENCY> <!-- Drop connections measured to have a latency greater than this value. Requires DO_PING or DO_TRACEROUTE to have effect. -->
-</ROOT>

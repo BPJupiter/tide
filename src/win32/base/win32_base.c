@@ -1577,7 +1577,7 @@ internal LONG WINAPI win32_exception_filter(EXCEPTION_POINTERS *exception_ptrs)
     {
         WCHAR dump_file_path[MAX_PATH] = {0};
         SHGetFolderPathW(0, CSIDL_DESKTOP, 0, 0, dump_file_path);
-        PathAppendW(dump_file_path, L"bplib_crash_dump.dmp");
+        PathAppendW(dump_file_path, L"tide_crash_dump.dmp");
         HANDLE file = CreateFileW(dump_file_path, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
         if(file != INVALID_HANDLE_VALUE)
         {

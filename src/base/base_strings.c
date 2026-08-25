@@ -627,10 +627,10 @@ internal String8
 str8fv(Arena *arena, char *fmt, va_list args){
   va_list args2;
   va_copy(args2, args);
-  u32 needed_bytes = bplib_vsnprintf(0, 0, fmt, args) + 1;
+  u32 needed_bytes = tide_vsnprintf(0, 0, fmt, args) + 1;
   String8 result = {0};
   result.str = push_array_no_zero(arena, u8, needed_bytes);
-  result.size = bplib_vsnprintf((char*)result.str, needed_bytes, fmt, args2);
+  result.size = tide_vsnprintf((char*)result.str, needed_bytes, fmt, args2);
   result.str[result.size] = 0;
   va_end(args2);
   return result;

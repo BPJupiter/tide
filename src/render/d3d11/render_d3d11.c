@@ -197,7 +197,7 @@ r_init(Cmd_Line *cmdln)
   if(FAILED(error))
   {
     char buffer[256] = {0};
-    bplib_snprintf(buffer, sizeof(buffer), "D3D11 device creation failure (%lx). The process is terminating.", error);
+    tide_snprintf(buffer, sizeof(buffer), "D3D11 device creation failure (%lx). The process is terminating.", error);
     sh_message(1, str8_lit("Fatal Error"), str8_cstring(buffer));
     abort_self(1);
   }
@@ -533,7 +533,7 @@ r_window_equip(WM_Window handle)
     if(FAILED(error))
     {
       char buffer[256] = {0};
-      bplib_snprintf(buffer, sizeof(buffer), "DXGI swap chain creation failure (%lx). The process is terminating.", error);
+      tide_snprintf(buffer, sizeof(buffer), "DXGI swap chain creation failure (%lx). The process is terminating.", error);
       sh_message(1, str8_lit("Fatal Error"), str8_cstring(buffer));
       abort_self(1);
     }
@@ -1051,7 +1051,7 @@ r_window_end_frame(WM_Window window, R_Handle window_equip)
     if(FAILED(error))
     {
       char buffer[256] = {0};
-      bplib_snprintf(buffer, sizeof(buffer), "D3D11 present failure (%lx). The process is terminating.", error);
+      tide_snprintf(buffer, sizeof(buffer), "D3D11 present failure (%lx). The process is terminating.", error);
       sh_message(1, str8_lit("Fatal Error"), str8_cstring(buffer));
       abort_self(1);
     }
