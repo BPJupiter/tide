@@ -357,7 +357,7 @@ BP_RegTable:
   {UI_Key            ui_key                           UIKey                                   }
   {UI_Key            src_ui_key                       SrcUIKey                                }
   {Vec2f32           off_px                           OffPx                                   }
-  {BP_Reg_Slot        reg_slot                         Reg_Slot                                 }
+  {BP_RegSlot        reg_slot                         RegSlot                                 }
   
   // rjf: general parameters
   {bool32               force_confirm                    ForceConfirm                            }
@@ -376,7 +376,7 @@ BP_RegTable:
   {`WM_Event *`      wm_event                         WMEvent                                 }
 }
 
-@enum BP_Reg_Slot:
+@enum BP_RegSlot:
 {
   Null,
   @expand(BP_RegTable a) `$(a.name)`,
@@ -457,8 +457,7 @@ BP_CmdTable:
   
   //- rjf: panel splitting
   {ResetToDefaultPanels           0   1        0              ""                                               Null               0  0  0  0  0  0  0                                                                  Window                "reset_to_default_panels"                                   "Reset To Default Panel Layout"               "Resets the window to the default panel layout."                                                                   "panel"                          ""                                                                                                                                      }
-  {ResetToCompactPanels           0   1        0              ""                                               Null               0  0  0  0  0  0  0                                                                  Window                "reset_to_compact_panels"                                   "Reset To Compact Panel Layout"               "Resets the window to the compact panel layout."                                                                   "panel"                          ""                                                                                                                                      }
-  {ResetToSimplePanels            0   1        0              ""                                               Null               0  0  0  0  0  0  0                                                                  Window                "reset_to_simple_panels"                                    "Reset To Simple Panel Layout"                "Resets the window to the simple panel layout."                                                                    "panel"                          ""                                                                                                                                      }
+
   {NewPanelLeft                   0   1        0              ""                                               Null               0  0  0  0  0  0  0                                                                  XSplit                "new_panel_left"                                            "Split Panel Left"                            "Creates a new panel to the left of the active panel."                                                             "panel"                          ""                                                                                                                                      }
   {NewPanelUp                     0   1        0              ""                                               Null               0  0  0  0  0  0  0                                                                  YSplit                "new_panel_up"                                              "Split Panel Up"                              "Creates a new panel at the top of the active panel."                                                              "panel"                          ""                                                                                                                                      }
   {NewPanelRight                  0   1        0              ""                                               Null               0  0  0  0  0  0  0                                                                  XSplit                "new_panel_right"                                           "Split Panel Right"                           "Creates a new panel to the right of the active panel."                                                            "panel"                          ""                                                                                                                                      }
@@ -507,6 +506,7 @@ BP_CmdTable:
   {SetCurrentPath                 0   0        0              ""                                               Null               0  0  0  0  0  0  0                                                                  FileOutline           "set_current_path"                                          "Set Current Path"                            "Sets the app's current path, which is used as a starting point when browsing for files."                          ""                               ""                                                                                                                                      }
   {Open                           0   1        0              `folder:\\"$input\\"`                            FilePath           1  0  0  0  0  1  1                                                                  FileOutline           "open"                                                      "Open"                                        "Opens a file."                                                                                                    "code,source,file"               ""                                                                                                                                      }
   {ShowFileInExplorer             0   1        0              ""                                               Null               0  0  0  0  0  0  0                                                                  FolderClosedFilled    "show_file_in_explorer"                                     "Show File In Explorer"                       "Opens the operating system's file explorer and shows the selected file."                                          ""                               ""                                                                                                                                      }
+  {SetFileReplacementPath         0   0        0              ""                                               Null               0  0  0  0  0  0  0                                                                  Null                  "set_file_replacement_path"                                 "Set File Replacement Path"                   "Sets the path which should be used as the replacement for the passed file."                                       ""                               ""                                                                                                                                      }
   
   //- rjf: setting config paths
   {NewUser                        0   1        0              ""                                               Null               1  0  0  0  0  1  0                                                                  Add                   "new_user"                                                  "New User"                                    "Creates a new user file, and sets the current user path as that file's path."                                     "new,user,project,layout"        ""                                                                                                                                      }
@@ -646,7 +646,7 @@ BP_CmdTable:
 @struct BP_Query:
 {
   `BP_QueryFlags flags`;
-  `BP_Reg_Slot slot`;
+  `BP_RegSlot slot`;
   `String8 expr`;
 }
 
@@ -664,7 +664,7 @@ BP_CmdTable:
 {
   `{0}`,
   @expand(BP_CmdTable, a)
-    ```{ str8_lit_comp("$(a.string)"), str8_lit_comp("$(a.desc)"), str8_lit_comp("$(a.search_tags)"), str8_lit_comp("$(a.filter_tags)"), (BP_CmdKindFlag_ListInUI*$(a.ui_vis)), {(BP_QueryFlag_AllowFiles*$(a.q_allow_files))|(BP_QueryFlag_AllowFolders*$(a.q_allow_folders))|(BP_QueryFlag_CodeInput*$(a.q_is_code))|(BP_QueryFlag_KeepOldInput*$(a.q_keep_oi))|(BP_QueryFlag_SelectOldInput*$(a.q_select_oi))|(BP_QueryFlag_Floating*$(a.q_floating))|(BP_QueryFlag_Required*$(a.q_required)), BP_Reg_Slot_$(a.q_slot), str8_lit_comp("$(a.q_expr)")}}```;
+    ```{ str8_lit_comp("$(a.string)"), str8_lit_comp("$(a.desc)"), str8_lit_comp("$(a.search_tags)"), str8_lit_comp("$(a.filter_tags)"), (BP_CmdKindFlag_ListInUI*$(a.ui_vis)), {(BP_QueryFlag_AllowFiles*$(a.q_allow_files))|(BP_QueryFlag_AllowFolders*$(a.q_allow_folders))|(BP_QueryFlag_CodeInput*$(a.q_is_code))|(BP_QueryFlag_KeepOldInput*$(a.q_keep_oi))|(BP_QueryFlag_SelectOldInput*$(a.q_select_oi))|(BP_QueryFlag_Floating*$(a.q_floating))|(BP_QueryFlag_Required*$(a.q_required)), BP_RegSlot_$(a.q_slot), str8_lit_comp("$(a.q_expr)")}}```;
   @expand(BP_ViewTabFastPathTable, a)
     ```{ str8_lit_comp("$(a.name_lower)"), str8_lit_comp("Opens a $(a.display_name) tab."), {0}, str8_lit_comp("{tab_commands}"), BP_CmdKindFlag_ListInUI}```;
 }
@@ -1907,4 +1907,32 @@ raddbg_readme:
   @p "The *user file* stores windows (including monitor, placement, and size), each window's panel layout and tabs, keybindings, theme colors, and fonts.";
   @p "The *project file* stores project settings and recently-opened projects.";
   @p "Both files can be hand-edited, since they're stored in a plain text format.";
+}
+
+//////////////////////
+// Developer Toggles
+
+@table(name)
+BP_DevToggleTable:
+{
+    {always_refresh}
+    {simulate_lag}
+    {draw_ui_text_pos}
+    {draw_ui_focus_debug}
+    {draw_ui_box_heatmap}
+    {cmd_context_tooltips}
+    {updating_indicator}
+}
+
+@gen
+{
+    @expand(BP_DevToggleTable a) `global bool32 DEV_$(a.name) = 0;`
+}
+
+@gen
+{
+    `struct {bool32 *value_ptr; String8 name;} DEV_toggle_table[] =`;
+    `{`;
+      @expand(BP_DevToggleTable a) `{&DEV_$(a.name), str8_lit_comp("$(a.name)")},`
+        `};`;
 }

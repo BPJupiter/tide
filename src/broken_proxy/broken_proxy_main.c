@@ -115,13 +115,13 @@ void entry_point(Cmd_Line *cmdline)
                 wm_init();
                 fp_init();
                 r_init(cmdline);
-                rnt_init();
-                rd_init(cmdline);
+                fnt_init();
+                bp_init(cmdline);
             }
 
             // Main application loop
             {
-                for (bool32 quit = false; !quit)
+                for (bool32 quit = false; !quit;)
                 {
                     // update
                     quit = update();

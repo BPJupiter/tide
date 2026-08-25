@@ -331,9 +331,9 @@ internal String8 path_absolute_dst_from_relative_dst_src(Arena *arena, String8 d
 ////////////////////////////////
 //~ rjf: Path Normalization
 
-internal String8_List path_normalized_list_from_string(Arena *arena, String8 path, PathStyle *style_out);
-internal String8      path_normalized_from_string(Arena *arena, String8 path);
-internal bool32       path_match_normalized(String8 left, String8 right);
+internal String8_List path_normalised_list_from_string(Arena *arena, String8 path, PathStyle *style_out);
+internal String8      path_normalised_from_string(Arena *arena, String8 path);
+internal bool32       path_match_normalised(String8 left, String8 right);
 
 ////////////////////////////////
 //~ rjf: Misc. Path Helpers
@@ -460,6 +460,7 @@ internal u64 str8_buffer_write_string_list(String8_Node *buf, u64 *pos, String8_
 
 internal u64 u64_hash_from_seed_str8(u64 seed, String8 string);
 internal u64 u64_hash_from_str8(String8 string);
+internal u64 u64_hash_from_str8__case_insensitive(String8 string);
 internal u128 u128_hash_from_seed_str8(u64 seed, String8 string);
 internal u128 u128_hash_from_str8(String8 string);
 

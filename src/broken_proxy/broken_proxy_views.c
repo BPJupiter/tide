@@ -41,7 +41,7 @@ internal void bp_code_view_build(Arena *arena, BP_Code_View_State *cv, Rng2f32 r
     f32 scroll_bar_dim = floor_f32(main_font_size*1.5f);
     Vec2f32 code_area_dim = v2f32(panel_box_dim.x - scroll_bar_dim, panel_box_dim.y - scroll_bar_dim);
     s64 num_possible_visible_lines = (s64)(code_area_dim.y/code_line_height)+1;
-    bool32 do_line_numbers = bp_setting_b32_from_name(str8_lit("show_line_numbers"));
+    bool32 do_line_numbers = bp_setting_bool32_from_name(str8_lit("show_line_numbers"));
     bool32 text_is_ready = (text_info->lines_count != 0);
     
     //////////////////////////////
@@ -109,7 +109,7 @@ internal void bp_code_view_build(Arena *arena, BP_Code_View_State *cv, Rng2f32 r
         arena_clear(cv->wrap_arena);
         cv->wrap_total_vline_count = text_info->lines_count;
         cv->wrap_cache_slots_count = text_info->lines_count/64;
-        cv->wrap_cache_slots = push_array(cv->wrap_arena, BP_CodeViewTLineWrapCacheSlot, cv->wrap_cache_slots_count);
+        cv->wrap_cache_slots = push_array(cv->wrap_arena, BP_Code_View_TLine_Wrap_Cache_Slot, cv->wrap_cache_slots_count);
     }
     
     //////////////////////////////
@@ -120,7 +120,7 @@ internal void bp_code_view_build(Arena *arena, BP_Code_View_State *cv, Rng2f32 r
     UI_Focus(UI_FocusKind_On) if(ui_is_focus_active())
     {
         CFG_Node *view = cfg_node_from_id(bp_regs()->view);
-        BP_ViewState *vs = bp_view_state_from_cfg(view);
+        BP_View_State *vs = bp_view_state_from_cfg(view);
         bp_state->text_edit_mode_multiline = (!vs->query_is_open || vs->contents_are_focused);
         bp_state->text_edit_mode = 1;
         u64 line_count_per_page = ClampBot(num_possible_visible_lines, 10) - 10;
@@ -506,7 +506,7 @@ internal void bp_code_view_build(Arena *arena, BP_Code_View_State *cv, Rng2f32 r
     //- rjf: do searching operations
     //
     {
-        u64 search_chunk_size = KB(4);
+        u64 search_chunk_size = Kilobytes(4);
     
         if(cv->find_text_fwd.size != 0)
         {
@@ -863,10 +863,10 @@ BP_VIEW_UI_FUNCTION_DEF(text)
                     if(src.size != 0 && dst.size != 0)
                     {
                         // rjf: record src -> dst mapping
-                        bp_cmd(BP_CmdKind_SetFileReplacementPath, .string = src, .file_path = dst);
+                        //bp_cmd(BP_CmdKind_SetFileReplacementPath, .string = src, .file_path = dst);
                         
                         // rjf: switch this view to viewing replacement file
-                        bp_store_view_expr_string(bp_eval_string_from_file_path(scratch.arena, dst));
+                        //bp_store_view_expr_string(bp_eval_string_from_file_path(scratch.arena, dst));
                     }
                 }
             }break;
@@ -877,20 +877,18 @@ BP_VIEW_UI_FUNCTION_DEF(text)
     //- rjf: unpack parameterization info
     //
     ProfBegin("unpack parameterization info");
-    bp_regs()->file_path     = bp_file_path_from_eval(bp_frame_arena(), eval);
-    bp_regs()->vaddr         = 0;
-    bp_regs()->prefer_disasm = 0;
-    bp_regs()->cursor        = bp_view_setting_value_from_name(s("cursor")).u64;
-    bp_regs()->mark          = bp_view_setting_value_from_name(s("mark")).u64;
-    String8List overrides = bp_possible_overrides_from_file_path(scratch.arena, bp_regs()->file_path);
-    Rng1u64 range = bp_space_range_from_eval(eval);
-    bp_regs()->text_key = bp_key_from_eval_space_range(eval.space, range, 1);
+    bp_regs()->cursor        = bp_view_setting_u64_from_name(s("cursor"));
+    bp_regs()->mark          = bp_view_setting_u64_from_name(s("mark"));
     String8 lang = bp_view_setting_from_name(str8_lit("lang"));
     if(lang.size == 0)
     {
-        bp_regs()->lang_kind = bp_lang_kind_from_eval(eval);
+        bp_regs()->lang_kind = bp_lang_kind_from_file_path(lang);
     }
     else
+    {
+        bp_regs()->lang_kind = txt_lang_kind_from_extension(lang);
+    }
+    if (bp_regs()->lang_kind == TXT_LangKind_Null)
     {
         bp_regs()->lang_kind = txt_lang_kind_from_extension(lang);
     }
@@ -904,7 +902,7 @@ BP_VIEW_UI_FUNCTION_DEF(text)
     //////////////////////////////
     //- rjf: update last hash - scroll-to-bottom if needed
     //
-    if(bp_setting_b32_from_name(str8_lit("scroll_to_bottom_on_change")) && !u128_match(hash, cv->last_hash) && !u128_match(cv->last_hash, u128_zero()))
+    if(bp_setting_bool32_from_name(str8_lit("scroll_to_bottom_on_change")) && !u128_match(hash, cv->last_hash) && !u128_match(cv->last_hash, u128_zero()))
     {
         cv->goto_line_num = info.lines_count;
         cv->contain_cursor = 1;
@@ -960,7 +958,6 @@ BP_VIEW_UI_FUNCTION_DEF(text)
     {
         bp_code_view_build(scratch.arena, cv, code_area_rect, data, &info);
     }
-    // @HERE
     //////////////////////////////
     //- rjf: produced patched text info, unpack cursor info in patched text
     //
@@ -971,91 +968,13 @@ BP_VIEW_UI_FUNCTION_DEF(text)
     //////////////////////////////
     //- rjf: unpack cursor info
     //
-    if(bp_regs()->file_path.size != 0)
-    {
-        D_Entity *module = d_entity_from_handle(bp_regs()->module);
-        DI_Key dbgi_key = d_dbgi_key_from_module(module);
-        bp_regs()->lines = d_lines_from_dbgi_key_file_path_line_num(bp_frame_arena(), dbgi_key, bp_regs()->file_path, (S64)cursor_line_num, 8);
-    }
     bp_regs()->line_num = cursor_line_num;
     bp_regs()->column_num = (bp_regs()->cursor - cursor_line_range.min);
     
     //////////////////////////////
-    //- rjf: determine if file is out-of-date
-    //
-    bool32 file_is_out_of_date = 0;
-    {
-        Temp scratch = scratch_begin(0, 0);
-        
-        // rjf: determine checksum in selected debug info
-        E_DbgInfo *dbg_info = e_base_ctx->primary_dbg_info;
-        DI_Key dbgi_key = dbg_info->dbgi_key;
-        RDI_ChecksumKind checksum_kind = RDI_ChecksumKind_NULL;
-        String8 checksum_expected = {0};
-        {
-            Access *access = access_open();
-            
-            // rjf: unpack RDI
-            RDI_Parsed *rdi = di_rdi_from_key(access, dbgi_key, 0, 0);
-            
-            // rjf: file_path_normalized * rdi -> src_id
-            for EachNode(override_n, String8Node, overrides.first)
-            {
-                String8 file_path = override_n->string;
-                String8 file_path_normalized = rdim_normalized_from_path(scratch.arena, file_path);
-                bool32 good_src_id = 0;
-                u32 src_id = 0;
-                if(rdi != &rdi_parsed_nil)
-                {
-                    RDI_NameMap *mapptr = rdi_element_from_name_idx(rdi, NameMaps, RDI_NameMapKind_NormalSourcePaths);
-                    RDI_ParsedNameMap map = {0};
-                    rdi_parsed_from_name_map(rdi, mapptr, &map);
-                    RDI_NameMapNode *node = rdi_name_map_lookup(rdi, &map, file_path_normalized.str, file_path_normalized.size);
-                    if(node != 0)
-                    {
-                        u32 id_count = 0;
-                        u32 *ids = rdi_matches_from_map_node(rdi, node, &id_count);
-                        if(id_count > 0)
-                        {
-                            u32 src_id = ids[0];
-                            RDI_SourceFile *src = rdi_element_from_name_idx(rdi, SourceFiles, src_id);
-                            checksum_kind = src->checksum_kind;
-                            RDI_SectionKind checksum_section_kind = rdi_section_kind_from_checksum_kind(checksum_kind);
-                            u64 checksum_size = rdi_section_element_size_table[checksum_section_kind];
-                            u8 *checksum_data = (u8 *)rdi_section_raw_element_from_kind_idx(rdi, checksum_section_kind, src->checksum_idx);
-                            checksum_expected = str8_copy(scratch.arena, str8(checksum_data, checksum_size));
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            access_close(access);
-        }
-        
-        // rjf: if we got a checksum, compute it locally - check if they match.
-        switch(checksum_kind)
-        {
-            default:
-                {
-                    String8 checksum_value = bp_checksum_value_from_hash_kind(scratch.arena, hash, checksum_kind);
-                    file_is_out_of_date = checksum_expected.size != 0 && !memory_is_zero(checksum_value.str, checksum_value.size) && !str8_match(checksum_value, checksum_expected, 0);
-                }break;
-            case RDI_ChecksumKind_Timestamp:
-                {
-                    File_Properties props = properties_from_file_path(bp_regs()->file_path);
-                    String8 timestamp_string = str8_struct(&props.modified);
-                    file_is_out_of_date = !MemoryIsZeroStruct(&props.modified) && !str8_match(timestamp_string, checksum_expected, 0);
-                }break;
-        }
-        
-        scratch_end(scratch);
-    }
-    
-    //////////////////////////////
     //- rjf: build bottom bar
     //
-    if(!file_is_missing && key_has_data) UI_FontSize(main_font_size) UI_TagF(file_is_out_of_date ? "bad_pop" : ".")
+    if(!file_is_missing && key_has_data) UI_FontSize(main_font_size) UI_TagF(".")
     {
         ui_set_next_rect(shift_2f32(bottom_bar_rect, scale_2f32(rect.p0, -1.f)));
         ui_set_next_flags(UI_BoxFlag_DrawBackground);
@@ -1064,22 +983,6 @@ BP_VIEW_UI_FUNCTION_DEF(text)
             UI_PrefWidth(ui_text_dim(10, 1))
             UI_TagF("weak")
         {
-            if(file_is_out_of_date) 
-            {
-                UI_Box *box = &ui_nil_box;
-                BP_Font(BP_FontSlot_Icons)
-                {
-                    box = ui_build_box_from_stringf(UI_BoxFlag_DrawText|UI_BoxFlag_Clickable, "%S###file_ood_warning", bp_icon_kind_text_table[BP_IconKind_WarningBig]);
-                }
-                UI_Signal sig = ui_signal_from_box(box);
-                if(ui_hovering(sig)) UI_Tooltip
-                {
-                    UI_PrefWidth(ui_children_sum(1)) UI_Row UI_PrefWidth(ui_text_dim(1, 1)) UI_TextPadding(0)
-                    {
-                        UI_TagF("weak") ui_labelf("This file has changed since it was compiled.");
-                    }
-                }
-            }
             BP_Font(BP_FontSlot_Code)
             {
                 if(bp_regs()->file_path.size != 0)
@@ -1097,7 +1000,7 @@ BP_VIEW_UI_FUNCTION_DEF(text)
             }
         }
     }
-    
+
     //////////////////////////////
     //- rjf: store params
     //
@@ -1108,4 +1011,7 @@ BP_VIEW_UI_FUNCTION_DEF(text)
     scratch_end(scratch);
 }
 //BP_VIEW_UI_FUNCTION_DEF(geo3d);
-BP_VIEW_UI_FUNCTION_DEF(getting_started);
+BP_VIEW_UI_FUNCTION_DEF(getting_started)
+{
+}
+

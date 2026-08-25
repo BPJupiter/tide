@@ -47,9 +47,9 @@ struct BP_Cell_Params {
     BP_CellFlags flags;
     s32 depth;
     String8 pre_edit_value;
-    DR_Fstr_List meta_fstrs;
-    DR_Fstr_List value_fstrs;
-    DR_Fstr_List node_fstrs;
+    DR_FStr_List meta_fstrs;
+    DR_FStr_List value_fstrs;
+    DR_FStr_List note_fstrs;
     UI_Size note_width;
     String8 search_needle;
     String8 description;
@@ -90,7 +90,7 @@ enum {
 typedef struct BP_Code_Slice_Params BP_Code_Slice_Params;
 struct BP_Code_Slice_Params {
     // content
-    BP_CodeSliceFlags flags;;
+    BP_CodeSliceFlags flags;
     Rng1s64 line_num_range;
     String8 *line_text;
     Rng1u64 *line_ranges;
@@ -146,7 +146,7 @@ enum {
 internal void      bp_cmd_binding_buttons(String8 name, String8 filter, u64 limit, BP_CmdBindingButtonFlags flags);
 internal UI_Signal bp_menu_bar_button(String8 string);
 internal UI_Signal bp_cmd_spec_button(String8 name);
-internal void      bp_cmd_list_menu_buttons(u64 count, String8 cmd_names, u32 *fastpath_codepoints);
+internal void      bp_cmd_list_menu_buttons(u64 count, String8 *cmd_names, u32 *fastpath_codepoints);
 internal UI_Signal bp_icon_button(BP_IconKind kind, Fuzzy_Match_Range_List *matches, String8 string);
 internal UI_Signal bp_icon_buttonf(BP_IconKind kind, Fuzzy_Match_Range_List *matches, char *fmt, ...);
 
@@ -166,7 +166,7 @@ internal DR_FStr_List bp_fstrs_from_rich_string(Arena *arena, String8 string);
 internal UI_Signal    bp_label(String8 string);
 internal UI_Signal    bp_error_label(String8 string);
 internal bool32       bp_help_label(String8 string);
-internal DR_Fstr_List bp_fstrs_from_code_string(Arena *arena, f32 alpha, bool32 indirection_size_change, Vec4f32 base_color, String8 string);
+internal DR_FStr_List bp_fstrs_from_code_string(Arena *arena, f32 alpha, bool32 indirection_size_change, Vec4f32 base_color, String8 string);
 internal UI_Box      *bp_code_label(f32 alpha, bool32 indirection_size_change, Vec4f32 base_color, String8 string);
 
 ////////////////////

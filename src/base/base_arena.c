@@ -54,12 +54,12 @@ internal Arena *arena_alloc_(Arena_Params *params)
     }
 
     // Panic on arena creation failure
-#if OS_FEATURE_GRAPHICAL
     if (Unlikely(base == 0)) {
-        wm_graphical_message(1, str8_lit("Fatal Allocation Failure"), str8_lit("Unexpected memory allocation failure."));
+#if defined(SHELL_H)
+        sh_message(1, s("Fatal Allocation Failure"), s("Unexpected memory allocation failure."));
+#endif
         abort_self(1);
     }
-#endif
 
     AsanUnpoisonMemoryRegion(base, ARENA_HEADER_SIZE);
     Arena *arena                = base;
@@ -242,12 +242,12 @@ internal void *arena_push(Arena *arena, u64 size, u64 align, bool32 zero)
     }
 #endif
 
-#if OS_FEATURE_GRAPHICAL
     if (Unlikely(result == 0)) {
-        wm_graphical_message(1, str8_lit("Fatal Allocation Failure"), str8_lit("Unexpected memory allocation failure."));
+#if defined(SHELL_H)
+        sh_message(1, s("Fata Allocation Failure"), s("Unexpected memory allocatoin failure."));
+#endif
         abort_self(1);
     }
-#endif
 
     return result;
 }

@@ -150,7 +150,7 @@ typedef struct BP_Vocab_Info_Map BP_Vocab_Info_Map;
 struct BP_Vocab_Info_Map {
     u64 single_slots_count;
     BP_Vocab_Info_Map_Slot *single_slots;
-    u64 pluiral_slots_count;
+    u64 plural_slots_count;
     BP_Vocab_Info_Map_Slot *plural_slots;
 };
 
@@ -246,7 +246,7 @@ struct BP_Window_State
     // drop-completion state
     Arena *drop_completion_arena;
     CFG_ID drop_completion_panel;
-    BP_Drop_Completion_Task *top_drop_completion_Task;
+    BP_Drop_Completion_Task *top_drop_completion_task;
 
     // query state
     bool32 query_is_active;
@@ -384,9 +384,9 @@ struct BP_State {
 
     // contextual hover info
     BP_Regs *hover_regs;
-    BP_Reg_Slot hover_regs_slot;
+    BP_RegSlot hover_regs_slot;
     BP_Regs *next_hover_regs;
-    BP_Reg_Slot next_hover_regs_slot;
+    BP_RegSlot next_hover_regs_slot;
 
     // icon texture
     R_Handle icon_texture;
@@ -398,7 +398,7 @@ struct BP_State {
     // drag/drop state
     Arena *drag_drop_arena;
     BP_Regs *drag_drop_regs;
-    BP_Reg_Slot drag_drop_regs_slot;
+    BP_RegSlot drag_drop_regs_slot;
     BP_DragDropState drag_drop_state;
 
     // cfg state
@@ -407,7 +407,7 @@ struct BP_State {
 
     // window sate cache
     u64 window_state_slots_count;
-    BP_Window_State_Slot *widnow_state_slots;
+    BP_Window_State_Slot *window_state_slots;
     BP_Window_State *free_window_state;
     CFG_ID last_focused_window;
     BP_Window_State *first_window_state;
@@ -436,8 +436,6 @@ read_only global BP_Vocab_Info    bp_nil_vocab_info    = {0};
 read_only global BP_Cmd_Kind_Info bp_nil_cmd_kind_info = {0};
 
 BP_VIEW_UI_FUNCTION_DEF(null);
-BP_VIEW_UI_FUNCTION_DEF(text);
-BP_VIEW_UI_FUNCTION_DEF(getting_started);
 read_only global BP_View_UI_Rule bp_nil_view_ui_rule = {
     {0},
     BP_VIEW_UI_FUNCTION_NAME(null),
@@ -482,11 +480,11 @@ internal BP_View_UI_Rule      *bp_view_ui_rule_from_string(String8 string);
 // Global Cross-Window UI Interaction State Functions
 
 internal bool32 bp_drag_is_active(void);
-internal void bp_drag_begin(BP_Reg_Slot slot);
+internal void bp_drag_begin(BP_RegSlot slot);
 internal bool32 bp_drag_drop(void);
 internal void bp_drag_kill(void);
 
-internal void bp_set_hover_regs(BP_Reg_Slot slot);
+internal void bp_set_hover_regs(BP_RegSlot slot);
 internal BP_Regs *bp_get_hover_regs(void);
 
 //////////////////////

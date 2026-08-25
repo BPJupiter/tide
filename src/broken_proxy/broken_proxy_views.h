@@ -4,7 +4,7 @@
 
 typedef struct BP_Code_View_TLine_Split_Node BP_Code_View_TLine_Split_Node;
 struct BP_Code_View_TLine_Split_Node {
-    BP_View_View_TLine_Split_Node *next;
+    BP_Code_View_TLine_Split_Node *next;
     u64 off;
 };
 

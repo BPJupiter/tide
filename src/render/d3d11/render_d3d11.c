@@ -93,11 +93,11 @@ internal ID3D11Buffer *
 r_d3d11_instance_buffer_from_size(u64 size)
 {
   ID3D11Buffer *buffer = r_d3d11_state->instance_scratch_buffer_64kb;
-  if(size > KB(64))
+  if(size > Kilobytes(64))
   {
     u64 flushed_buffer_size = size;
-    flushed_buffer_size += MB(1)-1;
-    flushed_buffer_size -= flushed_buffer_size%MB(1);
+    flushed_buffer_size += Megabytes(1)-1;
+    flushed_buffer_size -= flushed_buffer_size % Megabytes(1);
     
     // rjf: build buffer
     {
@@ -197,7 +197,7 @@ r_init(Cmd_Line *cmdln)
   if(FAILED(error))
   {
     char buffer[256] = {0};
-    raddbg_snprintf(buffer, sizeof(buffer), "D3D11 device creation failure (%lx). The process is terminating.", error);
+    bplib_snprintf(buffer, sizeof(buffer), "D3D11 device creation failure (%lx). The process is terminating.", error);
     sh_message(1, str8_lit("Fatal Error"), str8_cstring(buffer));
     abort_self(1);
   }
@@ -329,7 +329,7 @@ r_init(Cmd_Line *cmdln)
   {
     D3D11_BUFFER_DESC desc = {0};
     {
-      desc.ByteWidth      = KB(64);
+      desc.ByteWidth      = Kilobytes(64);
       desc.Usage          = D3D11_USAGE_DYNAMIC;
       desc.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
       desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -533,7 +533,7 @@ r_window_equip(WM_Window handle)
     if(FAILED(error))
     {
       char buffer[256] = {0};
-      raddbg_snprintf(buffer, sizeof(buffer), "DXGI swap chain creation failure (%lx). The process is terminating.", error);
+      bplib_snprintf(buffer, sizeof(buffer), "DXGI swap chain creation failure (%lx). The process is terminating.", error);
       sh_message(1, str8_lit("Fatal Error"), str8_cstring(buffer));
       abort_self(1);
     }
@@ -1051,7 +1051,7 @@ r_window_end_frame(WM_Window window, R_Handle window_equip)
     if(FAILED(error))
     {
       char buffer[256] = {0};
-      raddbg_snprintf(buffer, sizeof(buffer), "D3D11 present failure (%lx). The process is terminating.", error);
+      bplib_snprintf(buffer, sizeof(buffer), "D3D11 present failure (%lx). The process is terminating.", error);
       sh_message(1, str8_lit("Fatal Error"), str8_cstring(buffer));
       abort_self(1);
     }

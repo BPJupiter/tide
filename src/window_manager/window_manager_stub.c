@@ -68,21 +68,21 @@ internal void wm_window_set_fullscreen(WM_Window window, bool32 fullscreen)
 {
 }
 
-internal bool32 wm_window_is_maximized(WM_Window window)
+internal bool32 wm_window_is_maximised(WM_Window window)
 {
     return false;
 }
 
-internal void wm_window_set_maximized(WM_Window window, bool32 maximized)
+internal void wm_window_set_maximised(WM_Window window, bool32 maximised)
 {
 }
 
-internal bool32 wm_window_is_minimized(WM_Window window)
+internal bool32 wm_window_is_minimised(WM_Window window)
 {
     return false;
 }
 
-internal void wm_window_set_minimized(WM_Window window, bool32 minimized)
+internal void wm_window_set_minimised(WM_Window window, bool32 minimised)
 {
 }
 
@@ -213,25 +213,4 @@ internal void wm_set_cursor(WM_Cursor cursor)
 {
 }
 
-///////////////////////////////////////////////////////////////
-//~ rjf: @per_os_impl Native User-Facing Graphical Messages
 
-internal void wm_graphical_message(bool32 error, String8 title, String8 message)
-{
-}
-
-internal String8 wm_graphical_pick_file(Arena *arena, String8 title, String8 initial_path)
-{
-    return str8_zero();
-}
-
-//////////////////////////////////////////
-//~ rjf: @per_os_impl Shell Operations
-
-internal void wm_show_in_filesystem_ui(String8 path)
-{
-}
-
-internal void wm_open_in_browser(String8 url)
-{
-}

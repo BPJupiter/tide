@@ -174,10 +174,10 @@ internal void             wm_window_focus(WM_Window window);
 internal bool32           wm_window_is_focused(WM_Window window);
 internal bool32           wm_window_is_fullscreen(WM_Window window);
 internal void             wm_window_set_fullscreen(WM_Window window, bool32 fullscreen);
-internal bool32           wm_window_is_maximized(WM_Window window);
-internal void             wm_window_set_maximized(WM_Window window, bool32 maximized);
-internal bool32           wm_window_is_minimized(WM_Window window);
-internal void             wm_window_set_minimized(WM_Window window, bool32 minimized);
+internal bool32           wm_window_is_maximised(WM_Window window);
+internal void             wm_window_set_maximised(WM_Window window, bool32 maximised);
+internal bool32           wm_window_is_minimised(WM_Window window);
+internal void             wm_window_set_minimised(WM_Window window, bool32 minimised);
 internal void             wm_window_bring_to_front(WM_Window window);
 internal void             wm_window_set_monitor(WM_Window window, WM_Monitor monitor);
 internal void             wm_window_clear_custom_border_data(WM_Window handle);
@@ -217,17 +217,5 @@ internal Vec2f32          wm_mouse_from_window(WM_Window window);
 // @per_os_impl Cursors
 
 internal void             wm_set_cursor(WM_Cursor cursor);
-
-/////////////////////////////////////////////////////////
-// @per_os_impl Native User-Facing Graphical Messages
-
-internal void             wm_graphical_message(bool32 error, String8 title, String8 message);
-internal String8          wm_graphical_pick_file(Arena *arena, String8 title, String8 initial_path);
-
-////////////////////////////////////
-// @per_os_impl Shell Operations
-
-internal void             wm_show_in_filesystem_ui(String8 path);
-internal void             wm_open_in_browser(String8 url);
 
 #endif // WINDOW_MANAGER_H

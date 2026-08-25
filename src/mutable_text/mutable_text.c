@@ -26,7 +26,7 @@ mtx_init(void)
   mtx_shared->mut_threads = push_array(arena, MTX_Mut_Thread, mtx_shared->mut_threads_count);
   for(u64 idx = 0; idx < mtx_shared->mut_threads_count; idx += 1)
   {
-    mtx_shared->mut_threads[idx].ring_size = KB(64);
+    mtx_shared->mut_threads[idx].ring_size = Kilobytes(64);
     mtx_shared->mut_threads[idx].ring_base = push_array_no_zero(arena, u8, mtx_shared->mut_threads[idx].ring_size);
     mtx_shared->mut_threads[idx].cv = cond_var_alloc();
     mtx_shared->mut_threads[idx].mutex = mutex_alloc();

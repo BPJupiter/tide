@@ -69,8 +69,8 @@ fs_artifact_create(String8 key, bool32 *cancel_signal, AC_Status *status_out, u6
       u64 range_size = dim_1u64(range);
       u64 read_size = Min(pre_props.size - range.min, range_size);
       u64 data_arena_size = read_size+ARENA_HEADER_SIZE;
-      data_arena_size += KB(4)-1;
-      data_arena_size -= data_arena_size%KB(4);
+      data_arena_size += Kilobytes(4)-1;
+      data_arena_size -= data_arena_size % Kilobytes(4);
       data_arena = arena_alloc(.reserve_size = data_arena_size, .commit_size = data_arena_size);
       data_buffer_size = read_size;
       data_buffer = push_array_no_zero(data_arena, u8, data_buffer_size);

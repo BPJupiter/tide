@@ -1892,7 +1892,7 @@ path_absolute_dst_from_relative_dst_src(Arena *arena, String8 dst, String8 src)
 //~ rjf: Path Normalization
 
 internal String8_List
-path_normalized_list_from_string(Arena *arena, String8 path_string, PathStyle *style_out)
+path_normalised_list_from_string(Arena *arena, String8 path_string, PathStyle *style_out)
 {
   // rjf: analyze path
   PathStyle path_style = path_style_from_str8(path_string);
@@ -1910,23 +1910,23 @@ path_normalized_list_from_string(Arena *arena, String8 path_string, PathStyle *s
 }
 
 internal String8
-path_normalized_from_string(Arena *arena, String8 path_string)
+path_normalised_from_string(Arena *arena, String8 path_string)
 {
   Temp scratch = scratch_begin(&arena, 1);
   PathStyle style = PathStyle_Relative;
-  String8_List path = path_normalized_list_from_string(scratch.arena, path_string, &style);
+  String8_List path = path_normalised_list_from_string(scratch.arena, path_string, &style);
   String8 result = str8_path_list_join_by_style(arena, &path, style);
   scratch_end(scratch);
   return result;
 }
 
 internal bool32
-path_match_normalized(String8 left, String8 right)
+path_match_normalised(String8 left, String8 right)
 {
   Temp scratch = scratch_begin(0, 0);
-  String8 left_normalized = path_normalized_from_string(scratch.arena, left);
-  String8 right_normalized = path_normalized_from_string(scratch.arena, right);
-  bool32 result = str8_match(left_normalized, right_normalized, StringMatchFlag_CaseInsensitive);
+  String8 left_normalised = path_normalised_from_string(scratch.arena, left);
+  String8 right_normalised = path_normalised_from_string(scratch.arena, right);
+  bool32 result = str8_match(left_normalised, right_normalised, StringMatchFlag_CaseInsensitive);
   scratch_end(scratch);
   return result;
 }
@@ -3281,6 +3281,21 @@ u64_hash_from_str8(String8 string)
   return result;
 }
 
+internal u64 u64_hash_from_seed_str8__case_insensitive(u64 seed, String8 string)
+{
+    u64 result = seed;
+    for(u64 i = 0; i < string.size; i += 1)
+    {
+        result = ((result << 5) + result) + lower_from_char(string.str[i]);
+    }
+    return result;
+}
+
+internal u64 u64_hash_from_str8__case_insensitive(String8 string)
+{
+    return u64_hash_from_seed_str8__case_insensitive(5381, string);
+}
+
 internal u128
 u128_hash_from_seed_str8(u64 seed, String8 string)
 {
@@ -3296,3 +3311,5 @@ u128_hash_from_str8(String8 string)
   u128 result = u128_hash_from_seed_str8(5381, string);
   return result;
 }
+
+

@@ -10,11 +10,11 @@ internal DR_FStr_List bp_title_fstrs_from_cfg(Arena *arena, CFG_Node *cfg, bool3
         
         //- rjf: unpack config
         //
-        bool32 is_disabled = rd_disabled_from_cfg(cfg);
-        String8 name_string = rd_name_from_cfg(cfg);
-        String8 label_string = rd_label_from_cfg(cfg);
-        String8 file_path = rd_path_from_cfg(cfg);
-        Vec4f32 rgba = rd_color_from_cfg(cfg);
+        bool32 is_disabled = bp_disabled_from_cfg(cfg);
+        String8 name_string = bp_name_from_cfg(cfg);
+        String8 label_string = bp_label_from_cfg(cfg);
+        String8 file_path = bp_path_from_cfg(cfg);
+        Vec4f32 rgba = bp_color_from_cfg(cfg);
         if(rgba.w == 0)
         {
             rgba = ui_color_from_name(str8_lit("text"));
@@ -24,7 +24,7 @@ internal DR_FStr_List bp_title_fstrs_from_cfg(Arena *arena, CFG_Node *cfg, bool3
         {
             rgba_secondary = ui_color_from_name(str8_lit("text"));
         }
-        RD_IconKind icon_kind = rd_icon_kind_from_code_name(cfg->string);
+        BP_IconKind icon_kind = bp_icon_kind_from_code_name(cfg->string);
         bool32 is_from_command_line = 0;
         {
             CFG_Node *cmd_line_root = cfg_node_child_from_string(cfg_node_root(), str8_lit("command_line"));
@@ -50,12 +50,12 @@ internal DR_FStr_List bp_title_fstrs_from_cfg(Arena *arena, CFG_Node *cfg, bool3
         }
         if(file_path.size != 0)
         {
-            icon_kind = RD_IconKind_FileOutline;
+            icon_kind = BP_IconKind_FileOutline;
         }
         
         //- rjf: set up color/size for all parts of the title
         //
-        DR_FStr_Params params = {rd_font_from_slot(RD_FontSlot_Main), rd_raster_flags_from_slot(RD_FontSlot_Main), rgba, ui_top_font_size()};
+        DR_FStr_Params params = {bp_font_from_slot(BP_FontSlot_Main), bp_raster_flags_from_slot(BP_FontSlot_Main), rgba, ui_top_font_size()};
         bool32 running_is_secondary = 0;
 #define start_secondary() if(!running_is_secondary){running_is_secondary = 1; params.color = rgba_secondary; params.size = ui_top_font_size()*0.95f;}
         
@@ -66,23 +66,23 @@ internal DR_FStr_List bp_title_fstrs_from_cfg(Arena *arena, CFG_Node *cfg, bool3
         }
         
         //- rjf: push icon
-        if(icon_kind != RD_IconKind_Null)
+        if(icon_kind != BP_IconKind_Null)
         {
-            dr_fstrs_push_new(arena, &result, &params, rd_icon_kind_text_table[icon_kind], .font = rd_font_from_slot(RD_FontSlot_Icons), .raster_flags = rd_raster_flags_from_slot(RD_FontSlot_Icons), .color = rgba_secondary);
+            dr_fstrs_push_new(arena, &result, &params, bp_icon_kind_text_table[icon_kind], .font = bp_font_from_slot(BP_FontSlot_Icons), .raster_flags = bp_raster_flags_from_slot(BP_FontSlot_Icons), .color = rgba_secondary);
             dr_fstrs_push_new(arena, &result, &params, str8_lit("  "));
         }
         
         //- rjf: push warning icon for command-line entities
         if(is_from_command_line)
         {
-            dr_fstrs_push_new(arena, &result, &params, rd_icon_kind_text_table[RD_IconKind_Info], .font = rd_font_from_slot(RD_FontSlot_Icons), .raster_flags = rd_raster_flags_from_slot(RD_FontSlot_Icons), .color = rgba_secondary);
+            dr_fstrs_push_new(arena, &result, &params, bp_icon_kind_text_table[BP_IconKind_Info], .font = bp_font_from_slot(BP_FontSlot_Icons), .raster_flags = bp_raster_flags_from_slot(BP_FontSlot_Icons), .color = rgba_secondary);
             dr_fstrs_push_new(arena, &result, &params, str8_lit("  "));
         }
         
         //- rjf: push view title, if from window, and no file path, and no label
         if(is_within_window && file_path.size == 0 && label_string.size == 0)
         {
-            String8 view_display_name = rd_display_from_code_name(cfg->string);
+            String8 view_display_name = bp_display_from_code_name(cfg->string);
             if(view_display_name.size != 0)
             {
                 dr_fstrs_push_new(arena, &result, &params, view_display_name);
@@ -96,13 +96,13 @@ internal DR_FStr_List bp_title_fstrs_from_cfg(Arena *arena, CFG_Node *cfg, bool3
         {
             if(str8_match(cfg->string, str8_lit("user"), 0))
             {
-                dr_fstrs_push_new(arena, &result, &params, str8_lit("User"), .font = rd_font_from_slot(RD_FontSlot_Main), .raster_flags = rd_raster_flags_from_slot(RD_FontSlot_Main));
+                dr_fstrs_push_new(arena, &result, &params, str8_lit("User"), .font = bp_font_from_slot(BP_FontSlot_Main), .raster_flags = bp_raster_flags_from_slot(BP_FontSlot_Main));
                 dr_fstrs_push_new(arena, &result, &params, str8_lit("  "));
                 start_secondary();
             }
             else if(str8_match(cfg->string, str8_lit("project"), 0))
             {
-                dr_fstrs_push_new(arena, &result, &params, str8_lit("Project"), .font = rd_font_from_slot(RD_FontSlot_Main), .raster_flags = rd_raster_flags_from_slot(RD_FontSlot_Main));
+                dr_fstrs_push_new(arena, &result, &params, str8_lit("Project"), .font = bp_font_from_slot(BP_FontSlot_Main), .raster_flags = bp_raster_flags_from_slot(BP_FontSlot_Main));
                 dr_fstrs_push_new(arena, &result, &params, str8_lit("  "));
                 start_secondary();
             }
@@ -119,7 +119,7 @@ internal DR_FStr_List bp_title_fstrs_from_cfg(Arena *arena, CFG_Node *cfg, bool3
         //- rjf: push label
         if(label_string.size != 0)
         {
-            dr_fstrs_push_new(arena, &result, &params, label_string, .font = rd_font_from_slot(RD_FontSlot_Code), .raster_flags = rd_raster_flags_from_slot(RD_FontSlot_Code));
+            dr_fstrs_push_new(arena, &result, &params, label_string, .font = bp_font_from_slot(BP_FontSlot_Code), .raster_flags = bp_raster_flags_from_slot(BP_FontSlot_Code));
             dr_fstrs_push_new(arena, &result, &params, str8_lit("  "));
             start_secondary();
         }
@@ -130,13 +130,13 @@ internal DR_FStr_List bp_title_fstrs_from_cfg(Arena *arena, CFG_Node *cfg, bool3
         {
             String8_List qualifiers = {0};
             String8 file_name = str8_skip_last_slash(file_path);
-            if(rd_state->ambiguous_path_slots_count != 0)
+            if(bp_state->ambiguous_path_slots_count != 0)
             {
-                u64 hash = d_hash_from_string__case_insensitive(file_name);
-                u64 slot_idx = hash%rd_state->ambiguous_path_slots_count;
-                RD_Ambiguous_Path_Node *node = 0;
+                u64 hash = u64_hash_from_str8__case_insensitive(file_name);
+                u64 slot_idx = hash%bp_state->ambiguous_path_slots_count;
+                BP_Ambiguous_Path_Node *node = 0;
                 {
-                    for(RD_Ambiguous_Path_Node *n = rd_state->ambiguous_path_slots[slot_idx];
+                    for(BP_Ambiguous_Path_Node *n = bp_state->ambiguous_path_slots[slot_idx];
                         n != 0;
                         n = n->next)
                     {
@@ -237,7 +237,7 @@ internal DR_FStr_List bp_title_fstrs_from_cfg(Arena *arena, CFG_Node *cfg, bool3
                 dr_fstrs_push_new(arena, &result, &params, str8_lit("Color"), .color = rgba_secondary);
             }
             dr_fstrs_push_new(arena, &result, &params, str8_lit("  "));
-            dr_fstrs_push_new(arena, &result, &params, rd_icon_kind_text_table[RD_IconKind_CircleFilled], .font = rd_font_from_slot(RD_FontSlot_Icons), .raster_flags = rd_raster_flags_from_slot(RD_FontSlot_Icons), .color = color);
+            dr_fstrs_push_new(arena, &result, &params, bp_icon_kind_text_table[BP_IconKind_CircleFilled], .font = bp_font_from_slot(BP_FontSlot_Icons), .raster_flags = bp_raster_flags_from_slot(BP_FontSlot_Icons), .color = color);
         }
         
 #undef start_secondary
@@ -250,7 +250,7 @@ internal DR_FStr_List bp_title_fstrs_from_code_name(Arena *arena, String8 code_n
 {
     DR_FStr_List result = {0};
     {
-        DR_Vocab_Info *info = bp_vocab_info_from_code_name(code_name);
+        BP_Vocab_Info *info = bp_vocab_info_from_code_name(code_name);
 
         // set up color/size for all parts of the title
         //
@@ -267,7 +267,7 @@ internal DR_FStr_List bp_title_fstrs_from_code_name(Arena *arena, String8 code_n
         // push icon
         if (info->icon_kind != BP_IconKind_Null) UI_Tag(str8_lit("weak"))
         {
-            dr_fstrs_push_new(arena, &result, &params, bp_icon_kind_text_table[icon->icon_kind],
+            dr_fstrs_push_new(arena, &result, &params, bp_icon_kind_text_table[info->icon_kind],
                               .font = bp_font_from_slot(BP_FontSlot_Icons),
                               .raster_flags = bp_raster_flags_from_slot(BP_FontSlot_Icons),
                               .color = ui_color_from_name(str8_lit("text")));
@@ -295,8 +295,8 @@ internal DR_FStr_List bp_title_fstrs_from_file_path(Arena *arena, String8 file_p
 {
     DR_FStr_List fstrs = {0};
     String8 file_name = str8_skip_last_slash(file_path);
-    FIle_Properties props = properties_from_file_path(file_path);
-    BP_IconKind icon_kind = BP_IconKind_FileOutLine;
+    File_Properties props = properties_from_file_path(file_path);
+    BP_IconKind icon_kind = BP_IconKind_FileOutline;
     if (props.flags & FilePropertyFlag_IsFolder)
     {
         icon_kind = BP_IconKind_FolderClosedFilled;
@@ -368,11 +368,11 @@ internal void bp_loading_overlay(Rng2f32 rect, f32 loading_t, u64 progress_v, u6
             indicator_rect.x1 = Clamp(indicator_region_rect.x0, indicator_rect.x1, indicator_region_rect.x1);
             indicator_rect = pad_2f32(indicator_rect, -1.f);
 
-            // does the view here have loading *progress* info? -> draw extra progress layer
+            // does the view have loading *progress* info? -> draw extra progress layer
             if (progress_v != progress_v_target) UI_TagF("drop_site")
             {
                 f64 pct_done_f64 = ((f64)progress_v/(f64)progress_v_target);
-                f32 pct_dont (f32)pct_done_f64;
+                f32 pct_done = (f32)pct_done_f64;
                 Rng2f32 pct_rect = r2f32p(indicator_region_rect.x0,
                                           indicator_region_rect.y0,
                                           indicator_region_rect.x0 + (indicator_region_rect.x1 - indicator_region_rect.x0) * pct_done,
@@ -388,7 +388,7 @@ internal void bp_loading_overlay(Rng2f32 rect, f32 loading_t, u64 progress_v, u6
             // animated bar
             UI_Rect(indicator_region_rect)
             {
-                UI_Box *box = ui_build_box_from_string(UI_BoxFlag_DrawBackground|
+                UI_Box *box = ui_build_box_from_stringf(UI_BoxFlag_DrawBackground|
                                                        UI_BoxFlag_DrawBorder    |
                                                        UI_BoxFlag_Floating      |
                                                        UI_BoxFlag_Clickable, "bg_system_status");
@@ -415,7 +415,7 @@ internal void bp_cmd_binding_buttons(String8 name, String8 filter, u64 limit, BP
 {
     Temp scratch = scratch_begin(0, 0);
     CFG_Key_Map_Node_Ptr_List key_map_nodes = cfg_key_map_node_ptr_list_from_name(scratch.arena,
-                                                                                  bp_state->key_state,
+                                                                                  bp_state->key_map,
                                                                                   name);
     // build buttons for each binding
     u64 key_map_idx = 0;
@@ -423,7 +423,7 @@ internal void bp_cmd_binding_buttons(String8 name, String8 filter, u64 limit, BP
         for (CFG_Key_Map_Node_Ptr *n = key_map_nodes.first; n != 0; n = n->next, key_map_idx += 1)
     {
         if (key_map_idx >= limit) { break; }
-        ui_spaces(ui_em(1.f, 1.f));
+        ui_spacer(ui_em(1.f, 1.f));
         CFG_Binding binding = n->v->binding;
         bool32 rebinding_active_for_this_binding = (bp_state->bind_change_active &&
                                                     str8_match(bp_state->bind_change_cmd_name, name, 0) &&
@@ -485,7 +485,7 @@ internal void bp_cmd_binding_buttons(String8 name, String8 filter, u64 limit, BP
         UI_Signal sig = ui_signal_from_box(box);
         {
             // click => toggle activity
-            if (!bp_state->bind_change_active && ui_cliked(sig))
+            if (!bp_state->bind_change_active && ui_clicked(sig))
             {
                 if ((binding.key == WM_Key_Esc || binding.key == WM_Key_Delete) && binding.modifiers == 0)
                 {
@@ -548,13 +548,13 @@ internal void bp_cmd_binding_buttons(String8 name, String8 filter, u64 limit, BP
                 ui_set_next_text_alignment(UI_TextAlign_Center);
                 ui_set_next_group_key(ui_key_zero());
                 ui_set_next_pref_width(ui_text_dim(ui_top_font_size() * 1.5f, 1));
-                box = ui_build_box_from_string(UI_BoxFlag_DrawText|
-                                               UI_BoxFlag_Clickable|
-                                               UI_BoxFlag_DrawActiveEffects|
-                                               UI_BoxFlag_DrawHotEffects|
-                                               UI_BoxFlag_DrawBorder|
-                                               UI_BoxFlag_DrawBackground,
-                                               "%S###add_binding", bp_icon_kind_text_table[BP_IconKind_Add]);
+                box = ui_build_box_from_stringf(UI_BoxFlag_DrawText|
+                                                UI_BoxFlag_Clickable|
+                                                UI_BoxFlag_DrawActiveEffects|
+                                                UI_BoxFlag_DrawHotEffects|
+                                                UI_BoxFlag_DrawBorder|
+                                                UI_BoxFlag_DrawBackground,
+                                                "%S###add_binding", bp_icon_kind_text_table[BP_IconKind_Add]);
             }
             UI_Signal sig = ui_signal_from_box(box);
             if (ui_hovering(sig)) UI_Tooltip
@@ -564,14 +564,14 @@ internal void bp_cmd_binding_buttons(String8 name, String8 filter, u64 limit, BP
             }
             if (ui_clicked(sig))
             {
-                if (!adding_new_binding && ui_cliked(sig))
+                if (!adding_new_binding && ui_clicked(sig))
                 {
                     arena_clear(bp_state->bind_change_arena);
                     bp_state->bind_change_active = true;
                     bp_state->bind_change_cmd_name = push_str8_copy(bp_state->bind_change_arena, name);
                     bp_state->bind_change_binding_id = 0;
                 }
-                else if (adding_new_binding && ui_cliked(sig))
+                else if (adding_new_binding && ui_clicked(sig))
                 {
                     bp_state->bind_change_active = 0;
                 }
@@ -604,7 +604,7 @@ internal UI_Signal bp_cmd_spec_button(String8 name)
                                             UI_BoxFlag_DrawActiveEffects|
                                             UI_BoxFlag_Clickable,
                                             "###cmd_%p", info);
-    UI_Parent(box) UI_HeightFill UI_Paddig(ui_em(1.f, 1.f))
+    UI_Parent(box) UI_HeightFill UI_Padding(ui_em(1.f, 1.f))
     {
         BP_IconKind canonical_icon = bp_icon_kind_from_code_name(name);
         if (canonical_icon != BP_IconKind_Null)
@@ -612,7 +612,7 @@ internal UI_Signal bp_cmd_spec_button(String8 name)
             BP_Font(BP_FontSlot_Icons)
                 UI_PrefWidth(ui_em(2.f, 1.f))
                 UI_TextAlignment(UI_TextAlign_Center)
-                UI_TegF("weak")
+                UI_TagF("weak")
             {
                 ui_label(bp_icon_kind_text_table[canonical_icon]);
             }
@@ -639,7 +639,7 @@ internal UI_Signal bp_cmd_spec_button(String8 name)
     return sig;
 }
 
-internal void bp_cmd_list_menu_buttons(u64 count, String8 cmd_names, u32 *fastpath_codepoints)
+internal void bp_cmd_list_menu_buttons(u64 count, String8 *cmd_names, u32 *fastpath_codepoints)
 {
     Temp scratch = scratch_begin(0, 0);
     for EachIndex(idx, count)
@@ -652,7 +652,7 @@ internal void bp_cmd_list_menu_buttons(u64 count, String8 cmd_names, u32 *fastpa
         {
             ui_set_next_fastpath_codepoint(fastpath_codepoints[idx]);
             UI_Signal sig = bp_cmd_spec_button(cmd_names[idx]);
-            if (ui_cliked(sig))
+            if (ui_clicked(sig))
             {
                 bp_cmd(BP_CmdKind_RunCommand, .cmd_name = cmd_names[idx]);
                 ui_ctx_menu_close();
@@ -733,16 +733,16 @@ internal UI_Signal bp_icon_buttonf(BP_IconKind kind, Fuzzy_Match_Range_List *mat
 
 internal BP_Code_Slice_Signal bp_code_slice(BP_Code_Slice_Params *params, u64 *cursor, u64 *mark, s64 *preferred_column, String8 string)
 {
-    RD_Code_Slice_Signal result = {0};
+    BP_Code_Slice_Signal result = {0};
     ProfBeginFunction();
     Temp scratch = scratch_begin(0, 0);
   
     bool32 is_focused = ui_is_focus_active();
     bool32 ctrlified = (wm_get_modifiers() & WM_Modifier_Ctrl);
     f32 line_num_padding_px = ui_top_font_size()*1.f;
-    bool32 do_scope_lines = rd_setting_b32_from_name(s("cursor_scope_lines"));
-    bool32 do_scope_end_annotations = rd_setting_b32_from_name(s("cursor_scope_end_annotations"));
-    bool32 do_cursor_trail = rd_setting_b32_from_name(s("animations")) && rd_setting_b32_from_name(s("cursor_trail"));
+    bool32 do_scope_lines = bp_setting_bool32_from_name(s("cursor_scope_lines"));
+    bool32 do_scope_end_annotations = bp_setting_bool32_from_name(s("cursor_scope_end_annotations"));
+    bool32 do_cursor_trail = bp_setting_bool32_from_name(s("animations")) && bp_setting_bool32_from_name(s("cursor_trail"));
     Vec4f32 pop_color = {0};
     UI_TagF("pop")
     {
@@ -777,7 +777,7 @@ internal BP_Code_Slice_Signal bp_code_slice(BP_Code_Slice_Params *params, u64 *c
     //////////////////////////////
     //- rjf: build line numbers
     //
-    if(params->flags & RD_CodeSliceFlag_LineNums) UI_Parent(top_container_box) ProfScope("build line numbers") UI_Focus(UI_FocusKind_Off)
+    if(params->flags & BP_CodeSliceFlag_LineNums) UI_Parent(top_container_box) ProfScope("build line numbers") UI_Focus(UI_FocusKind_Off)
     UI_TagF("floating")
     {
         Rng1u64 select_rng = r1u64(*cursor, *mark);
@@ -787,7 +787,7 @@ internal BP_Code_Slice_Signal bp_code_slice(BP_Code_Slice_Params *params, u64 *c
         ui_set_next_flags(UI_BoxFlag_DrawSideRight);
         UI_Column
             UI_PrefHeight(ui_px(params->line_height_px, 1.f))
-            RD_Font(RD_FontSlot_Code)
+            BP_Font(BP_FontSlot_Code)
             UI_FontSize(params->font_size)
             UI_CornerRadius(0)
         {
@@ -825,7 +825,7 @@ internal BP_Code_Slice_Signal bp_code_slice(BP_Code_Slice_Params *params, u64 *c
     {
         ui_set_next_hover_cursor(ctrlified ? WM_Cursor_HandPoint : WM_Cursor_IBar);
         ui_set_next_pref_height(ui_px(params->line_height_px*(dim_1s64(params->line_num_range)+1), 1.f));
-        text_container_box = ui_build_box_from_string(UI_BoxFlag_Clickable*!!(params->flags & RD_CodeSliceFlag_Clickable), s("text_container"));
+        text_container_box = ui_build_box_from_string(UI_BoxFlag_Clickable*!!(params->flags & BP_CodeSliceFlag_Clickable), s("text_container"));
     }
     
     //////////////////////////////
@@ -919,9 +919,9 @@ internal BP_Code_Slice_Signal bp_code_slice(BP_Code_Slice_Params *params, u64 *c
                 *cursor = *mark = mouse_off;
             }
             String8 commands_expr = (*cursor == *mark) ? s("query:text_pt_commands") : s("query:text_range_commands");
-            rd_cmd(RD_CmdKind_FocusPanel);
-            rd_cmd(RD_CmdKind_PushQuery,
-                   .expr = str8f(scratch.arena, "%S, query:config.$%I64x", commands_expr, rd_regs()->view),
+            bp_cmd(BP_CmdKind_FocusPanel);
+            bp_cmd(BP_CmdKind_PushQuery,
+                   .expr = str8f(scratch.arena, "%S, query:config.$%I64x", commands_expr, bp_regs()->view),
                    .do_implicit_root = 1,
                    .do_lister = 1,
                    .small_size = 1,
@@ -965,11 +965,11 @@ internal BP_Code_Slice_Signal bp_code_slice(BP_Code_Slice_Params *params, u64 *c
                 f32 scope_line_color_target = highlight_color.w;
                 scope_line_color_target *= 1 - ancestor_chain_depth / 6.f;
                 scope_line_color_target = Max(0.2f, scope_line_color_target);
-                f32 scope_line_color_t = ui_anim(ui_key_from_stringf(text_container_box->key, "###scope_depth_%I64x_%I64x", scope_n->token_idx_range.min, scope_n->token_idx_range.max), scope_line_color_target, .rate = rd_state->menu_animation_rate__slow);
+                f32 scope_line_color_t = ui_anim(ui_key_from_stringf(text_container_box->key, "###scope_depth_%I64x_%I64x", scope_n->token_idx_range.min, scope_n->token_idx_range.max), scope_line_color_target, .rate = bp_state->menu_animation_rate__slow);
                 scope_line_color.w = scope_line_color_t*0.5f;
                 Rng1u64 token_idx_range = scope_n->token_idx_range;
                 Rng1u64 off_range = r1u64(params->text_info->tokens.v[token_idx_range.min].range.min, params->text_info->tokens.v[token_idx_range.max].range.min);
-                TxtRng txt_range = txt_rng(txt_pt_from_off__linear_scan(params->text_info, params->patches, off_range.min), txt_pt_from_off__linear_scan(params->text_info, params->patches, off_range.max));
+                Txt_Rng txt_range = txt_rng(txt_pt_from_off__linear_scan(params->text_info, params->patches, off_range.min), txt_pt_from_off__linear_scan(params->text_info, params->patches, off_range.max));
                 
                 if(txt_range.min.line == txt_range.max.line && contains_1s64(params->line_num_range, txt_range.min.line))
                 {
@@ -985,7 +985,7 @@ internal BP_Code_Slice_Signal bp_code_slice(BP_Code_Slice_Params *params, u64 *c
                                                     text_base_pos.x + x_px_range.max+1,
                                                     text_base_pos.y + line_y + params->line_height_px + params->font_size*0.1f);
                     f32 midpoint = center_1f32(r1f32(underline_rect.x0, underline_rect.x1));
-                    f32 t = ui_anim(ui_key_from_stringf(text_container_box->key, "###scope_%I64x_%I64x", scope_n->token_idx_range.min, scope_n->token_idx_range.max), 1.f, .rate = rd_state->catchall_animation_rate);
+                    f32 t = ui_anim(ui_key_from_stringf(text_container_box->key, "###scope_%I64x_%I64x", scope_n->token_idx_range.min, scope_n->token_idx_range.max), 1.f, .rate = bp_state->catchall_animation_rate);
                     Rng2f32 underline_clip = {0};
                     underline_clip.x0 = mix_1f32(midpoint, underline_rect.x0 - params->font_size, t);
                     underline_clip.x1 = mix_1f32(midpoint, underline_rect.x1 + params->font_size, t);
@@ -1016,7 +1016,7 @@ internal BP_Code_Slice_Signal bp_code_slice(BP_Code_Slice_Params *params, u64 *c
                         scope_range_y_px.max = ((txt_range.max.line - params->line_num_range.min) + 1) * params->line_height_px;
                     }
                     f32 midpoint = center_1f32(scope_range_y_px);
-                    f32 t = ui_anim(ui_key_from_stringf(text_container_box->key, "###scope_%I64x_%I64x", scope_n->token_idx_range.min, scope_n->token_idx_range.max), 1.f, .rate = rd_state->catchall_animation_rate);
+                    f32 t = ui_anim(ui_key_from_stringf(text_container_box->key, "###scope_%I64x_%I64x", scope_n->token_idx_range.min, scope_n->token_idx_range.max), 1.f, .rate = bp_state->catchall_animation_rate);
                     Rng2f32 scope_rect = r2f32p(text_base_pos.x + indent_depth_px - params->font_size*0.2f,
                                                 text_base_pos.y + scope_range_y_px.min,
                                                 text_base_pos.x + indent_depth_px - params->font_size*0.2f + params->font_size*1.f,
@@ -1048,7 +1048,7 @@ internal BP_Code_Slice_Signal bp_code_slice(BP_Code_Slice_Params *params, u64 *c
                        !str8_match(scope_title_string, s("["), 0) &&
                        !str8_match(scope_title_string, s("("), 0))
                     {
-                        f32 t = ui_anim(ui_key_from_stringf(text_container_box->key, "###scope_end_annotation_%I64x_%I64x", scope_n->token_idx_range.min, scope_n->token_idx_range.max), 1.f, .rate = rd_state->catchall_animation_rate);
+                        f32 t = ui_anim(ui_key_from_stringf(text_container_box->key, "###scope_end_annotation_%I64x_%I64x", scope_n->token_idx_range.min, scope_n->token_idx_range.max), 1.f, .rate = bp_state->catchall_animation_rate);
                         String8 closer_line = txt_string_from_info_data_line_num(params->text_info, params->text_data, txt_range.max.line);
                         f32 closer_line_px = fnt_dim_from_tag_size_string(params->font, params->font_size, 0, params->tab_size, closer_line).x;
                         Vec4f32 color = ui_color_from_name(s("text"));
@@ -1073,8 +1073,8 @@ internal BP_Code_Slice_Signal bp_code_slice(BP_Code_Slice_Params *params, u64 *c
     {
         DR_FStr_Params fstr_params = {
             params->font,
-            rd_raster_flags_from_slot(RD_FontSlot_Code),
-            rd_rgba_from_code_color_slot(RD_CodeColorSlot_CodeDefault),
+            bp_raster_flags_from_slot(BP_FontSlot_Code),
+            bp_rgba_from_code_color_slot(BP_CodeColorSlot_CodeDefault),
             params->font_size,
         };
         u64 line_idx = 0;
@@ -1111,12 +1111,12 @@ internal BP_Code_Slice_Signal bp_code_slice(BP_Code_Slice_Params *params, u64 *c
                         token_string = str8_substr(line_string, token_range);
                     }
                     
-                    RD_CodeColorSlot token_color_slot = rd_code_color_slot_from_txt_token_kind(token->kind);
-                    RD_CodeColorSlot lookup_color_slot = preceded_by_dot ? token_color_slot : rd_code_color_slot_from_txt_token_kind_lookup_string(token->kind, token_string, 0, 0);
-                    Vec4f32 token_color = rd_rgba_from_code_color_slot(token_color_slot);
-                    if(lookup_color_slot != RD_CodeColorSlot_CodeDefault)
+                    BP_CodeColorSlot token_color_slot = bp_code_color_slot_from_txt_token_kind(token->kind);
+                    BP_CodeColorSlot lookup_color_slot = preceded_by_dot ? token_color_slot : bp_code_color_slot_from_txt_token_kind_lookup_string(token->kind, token_string, 0, 0);
+                    Vec4f32 token_color = bp_rgba_from_code_color_slot(token_color_slot);
+                    if(lookup_color_slot != BP_CodeColorSlot_CodeDefault)
                     {
-                        Vec4f32 lookup_color = rd_rgba_from_code_color_slot(lookup_color_slot);
+                        Vec4f32 lookup_color = bp_rgba_from_code_color_slot(lookup_color_slot);
                         f32 lookup_color_mix_t = ui_anim(ui_key_from_stringf(ui_key_zero(), "%S_lookup", token_string), 1.f);
                         token_color = mix_4f32(token_color, lookup_color, lookup_color_mix_t);
                     }
@@ -1209,7 +1209,7 @@ internal BP_Code_Slice_Signal bp_code_slice(BP_Code_Slice_Params *params, u64 *c
     //////////////////////////////
     //- rjf: build line numbers region (line number interaction should be basically identical to lines)
     //
-    if(params->flags & RD_CodeSliceFlag_LineNums) UI_Parent(text_container_box) ProfScope("build line number interaction box") UI_Focus(UI_FocusKind_Off)
+    if(params->flags & BP_CodeSliceFlag_LineNums) UI_Parent(text_container_box) ProfScope("build line number interaction box") UI_Focus(UI_FocusKind_Off)
     {
         ui_set_next_pref_width(ui_px(params->line_num_width_px, 1.f));
         ui_set_next_pref_height(ui_px(params->line_height_px*(dim_1s64(params->line_num_range)+1), 1.f));
@@ -1225,7 +1225,7 @@ internal BP_Code_Slice_Signal bp_code_slice(BP_Code_Slice_Params *params, u64 *c
         UI_WidthFill
             UI_Column
             UI_PrefHeight(ui_px(params->line_height_px, 1.f))
-            RD_Font(RD_FontSlot_Code)
+            BP_Font(BP_FontSlot_Code)
             UI_FontSize(params->font_size)
             UI_CornerRadius(0)
         {
@@ -1384,7 +1384,7 @@ internal BP_Code_Slice_Signal bp_code_slice(BP_Code_Slice_Params *params, u64 *c
 internal BP_Code_Slice_Signal bp_code_slicef(BP_Code_Slice_Params *params, u64 *cursor, u64 *mark, s64 *preferred_column, char *fmt, ...)
 {
     Temp scratch = scratch_begin(0, 0);
-    va_list arg;
+    va_list args;
     va_start(args, fmt);
     String8 string = push_str8fv(scratch.arena, fmt, args);
     BP_Code_Slice_Signal sig = bp_code_slice(params, cursor, mark, preferred_column, string);
@@ -1418,7 +1418,7 @@ internal DR_FStr_List bp_fstrs_from_rich_string(Arena *arena, String8 string)
     typedef struct String_Part String_Part;
     struct String_Part {
         String_Part *next;
-        String_Part_Flags flags;
+        StringPartFlags flags;
         String8 string;
     };
     String_Part *first_part = 0;
@@ -1432,7 +1432,7 @@ internal DR_FStr_List bp_fstrs_from_rich_string(Arena *arena, String8 string)
             String_Part *p = push_array(scratch.arena, String_Part, 1);
             p->flags = active_part_flags;
             p->string = str8_substr(string, r1u64(active_part_start_idx, idx));
-            SLLQueuePush(first_party, last_part, p);
+            SLLQueuePush(first_part, last_part, p);
         }
         else if (string.str[idx] == '`')
         {
@@ -1521,7 +1521,7 @@ internal bool32 bp_help_label(String8 string)
     return result;
 }
 
-internal DR_Fstr_List bp_fstrs_from_code_string(Arena *arena, f32 alpha, bool32 indirection_size_change, Vec4f32 base_color, String8 string)
+internal DR_FStr_List bp_fstrs_from_code_string(Arena *arena, f32 alpha, bool32 indirection_size_change, Vec4f32 base_color, String8 string)
 {
     ProfBeginFunction();
     Temp scratch = scratch_begin(&arena, 1);
@@ -1563,7 +1563,7 @@ internal DR_Fstr_List bp_fstrs_from_code_string(Arena *arena, f32 alpha, bool32 
                     bool32 is_called = (token + 1 < tokens_opl &&
                                         token[1].kind == TXT_TokenKind_Symbol &&
                                         str8_match(str8_substr(string, token[1].range), str8_lit("("), 0));
-                    if (!preceded_by_dor)
+                    if (!preceded_by_dot)
                     {
                         lookup_theme_color_slot = bp_code_color_slot_from_txt_token_kind_lookup_string(token->kind,
                                                                                                        token_string,
@@ -1572,9 +1572,9 @@ internal DR_Fstr_List bp_fstrs_from_code_string(Arena *arena, f32 alpha, bool32 
                     }
                     if (lookup_theme_color_slot != BP_CodeColorSlot_CodeDefault)
                     {
-                        Vec2f32 lookup_color = bp_rgba_from_code_color_slot(lookup_theme_color_slot);
+                        Vec4f32 lookup_color = bp_rgba_from_code_color_slot(lookup_theme_color_slot);
                         f32 lookup_color_mix_t = ui_anim(ui_key_from_stringf(ui_key_zero(), "%S_lookup", token_string), 1.f);
-                    token_color_rgba = mix_4f32(token_color_rgba, lookup_color, lookup_color_mix_t);
+                        token_color_rgba = mix_4f32(token_color_rgba, lookup_color, lookup_color_mix_t);
                     }
                     token_color_rgba.w *= alpha;
                     DR_FStr fstr = {
@@ -1691,7 +1691,7 @@ internal DR_Fstr_List bp_fstrs_from_code_string(Arena *arena, f32 alpha, bool32 
                                 font_size,
                             },
                         };
-                        dr_fstr_push(arena, &fstrs, &fstr);
+                        dr_fstrs_push(arena, &fstrs, &fstr);
                     }
                 }
             } break;
@@ -1744,12 +1744,12 @@ internal UI_Signal bp_cell(BP_Cell_Params *params, String8 string)
     // calculate & push focus
     bool32 is_auto_focus_hot = ui_is_key_auto_focus_hot(key);
     bool32 is_auto_focus_active = ui_is_key_auto_focus_active(key);
-    if (is_auto_focus_hot)    { ui_push_focus_hit(UI_FocusKind_On); }
+    if (is_auto_focus_hot)    { ui_push_focus_hot(UI_FocusKind_On); }
     if (is_auto_focus_active) { ui_push_focus_active(UI_FocusKind_On); }
     bool32 is_focus_hot    = ui_is_focus_hot();
     bool32 is_focus_active = ui_is_focus_active();
     bool32 is_focus_hot_disabled = (!is_focus_hot && ui_top_focus_hot() == UI_FocusKind_On);
-    bool32 is_focus_active_disabled = (!is_focus-hot && ui_top_focus_active() == UI_FocusKind_On);
+    bool32 is_focus_active_disabled = (!is_focus_hot && ui_top_focus_active() == UI_FocusKind_On);
 
     // determine which sub-cell components we'll need
     //
@@ -1761,7 +1761,7 @@ internal UI_Signal bp_cell(BP_Cell_Params *params, String8 string)
     bool32 build_bindings      = !!(params->flags & BP_CellFlag_Bindings)     && !is_focus_active;
     bool32 build_lhs_name_desc = (params->meta_fstrs.node_count != 0 || params->description.size != 0);
     bool32 build_line_edit     = (params->pre_edit_value.size != 0 || params->value_fstrs.node_count != 0);
-    bool32 build_node          = (params->node_fstrs.node_count != 0 && !is_focus_active);
+    bool32 build_note          = (params->note_fstrs.node_count != 0 && !is_focus_active);
     DR_FStr_List lhs_name_fstrs   = params->meta_fstrs;
     DR_FStr_List value_name_fstrs = params->value_fstrs;
     DR_FStr_List note_fstrs       = params->note_fstrs;
@@ -1843,7 +1843,7 @@ internal UI_Signal bp_cell(BP_Cell_Params *params, String8 string)
             {
                 ui_spacer(ui_em(1.f, 1.f));
             }
-            lhs_box = ui_build_box_from_string(0, "lhs_box");
+            lhs_box = ui_build_box_from_stringf(0, "lhs_box");
         }
     }
 
@@ -1909,7 +1909,7 @@ internal UI_Signal bp_cell(BP_Cell_Params *params, String8 string)
                                                              "edit_box");
                     if (params->line_edit_key_out)
                     {
-                        params->line_key_out[0] = edit_box->key;
+                        params->line_edit_key_out[0] = edit_box->key;
                     }
                 }
                 if (ui_top_text_alignment() == UI_TextAlign_Left)
@@ -1947,11 +1947,11 @@ internal UI_Signal bp_cell(BP_Cell_Params *params, String8 string)
             UI_Column
                 UI_Padding(ui_pct(1, 0))
                 UI_PrefHeight(ui_em(2.f, 1.f))
-                UI_CornerRadius(ui_tap_font_size() * 0.5f)
+                UI_CornerRadius(ui_top_font_size() * 0.5f)
                 BP_Font(BP_FontSlot_Icons)
                 UI_TextAlignment(UI_TextAlign_Center)
             {
-                UI_Box *edit_start_box - ui_build_box_from_stringf(UI_BoxFlag_DrawText|
+                UI_Box *edit_start_box = ui_build_box_from_stringf(UI_BoxFlag_DrawText|
                                                                    UI_BoxFlag_DrawHotEffects|
                                                                    UI_BoxFlag_DrawBorder|
                                                                    UI_BoxFlag_DrawBackground|
@@ -1965,7 +1965,7 @@ internal UI_Signal bp_cell(BP_Cell_Params *params, String8 string)
                     edit_started = true;
                 }
             }
-            ui_spcaer(ui_em(1.f, 1.f));
+            ui_spacer(ui_em(1.f, 1.f));
         }
     }
     
@@ -1986,7 +1986,7 @@ internal UI_Signal bp_cell(BP_Cell_Params *params, String8 string)
     // build revert-button
     if (params->flags & BP_CellFlag_RevertButton &&
         !is_focus_active &&
-        !is_focus_active_disable)
+        !is_focus_active_disabled)
     {
         UI_Parent(edit_box)
             UI_PrefWidth(ui_em(2.f, 1.f))
@@ -2009,7 +2009,7 @@ internal UI_Signal bp_cell(BP_Cell_Params *params, String8 string)
                                                                UI_BoxFlag_DisableFocusBorder|
                                                                UI_BoxFlag_Clickable,
                                                                "%S##revert",
-                                                               bp_icon_kind_text_from_table[BP_IconKind_Undo]);
+                                                               bp_icon_kind_text_table[BP_IconKind_Undo]);
                 UI_Signal sig = ui_signal_from_box(revert_box);
                 if (ui_hovering(sig)) UI_Tooltip BP_Font(BP_FontSlot_Main)
                 {
@@ -2034,14 +2034,14 @@ internal UI_Signal bp_cell(BP_Cell_Params *params, String8 string)
     if (build_toggle_switch) UI_Parent(box)
     {
         bool32 is_toggled = !!params->toggled_out[0];
-        f32 toggle_t = ui_anim(ui_key_from_strinf(key, "toggled"),
+        f32 toggle_t = ui_anim(ui_key_from_stringf(key, "toggled"),
                                (f32)is_toggled,
                                .initial = (f32)is_toggled,
                                .rate = bp_state->menu_animation_rate);
         f32 height_px = ceil_f32(ui_top_font_size() * 1.75f);
         f32 padding_px = ceil_f32((ui_top_px_height() - height_px) / 2.f);
         UI_PrefWidth(ui_children_sum(1.f))
-            UI_HeightFull
+            UI_HeightFill
             UI_Column UI_Padding(ui_px(padding_px, 1.f))
             UI_Row
         {
@@ -2078,7 +2078,7 @@ internal UI_Signal bp_cell(BP_Cell_Params *params, String8 string)
                             UI_PrefHeight(ui_px(toggler_size_px, 1.f))
                             UI_CornerRadius(floor_f32(toggler_size_px/2.f - 1.f))
                         {
-                            ui_build_box_from_key(UI_BoxFlag_DrawBackground | UI_BogFlag_DrawDropShadow,
+                            ui_build_box_from_key(UI_BoxFlag_DrawBackground | UI_BoxFlag_DrawDropShadow,
                                                   ui_key_zero());
                         }
                     }
@@ -2089,7 +2089,7 @@ internal UI_Signal bp_cell(BP_Cell_Params *params, String8 string)
                 // press -> toggle, & gather this key
                 if (ui_pressed(switch_sig))
                 {
-                    if (ui_dragging(swtich_sig))
+                    if (ui_dragging(switch_sig))
                     {
                         ui_store_drag_struct(&switch_box->key);
                     }

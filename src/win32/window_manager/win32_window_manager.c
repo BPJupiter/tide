@@ -578,7 +578,7 @@ w32_wm_wnd_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
           u8 *name_ptr = push_array(w32_wm_event_arena, u8, name_size);
           DragQueryFile(drop, idx, (char *)name_ptr, name_size);
           String8 path_string = str8(name_ptr, name_size - 1);
-          String8 path_string__normalized = path_normalized_from_string(w32_wm_event_arena, path_string);
+          String8 path_string__normalized = path_normalised_from_string(w32_wm_event_arena, path_string);
           str8_list_push(w32_wm_event_arena, &event->strings, path_string__normalized);
         }
         DragFinish(drop);
@@ -682,7 +682,7 @@ w32_wm_wnd_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             rect->left   += frame_x + padding;
             rect->bottom -= frame_y + padding;
             
-            if(IsMaximised(hwnd))
+            if(IsMaximized(hwnd))
             {
               rect->top += frame_y + padding;
               // If we do not do this hidden taskbar can not be unhidden on mouse hover
@@ -760,7 +760,7 @@ w32_wm_wnd_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
               }
             }
             
-            if (IsMaximised(hwnd))
+            if (IsMaximized(hwnd))
             {
               if (is_over_title_bar_client_area)
               {
@@ -1250,7 +1250,7 @@ wm_window_set_maximised(WM_Window handle, bool32 maximised)
 }
 
 internal bool32
-wm_window_is_minimized(WM_Window handle)
+wm_window_is_minimised(WM_Window handle)
 {
   bool32 result = 0;
   W32_WM_Window *window = w32_wm_window_from_handle(handle);
@@ -1262,12 +1262,12 @@ wm_window_is_minimized(WM_Window handle)
 }
 
 internal void
-wm_window_set_minimized(WM_Window handle, bool32 minimized)
+wm_window_set_minimised(WM_Window handle, bool32 minimised)
 {
   W32_WM_Window *window = w32_wm_window_from_handle(handle);
-  if(window != 0 && minimized != wm_window_is_minimized(handle))
+  if(window != 0 && minimised != wm_window_is_minimised(handle))
   {
-    switch(minimized)
+    switch(minimised)
     {
       default:
       case 0:{ShowWindow(window->hwnd, SW_RESTORE);}break;

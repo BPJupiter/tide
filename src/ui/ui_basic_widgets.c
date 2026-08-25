@@ -125,8 +125,8 @@ ui_hover_labelf(char *fmt, ...)
   return sig;
 }
 
-typedef struct UI_LineEditDrawData UI_LineEditDrawData;
-struct UI_LineEditDrawData
+typedef struct UI_Line_Edit_Draw_Data UI_Line_Edit_Draw_Data;
+struct UI_Line_Edit_Draw_Data
 {
   String8 edited_string;
   u64 cursor;
@@ -136,7 +136,7 @@ struct UI_LineEditDrawData
 
 internal UI_BOX_CUSTOM_DRAW(ui_line_edit_draw)
 {
-  UI_LineEditDrawData *draw_data = (UI_LineEditDrawData *)user_data;
+  UI_Line_Edit_Draw_Data *draw_data = (UI_Line_Edit_Draw_Data *)user_data;
   FNT_Tag font = box->font;
   f32 font_size = box->font_size;
   f32 tab_size = box->tab_size;
@@ -288,7 +288,7 @@ ui_line_edit(u64 *cursor, u64 *mark, u8 *edit_buffer, u64 edit_buffer_size, u64 
       f32 total_text_width = fnt_dim_from_tag_size_string(ui_top_font(), ui_top_font_size(), 0, ui_top_tab_size(), edit_string).x;
       ui_set_next_pref_width(ui_px(total_text_width+ui_top_font_size()*5, 1.f));
       UI_Box *editstr_box = ui_build_box_from_stringf(UI_BoxFlag_DrawText|UI_BoxFlag_DisableTextTrunc, "###editstr");
-      UI_LineEditDrawData *draw_data = push_array(ui_build_arena(), UI_LineEditDrawData, 1);
+      UI_Line_Edit_Draw_Data *draw_data = push_array(ui_build_arena(), UI_Line_Edit_Draw_Data, 1);
       draw_data->edited_string = str8_copy(ui_build_arena(), edit_string);
       draw_data->cursor = *cursor;
       draw_data->mark = *mark;
@@ -584,8 +584,8 @@ ui_do_color_tooltip_hsva(Vec4f32 hsva)
 
 //- rjf: saturation/value picker
 
-typedef struct UI_SatValDrawData UI_SatValDrawData;
-struct UI_SatValDrawData
+typedef struct UI_Sat_Val_Draw_Data UI_Sat_Val_Draw_Data;
+struct UI_Sat_Val_Draw_Data
 {
   f32 hue;
   f32 sat;
@@ -594,7 +594,7 @@ struct UI_SatValDrawData
 
 internal UI_BOX_CUSTOM_DRAW(ui_sat_val_picker_draw)
 {
-  UI_SatValDrawData *data = (UI_SatValDrawData *)user_data;
+  UI_Sat_Val_Draw_Data *data = (UI_Sat_Val_Draw_Data *)user_data;
   
   // rjf: hue => rgb
   Vec3f32 hue_rgb = rgb_from_hsv(v3f32(data->hue, 1, 1));
@@ -651,7 +651,7 @@ ui_sat_val_picker(f32 hue, f32 *out_sat, f32 *out_val, String8 string)
   // rjf: build & interact
   ui_set_next_hover_cursor(WM_Cursor_HandPoint);
   UI_Box *box = ui_build_box_from_string(UI_BoxFlag_Clickable, string);
-  UI_SatValDrawData *user = push_array(ui_build_arena(), UI_SatValDrawData, 1);
+  UI_Sat_Val_Draw_Data *user = push_array(ui_build_arena(), UI_Sat_Val_Draw_Data, 1);
   ui_box_equip_custom_draw(box, ui_sat_val_picker_draw, user);
   UI_Signal sig = ui_signal_from_box(box);
   
@@ -703,8 +703,8 @@ ui_sat_val_pickerf(f32 hue, f32 *out_sat, f32 *out_val, char *fmt, ...)
 
 //- rjf: hue picker
 
-typedef struct UI_HueDrawData UI_HueDrawData;
-struct UI_HueDrawData
+typedef struct UI_Hue_Draw_Data UI_Hue_Draw_Data;
+struct UI_Hue_Draw_Data
 {
   f32 hue;
   f32 sat;
@@ -713,7 +713,7 @@ struct UI_HueDrawData
 
 internal UI_BOX_CUSTOM_DRAW(ui_hue_picker_draw)
 {
-  UI_HueDrawData *data = (UI_HueDrawData *)user_data;
+  UI_Hue_Draw_Data *data = (UI_Hue_Draw_Data *)user_data;
   Vec2f32 dim = dim_2f32(box->rect);
   f32 segment_dim = floor_f32(dim.y/6.f);
   Rng2f32 hue_cycle_rect = box->rect;
@@ -760,7 +760,7 @@ ui_hue_picker(f32 *out_hue, f32 sat, f32 val, String8 string)
   // rjf: build & interact
   ui_set_next_hover_cursor(WM_Cursor_HandPoint);
   UI_Box *box = ui_build_box_from_string(UI_BoxFlag_Clickable, string);
-  UI_HueDrawData *user = push_array(ui_build_arena(), UI_HueDrawData, 1);
+  UI_Hue_Draw_Data *user = push_array(ui_build_arena(), UI_Hue_Draw_Data, 1);
   ui_box_equip_custom_draw(box, ui_hue_picker_draw, user);
   UI_Signal sig = ui_signal_from_box(box);
   
@@ -807,15 +807,15 @@ ui_hue_pickerf(f32 *out_hue, f32 sat, f32 val, char *fmt, ...)
 
 //- rjf: alpha picker
 
-typedef struct UI_AlphaDrawData UI_AlphaDrawData;
-struct UI_AlphaDrawData
+typedef struct UI_Alpha_Draw_Data UI_Alpha_Draw_Data;
+struct UI_Alpha_Draw_Data
 {
   f32 alpha;
 };
 
 internal UI_BOX_CUSTOM_DRAW(ui_alpha_picker_draw)
 {
-  UI_AlphaDrawData *data = (UI_AlphaDrawData *)user_data;
+  UI_Alpha_Draw_Data *data = (UI_Alpha_Draw_Data *)user_data;
   Vec2f32 dim = dim_2f32(box->rect);
   
   // rjf: build gradient
@@ -847,7 +847,7 @@ ui_alpha_picker(f32 *out_alpha, String8 string)
   // rjf: build & interact
   ui_set_next_hover_cursor(WM_Cursor_HandPoint);
   UI_Box *box = ui_build_box_from_string(UI_BoxFlag_Clickable, string);
-  UI_AlphaDrawData *user = push_array(ui_build_arena(), UI_AlphaDrawData, 1);
+  UI_Alpha_Draw_Data *user = push_array(ui_build_arena(), UI_Alpha_Draw_Data, 1);
   ui_box_equip_custom_draw(box, ui_alpha_picker_draw, user);
   UI_Signal sig = ui_signal_from_box(box);
   
@@ -1351,8 +1351,8 @@ ui_scroll_bar(Axis2 axis, UI_Size off_axis_size, UI_Scroll_Pt pt, Rng1s64 idx_ra
   //- rjf: pt * signals -> new pt
   UI_Scroll_Pt new_pt = pt;
   {
-    typedef struct UI_ScrollBarDragData UI_ScrollBarDragData;
-    struct UI_ScrollBarDragData
+    typedef struct UI_Scroll_Bar_Drag_Data UI_Scroll_Bar_Drag_Data;
+    struct UI_Scroll_Bar_Drag_Data
     {
       UI_Scroll_Pt start_pt;
       f32 scroll_space_px;
@@ -1361,10 +1361,10 @@ ui_scroll_bar(Axis2 axis, UI_Size off_axis_size, UI_Scroll_Pt pt, Rng1s64 idx_ra
     {
       if(ui_pressed(scroller_sig))
       {
-        UI_ScrollBarDragData drag_data = {pt, (floor_f32(dim_2f32(scroll_area_box->rect).v[axis])-floor_f32(dim_2f32(scroller_box->rect).v[axis]))};
+        UI_Scroll_Bar_Drag_Data drag_data = {pt, (floor_f32(dim_2f32(scroll_area_box->rect).v[axis])-floor_f32(dim_2f32(scroller_box->rect).v[axis]))};
         ui_store_drag_struct(&drag_data);
       }
-      UI_ScrollBarDragData *drag_data = ui_get_drag_struct(UI_ScrollBarDragData);
+      UI_Scroll_Bar_Drag_Data *drag_data = ui_get_drag_struct(UI_Scroll_Bar_Drag_Data);
       UI_Scroll_Pt original_pt = drag_data->start_pt;
       f32 drag_delta = ui_drag_delta().v[axis];
       f32 drag_pct = drag_delta / drag_data->scroll_space_px;

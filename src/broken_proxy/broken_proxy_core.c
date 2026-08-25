@@ -53,7 +53,7 @@ internal BP_View_UI_Rule_Map *bp_view_ui_rule_map_make(Arena *arena, u64 slots_c
 
 internal void bp_view_ui_rule_map_insert(Arena *arena, BP_View_UI_Rule_Map *map, String8 string, BP_View_UI_Function_Type *ui)
 {
-    u64 hash = d_hash_from_string(string);
+    u64 hash = u64_hash_from_str8(string);
     u64 slot_idx = hash & map->slots_count;
     BP_View_UI_Rule_Node *n = push_array(arena, BP_View_UI_Rule_Node, 1);
     n->v.name = push_str8_copy(arena, string);
@@ -66,7 +66,7 @@ internal BP_View_UI_Rule *bp_view_ui_rule_from_string(String8 string)
     BP_View_UI_Rule *rule = &bp_nil_view_ui_rule;
     {
         BP_View_UI_Rule_Map *map = bp_state->view_ui_rule_map;
-        u64 hash = d_hash_from_string(string);
+        u64 hash = u64_hash_from_str8(string);
         u64 slot_idx = hash % map->slots_count;
         for (BP_View_UI_Rule_Node *n = map->slots[slot_idx].first; n != 0; n = n->next)
         {
@@ -89,7 +89,7 @@ internal bool32 bp_drag_is_active(void)
             (bp_state->drag_drop_state == BP_DragDropState_Dropping));
 }
 
-internal void bp_drag_begin(BP_Reg_Slot slot)
+internal void bp_drag_begin(BP_RegSlot slot)
 {
     if (!bp_drag_is_active())
     {
@@ -116,7 +116,7 @@ internal void bp_drag_kill(void)
     bp_state->drag_drop_state = BP_DragDropState_Null;
 }
 
-internal void bp_set_hover_regs(BP_Reg_Slot slot)
+internal void bp_set_hover_regs(BP_RegSlot slot)
 {
     bp_state->next_hover_regs = bp_regs_copy(bp_frame_arena(), bp_regs());
     bp_state->next_hover_regs_slot = slot;
@@ -344,7 +344,7 @@ internal u64 bp_setting_u64_from_name(String8 name)
     String8 value = bp_setting_from_name(name);
     if (value.size != 0)
     {
-        try_u64_from_c_rules(value, &result);
+        try_u64_from_str8_c_rules(value, &result);
     }
     return result;
 }
@@ -417,7 +417,7 @@ internal BP_View_State *bp_view_state_from_cfg(CFG_Node *cfg)
     }
     else
     {
-        u64 hash = d_hash_from_string(str8_struct(&id));
+        u64 hash = u64_hash_from_str8(str8_struct(&id));
         u64 slot_idx = hash % bp_state->view_state_slots_count;
         BP_View_State_Slot *slot = &bp_state->view_state_slots[slot_idx];
         for (BP_View_State *v = slot->first; v != 0; v = v->hash_next)
@@ -441,7 +441,7 @@ internal BP_View_State *bp_view_state_from_cfg(CFG_Node *cfg)
             view_state = push_array(bp_state->arena, BP_View_State, 1);
         }
         MemoryCopyStruct(view_state, &bp_nil_view_state);
-        u64 hash = d_hash_from_string(str8_struct(&id));
+        u64 hash = u64_hash_from_str8(str8_struct(&id));
         u64 slot_idx = hash % bp_state->view_state_slots_count;
         BP_View_State_Slot *slot = &bp_state->view_state_slots[slot_idx];
         DLLPushBack_NP(slot->first, slot->last, view_state, hash_next, hash_prev);
@@ -527,7 +527,7 @@ internal void bp_view_ui(Rng2f32 rect)
                     ui_spacer(ui_em(0.5f, 1.f));
                     UI_TextAlignment(UI_TextAlign_Center)
                         UI_Transparency(1 - search_row_open_t)
-                        UI_PrefWitdth(ui_em(3.f, 1.f))
+                        UI_PrefWidth(ui_em(3.f, 1.f))
                         BP_Font(BP_FontSlot_Icons)
                         ui_label(bp_icon_kind_text_table[icon == BP_IconKind_Null ? BP_IconKind_Find : icon]);
                     UI_Transparency(1 - search_row_open_t)
@@ -587,7 +587,7 @@ internal void bp_view_ui(Rng2f32 rect)
     // fill view container
     UI_Parent(view_container)
         UI_FontSize(bp_font_size())
-        UI_PrefHeight(ui_px(floor_f32(ui_top_font_size() * bp_setting_f32_from_name(str8_lit8("row_height"))), 1.f))
+        UI_PrefHeight(ui_px(floor_f32(ui_top_font_size() * bp_setting_f32_from_name(str8_lit("row_height"))), 1.f))
     {
         if (0){}
         else if (str8_match(view_name, str8_lit("getting_started"), 0))
@@ -606,7 +606,7 @@ internal void bp_view_ui(Rng2f32 rect)
                         UI_PrefHeight(ui_px(icon_dim, 1.f))
                             UI_Row
                             UI_Padding(ui_pct(1, 0))
-                            UI_PrefWdith(ui_px(icon_dim, 1.f))
+                            UI_PrefWidth(ui_px(icon_dim, 1.f))
                         {
                             R_Handle texture = bp_state->icon_texture;
                             Vec2s32 texture_dim = r_size_from_tex2d(texture);
@@ -634,7 +634,7 @@ internal void bp_view_ui(Rng2f32 rect)
                 // helper text for command lister activation
                 UI_TagF("weak")
                     UI_PrefHeight(ui_em(2.25f, 1.f)) UI_Row
-                    UI_PrefWdith(ui_text_dim(10, 1))
+                    UI_PrefWidth(ui_text_dim(10, 1))
                     UI_TextAlignment(UI_TextAlign_Center)
                     UI_Padding(ui_pct(1, 0))
                 {
@@ -670,7 +670,7 @@ internal void bp_view_ui(Rng2f32 rect)
                                                        floor_f32(ui_top_font_size() * 1.5f + ui_top_font_size() * 3.f),
                                                        floor_f32(ui_top_font_size() * 1.5f + ui_top_font_size() * 3.f)))
                 UI_CornerRadius(floor_f32(ui_top_font_size() * 1.5f))
-                UI_TextAlignment(UI_TextAlignCenter)
+                UI_TextAlignment(UI_TextAlign_Center)
                 BP_Font(BP_FontSlot_Icons)
                 UI_FontSize(floor_f32(ui_top_font_size() * 0.9f))
             {
@@ -691,7 +691,7 @@ internal void bp_view_ui(Rng2f32 rect)
             }
             if (ui_hovering(pull_out_sig)) UI_Tooltip BP_Font(BP_FontSlot_Main)
             {
-                ui_state->tooltip_achor_key = pull_out_sig.box->key;
+                ui_state->tooltip_anchor_key = pull_out_sig.box->key;
                 ui_labelf("Pull Out As New Tab");
             }
         }
@@ -717,11 +717,13 @@ internal void bp_view_ui(Rng2f32 rect)
             String8 cmd_name = bp_view_query_cmd();
             String8 input = bp_view_query_input();
             BP_Cmd_Kind_Info *cmd_kind_info = bp_cmd_kind_info_from_string(cmd_name);
+            /*
             BP_RegsScope()
             {
                 bp_regs_fill_slot_from_string(cmd_kind_info->query.slot, str8_zero(), input);
                 bp_cmd(BP_CmdKind_CompleteQuery);
             }
+            */
         }
     }
 
@@ -766,7 +768,7 @@ internal String8 bp_view_query_input(void)
     return string;
 }
 
-internal String8 bp_view_setting_from_name(String8 string)
+internal String8 bp_view_setting_from_name(String8 name)
 {
     CFG_Node *view = cfg_node_from_id(bp_regs()->view);
     String8 result = cfg_node_child_from_string(view, name)->first->string;
@@ -777,7 +779,7 @@ internal String8 bp_view_setting_from_name(String8 string)
     return result;
 }
 
-internal bool32 bp_view_setting_bool32_from_name(String8 string)
+internal bool32 bp_view_setting_bool32_from_name(String8 name)
 {
     String8 string = bp_view_setting_from_name(name);
     u64 value_u64 = 0;
@@ -786,7 +788,7 @@ internal bool32 bp_view_setting_bool32_from_name(String8 string)
     return result;
 }
 
-internal u64 bp_view_setting_u64_from_name(String8 string)
+internal u64 bp_view_setting_u64_from_name(String8 name)
 {
     String8 string = bp_view_setting_from_name(name);
     u64 result = 0;
@@ -794,10 +796,10 @@ internal u64 bp_view_setting_u64_from_name(String8 string)
     return result;
 }
 
-internal f32 bp_view_setting_f32_from_name(String8 string)
+internal f32 bp_view_setting_f32_from_name(String8 name)
 {
     String8 string = bp_view_setting_from_name(name);
-    if (string.size != 0 && (string.str[string.size] - 1] == 'f' || string.str[string.size - 1] == 'F')
+    if (string.size != 0 && (string.str[string.size] - 1) == 'f' || string.str[string.size - 1] == 'F')
     {
         string = str8_chop(string, 1);
     }
@@ -808,7 +810,7 @@ internal f32 bp_view_setting_f32_from_name(String8 string)
 // language kind for tab, from its file path (user for syntax highlighting)
 internal TXT_LangKind bp_lang_kind_from_file_path(String8 file_path)
 {
-    TXT_LandKind kind = TXT_LangKind_Null;
+    TXT_LangKind kind = TXT_LangKind_Null;
     if (file_path.size != 0)
     {
         kind = txt_lang_kind_from_extension(str8_skip_last_dot(file_path));
@@ -927,9 +929,9 @@ internal BP_Window_State *bp_window_state_from_cfg(CFG_Node *cfg)
     }
     else
     {
-        u64 hash = d_hash_from_string(str8_struct(&id));
+        u64 hash = u64_hash_from_str8(str8_struct(&id));
         u64 slot_idx = hash%bp_state->window_state_slots_count;
-        BP_Window_StateSlot *slot = &bp_state->window_state_slots[slot_idx];
+        BP_Window_State_Slot *slot = &bp_state->window_state_slots[slot_idx];
         for(BP_Window_State *w = slot->first; w != 0; w = w->hash_next)
         {
             if(w->cfg_id == id)
@@ -959,16 +961,16 @@ internal BP_Window_State *bp_window_state_from_cfg(CFG_Node *cfg)
             pos.y = (f32)f64_from_str8(pos_cfg->first->next->string);
             size.x = (f32)f64_from_str8(size_cfg->first->string);
             size.y = (f32)f64_from_str8(size_cfg->first->next->string);
-            WM_MonitorArray monitors = wm_push_monitors_array(scratch.arena);
+            WM_Monitor_Array monitors = wm_push_monitors_array(scratch.arena);
             for EachIndex(idx, monitors.count)
-                         {
-                             String8 monitor_name = wm_name_from_monitor(scratch.arena, monitors.v[idx]);
-                             if(str8_match(monitor_name, monitor_cfg->first->string, StringMatchFlag_CaseInsensitive))
-                             {
-                                 preferred_monitor = monitors.v[idx];
-                                 break;
-                             }
-                         }
+            {
+                String8 monitor_name = wm_name_from_monitor(scratch.arena, monitors.v[idx]);
+                if(str8_match(monitor_name, monitor_cfg->first->string, StringMatchFlag_CaseInsensitive))
+                {
+                    preferred_monitor = monitors.v[idx];
+                    break;
+                }
+            }
         }
     
         // rjf: allocate window
@@ -994,7 +996,6 @@ internal BP_Window_State *bp_window_state_from_cfg(CFG_Node *cfg)
         ws->ui = ui_state_alloc();
         ws->drop_completion_arena = arena_alloc();
         ws->query_arena = arena_alloc();
-        ws->hover_eval_arena = arena_alloc();
         ws->autocomp_arena = arena_alloc();
         ws->last_dpi = wm_dpi_from_window(ws->os);
         WM_Monitor zero_monitor = {0};
@@ -1006,15 +1007,15 @@ internal BP_Window_State *bp_window_state_from_cfg(CFG_Node *cfg)
         {
             wm_window_set_fullscreen(ws->os, 1);
         }
-        if(cfg_node_child_from_string(window_cfg, str8_lit("maximized")) != &cfg_nil_node)
+        if(cfg_node_child_from_string(window_cfg, str8_lit("maximised")) != &cfg_nil_node)
         {
-            wm_window_set_maximized(ws->os, 1);
+            wm_window_set_maximised(ws->os, 1);
         }
     
         // rjf: hook up window links
-        u64 hash = d_hash_from_string(str8_struct(&id));
-        u64 slot_idx = hash%bp_state->window_state_slots_count;
-        BP_Window_StateSlot *slot = &bp_state->window_state_slots[slot_idx];
+        u64 hash = u64_hash_from_str8(str8_struct(&id));
+        u64 slot_idx = hash % bp_state->window_state_slots_count;
+        BP_Window_State_Slot *slot = &bp_state->window_state_slots[slot_idx];
         DLLPushBack_NPZ(&bp_nil_window_state, bp_state->first_window_state, bp_state->last_window_state, ws, order_next, order_prev);
         DLLPushBack_NP(slot->first, slot->last, ws, hash_next, hash_prev);
     
@@ -1064,7 +1065,7 @@ internal void bp_window_frame(void)
     //
     CFG_Node *window          = cfg_node_from_id(bp_regs()->window);
     BP_Window_State *ws      = bp_window_state_from_cfg(cfg_node_from_id(bp_regs()->window));
-    CFG_PanelTree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
+    CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
     bool32 window_is_focused   = wm_window_is_focused(ws->os);
     bool32 popup_is_open       = (bp_state->popup_active);
     bool32 query_is_open       = (ws->query_is_active);
@@ -1120,7 +1121,7 @@ internal void bp_window_frame(void)
         
         //- rjf: choose which theme cfg to use
         CFG_Node *theme_cfg = theme_cfgs[1];
-        if(bp_setting_b32_from_name(str8_lit("use_project_theme")))
+        if(bp_setting_bool32_from_name(str8_lit("use_project_theme")))
         {
             theme_cfg = theme_cfgs[0];
             if(theme_cfg == &cfg_nil_node)
@@ -1162,7 +1163,7 @@ internal void bp_window_frame(void)
         struct Theme_Pattern_Node
         {
             Theme_Pattern_Node *next;
-            UI_ThemePattern pattern;
+            UI_Theme_Pattern pattern;
         };
         Theme_Pattern_Node *first_pattern = 0;
         Theme_Pattern_Node *last_pattern = 0;
@@ -1180,7 +1181,7 @@ internal void bp_window_frame(void)
                     String8_List tags = str8_split(scratch.arena, tags_child->first->string, &split_char, 1, 0);
                     u64 color_u64 = 0;
                     try_u64_from_str8_c_rules(value_child->first->string, &color_u64);
-                    U32 color_u32 = (U32)color_u64;
+                    u32 color_u32 = (u32)color_u64;
                     Vec4f32 color_linear = linear_from_srgba(rgba_from_u32(color_u32));
                     Theme_Pattern_Node *node = push_array(scratch.arena, Theme_Pattern_Node, 1);
                     node->pattern.tags = str8_array_from_list(bp_frame_arena(), &tags);
@@ -1194,7 +1195,7 @@ internal void bp_window_frame(void)
         //- rjf: convert to final pattern array
         ws->theme = push_array(bp_frame_arena(), UI_Theme, 1);
         ws->theme->patterns_count = pattern_count;
-        ws->theme->patterns = push_array(bp_frame_arena(), UI_ThemePattern, ws->theme->patterns_count);
+        ws->theme->patterns = push_array(bp_frame_arena(), UI_Theme_Pattern, ws->theme->patterns_count);
         {
             u64 idx = 0;
             for(Theme_Pattern_Node *n = first_pattern; n != 0; n = n->next, idx += 1)
@@ -1211,8 +1212,8 @@ internal void bp_window_frame(void)
     //
     {
         ws->font_slot_raster_flags[BP_FontSlot_Icons] = FNT_RasterFlag_Smooth;
-        ws->font_slot_raster_flags[BP_FontSlot_Main] = (bp_setting_b32_from_name(str8_lit("smooth_ui_text"))*FNT_RasterFlag_Smooth)|(bp_setting_b32_from_name(str8_lit("hint_ui_text"))*FNT_RasterFlag_Hinted);
-        ws->font_slot_raster_flags[BP_FontSlot_Code] = (bp_setting_b32_from_name(str8_lit("smooth_code_text"))*FNT_RasterFlag_Smooth)|(bp_setting_b32_from_name(str8_lit("hint_code_text"))*FNT_RasterFlag_Hinted);
+        ws->font_slot_raster_flags[BP_FontSlot_Main] = (bp_setting_bool32_from_name(str8_lit("smooth_ui_text"))*FNT_RasterFlag_Smooth)|(bp_setting_bool32_from_name(str8_lit("hint_ui_text"))*FNT_RasterFlag_Hinted);
+        ws->font_slot_raster_flags[BP_FontSlot_Code] = (bp_setting_bool32_from_name(str8_lit("smooth_code_text"))*FNT_RasterFlag_Smooth)|(bp_setting_bool32_from_name(str8_lit("hint_code_text"))*FNT_RasterFlag_Hinted);
     }
     
     //////////////////////////////
@@ -1262,8 +1263,8 @@ internal void bp_window_frame(void)
     {
         Temp scratch = scratch_begin(0, 0);
         bool32 is_fullscreen = wm_window_is_fullscreen(ws->os);
-        bool32 is_maximized = wm_window_is_maximized(ws->os);
-        bool32 is_minimized = wm_window_is_minimized(ws->os);
+        bool32 is_maximised = wm_window_is_maximised(ws->os);
+        bool32 is_minimised = wm_window_is_minimised(ws->os);
         if(is_fullscreen)
         {
             cfg_node_child_from_string_or_alloc(bp_state->cfg, window, str8_lit("fullscreen"));
@@ -1272,13 +1273,13 @@ internal void bp_window_frame(void)
         {
             cfg_node_release(bp_state->cfg, cfg_node_child_from_string(window, str8_lit("fullscreen")));
         }
-        if(is_maximized)
+        if(is_maximised)
         {
-            cfg_node_child_from_string_or_alloc(bp_state->cfg, window, str8_lit("maximized"));
+            cfg_node_child_from_string_or_alloc(bp_state->cfg, window, str8_lit("maximised"));
         }
         else
         {
-            cfg_node_release(bp_state->cfg, cfg_node_child_from_string(window, str8_lit("maximized")));
+            cfg_node_release(bp_state->cfg, cfg_node_child_from_string(window, str8_lit("maximised")));
         }
     
         //- rjf: DPI changes -> xform font size / window size
@@ -1296,12 +1297,12 @@ internal void bp_window_frame(void)
     
         //- rjf: commit position
         Rng2f32 window_rect = wm_rect_from_window(ws->os);
-        if(!is_fullscreen && !is_maximized && !is_minimized)
+        if(!is_fullscreen && !is_maximised && !is_minimised)
         {
             Vec2f32 pos = window_rect.p0;
             CFG_Node *pos_root = cfg_node_child_from_string_or_alloc(bp_state->cfg, window, str8_lit("pos"));
-            if((S32)pos.x != (S32)f64_from_str8(pos_root->first->string) ||
-               (S32)pos.y != (S32)f64_from_str8(pos_root->last->string))
+            if((s32)pos.x != (s32)f64_from_str8(pos_root->first->string) ||
+               (s32)pos.y != (s32)f64_from_str8(pos_root->last->string))
             {
                 CFG_Node *x = pos_root->first;
                 if(x == &cfg_nil_node)
@@ -1315,18 +1316,18 @@ internal void bp_window_frame(void)
                     y = cfg_node_alloc(bp_state->cfg);
                     cfg_node_insert_child(bp_state->cfg, pos_root, x, y);
                 }
-                cfg_node_equip_stringf(bp_state->cfg, x, "%i", (S32)pos.x);
-                cfg_node_equip_stringf(bp_state->cfg, y, "%i", (S32)pos.y);
+                cfg_node_equip_stringf(bp_state->cfg, x, "%i", (s32)pos.x);
+                cfg_node_equip_stringf(bp_state->cfg, y, "%i", (s32)pos.y);
             }
         }
     
         //- rjf: commit size
-        if(!is_fullscreen && !is_maximized && !is_minimized)
+        if(!is_fullscreen && !is_maximised && !is_minimised)
         {
             Vec2f32 size = dim_2f32(window_rect);
             CFG_Node *size_root = cfg_node_child_from_string_or_alloc(bp_state->cfg, window, str8_lit("size"));
-            if((S32)size.x != (S32)f64_from_str8(size_root->first->string) ||
-               (S32)size.y != (S32)f64_from_str8(size_root->last->string))
+            if((s32)size.x != (s32)f64_from_str8(size_root->first->string) ||
+               (s32)size.y != (s32)f64_from_str8(size_root->last->string))
             {
                 CFG_Node *width = size_root->first;
                 if(width == &cfg_nil_node)
@@ -1340,13 +1341,13 @@ internal void bp_window_frame(void)
                     height = cfg_node_alloc(bp_state->cfg);
                     cfg_node_insert_child(bp_state->cfg, size_root, width, height);
                 }
-                cfg_node_equip_stringf(bp_state->cfg, width, "%i", (S32)size.x);
-                cfg_node_equip_stringf(bp_state->cfg, height, "%i", (S32)size.y);
+                cfg_node_equip_stringf(bp_state->cfg, width, "%i", (s32)size.x);
+                cfg_node_equip_stringf(bp_state->cfg, height, "%i", (s32)size.y);
             }
         }
     
         //- rjf: commit monitor
-        if(!is_minimized)
+        if(!is_minimised)
         {
             WM_Monitor monitor = wm_monitor_from_window(ws->os);
             String8 monitor_name = wm_name_from_monitor(scratch.arena, monitor);
@@ -1371,7 +1372,7 @@ internal void bp_window_frame(void)
             f32 top_level_font_size = 0;
             BP_RegsScope(.view = 0, .tab = 0) top_level_font_size = bp_font_size();
       
-            UI_IconInfo icon_info = {0};
+            UI_Icon_Info icon_info = {0};
             {
                 icon_info.icon_font = bp_font_from_slot(BP_FontSlot_Icons);
                 icon_info.icon_kind_text_map[UI_IconKind_RightArrow]     = bp_icon_kind_text_table[BP_IconKind_RightScroll];
@@ -1386,7 +1387,7 @@ internal void bp_window_frame(void)
                 icon_info.icon_kind_text_map[UI_IconKind_CheckFilled]    = bp_icon_kind_text_table[BP_IconKind_CheckFilled];
             }
       
-            UI_AnimationInfo animation_info = {0};
+            UI_Animation_Info animation_info = {0};
             {
                 animation_info.hot_animation_rate      = bp_state->catchall_animation_rate;
                 animation_info.active_animation_rate   = bp_state->catchall_animation_rate;
@@ -1404,8 +1405,8 @@ internal void bp_window_frame(void)
             ui_push_pref_height(ui_px(floor_f32(ui_top_font_size()*3.f), 1.f));
             ui_push_blur_size(10.f);
             FNT_RasterFlags text_raster_flags = 0;
-            if(bp_setting_b32_from_name(str8_lit("smooth_ui_text"))) {text_raster_flags |= FNT_RasterFlag_Smooth;}
-            if(bp_setting_b32_from_name(str8_lit("hint_ui_text"))) {text_raster_flags |= FNT_RasterFlag_Hinted;}
+            if(bp_setting_bool32_from_name(str8_lit("smooth_ui_text"))) {text_raster_flags |= FNT_RasterFlag_Smooth;}
+            if(bp_setting_bool32_from_name(str8_lit("hint_ui_text"))) {text_raster_flags |= FNT_RasterFlag_Hinted;}
             ui_push_text_raster_flags(text_raster_flags);
         }
     
@@ -1435,7 +1436,7 @@ internal void bp_window_frame(void)
         if(ui_string_hover_active()) UI_Tooltip
         {
             Temp scratch = scratch_begin(0, 0);
-            DR_FStrList fstrs = ui_string_hover_fstrs(scratch.arena);
+            DR_FStr_List fstrs = ui_string_hover_fstrs(scratch.arena);
             UI_Box *box = ui_build_box_from_key(UI_BoxFlag_DrawText, ui_key_zero());
             ui_box_equip_display_fstrs(box, &fstrs);
             scratch_end(scratch);
@@ -1462,7 +1463,7 @@ internal void bp_window_frame(void)
                     UI_Tooltip
                     {
                         String8 cmd_name = regs->cmd_name;
-                        DR_FStrList fstrs = bp_title_fstrs_from_code_name(scratch.arena, cmd_name);
+                        DR_FStr_List fstrs = bp_title_fstrs_from_code_name(scratch.arena, cmd_name);
                         UI_PrefWidth(ui_children_sum(1)) UI_Row UI_PrefWidth(ui_text_dim(5, 1))
                         {
                             UI_Box *box = ui_build_box_from_key(UI_BoxFlag_DrawText, ui_key_zero());
@@ -1477,7 +1478,7 @@ internal void bp_window_frame(void)
                 case BP_RegSlot_FilePath:
                     UI_Tooltip
                     {
-                        FileProperties props = properties_from_file_path(regs->file_path);
+                        File_Properties props = properties_from_file_path(regs->file_path);
                         ui_set_next_pref_width(ui_children_sum(1));
                         UI_Row
                         {
@@ -1493,7 +1494,7 @@ internal void bp_window_frame(void)
                     UI_Tooltip
                     {
                         CFG_Node *cfg = cfg_node_from_id(regs->cfg);
-                        DR_FStrList fstrs = bp_title_fstrs_from_cfg(scratch.arena, cfg, 0);
+                        DR_FStr_List fstrs = bp_title_fstrs_from_cfg(scratch.arena, cfg, 0);
                         UI_PrefWidth(ui_children_sum(1)) UI_Row UI_PrefWidth(ui_text_dim(5, 1))
                         {
                             UI_Box *box = ui_build_box_from_key(UI_BoxFlag_DrawText, ui_key_zero());
@@ -1548,7 +1549,7 @@ internal void bp_window_frame(void)
                             {
                                 UI_Row UI_PrefWidth(ui_text_dim(10, 1))
                                 {
-                                    DR_FStrList fstrs = bp_title_fstrs_from_cfg(scratch.arena, view, 0);
+                                    DR_FStr_List fstrs = bp_title_fstrs_from_cfg(scratch.arena, view, 0);
                                     UI_Box *name_box = ui_build_box_from_key(UI_BoxFlag_DrawText, ui_key_zero());
                                     ui_box_equip_display_fstrs(name_box, &fstrs);
                                 }
@@ -1696,7 +1697,7 @@ internal void bp_window_frame(void)
                             str8_list_push(scratch.arena, &strings, str8_lit("..."));
                         }
                     }
-                    StringJoin join = {.sep = str8_lit(", ")};
+                    String_Join join = {.sep = str8_lit(", ")};
                     String8 string = str8_list_join(scratch.arena, &strings, &join);
                     UI_PrefWidth(ui_pct(1, 0)) ui_label(string);
                 }
@@ -1855,7 +1856,7 @@ internal void bp_window_frame(void)
         
                 // rjf: unpack query info
                 String8 cmd_name = ws->query_regs->cmd_name;
-                BP_CmdKindInfo *cmd_kind_info = bp_cmd_kind_info_from_string(cmd_name);
+                BP_Cmd_Kind_Info *cmd_kind_info = bp_cmd_kind_info_from_string(cmd_name);
                 String8 query_expr = ws->query_regs->expr;
                 if(query_expr.size == 0 && cmd_name.size != 0)
                 {
@@ -2118,7 +2119,7 @@ internal void bp_window_frame(void)
                     CFG_Node *view = query_floating_view_task->view;
                     BP_View_State *vs = bp_view_state_from_cfg(query_floating_view_task->view);
                     String8 cmd_name = ws->query_regs->cmd_name;
-                    BP_CmdKindInfo *cmd_kind_info = bp_cmd_kind_info_from_string(cmd_name);
+                    BP_Cmd_Kind_Info *cmd_kind_info = bp_cmd_kind_info_from_string(cmd_name);
           
                     if(query_floating_view_task->pressed_outside ||
                        (cfg_node_child_from_string(view, str8_lit("lister")) != &cfg_nil_node && !vs->query_is_open) ||
@@ -2179,7 +2180,7 @@ internal void bp_window_frame(void)
                                 UI_HeightFill
                                 {
                                     R_Handle texture = bp_state->icon_texture;
-                                    Vec2S32 texture_dim = r_size_from_tex2d(texture);
+                                    Vec2s32 texture_dim = r_size_from_tex2d(texture);
                                     ui_image(texture, R_Tex2DSampleKind_Linear, r2f32p(0, 0, texture_dim.x, texture_dim.y), v4f32(1, 1, 1, 1), 0, str8_lit(""));
                                 }
                         }
@@ -2211,7 +2212,7 @@ internal void bp_window_frame(void)
                                         {0},//-
                                         bp_cmd_kind_info_table[BP_CmdKind_Exit].string,
                                     };
-                                    U32 codepoints[] = {
+                                    u32 codepoints[] = {
                                         'o',
                                         0,//-
                                         'j', 'p', 'r', 'a', 't',
@@ -2235,7 +2236,7 @@ internal void bp_window_frame(void)
                                         {0},//-
                                         bp_cmd_kind_info_table[BP_CmdKind_WindowSettings].string,
                                     };
-                                    U32 codepoints[] = {'w', 'c', 'f', 0, 's'};
+                                    u32 codepoints[] = {'w', 'c', 'f', 0, 's'};
                                     Assert(ArrayCount(codepoints) == ArrayCount(cmds));
                                     bp_cmd_list_menu_buttons(ArrayCount(cmds), cmds, codepoints);
                                 }
@@ -2258,10 +2259,8 @@ internal void bp_window_frame(void)
                                         bp_cmd_kind_info_table[BP_CmdKind_TabBarBottom].string,
                                         {0},//-
                                         bp_cmd_kind_info_table[BP_CmdKind_ResetToDefaultPanels].string,
-                                        bp_cmd_kind_info_table[BP_CmdKind_ResetToCompactPanels].string,
-                                        bp_cmd_kind_info_table[BP_CmdKind_ResetToSimplePanels].string,
                                     };
-                                    U32 codepoints[] = {'u','d','r','l','o', 0, 'n','p', 0, 0,0, 0, 0,0,0};
+                                    u32 codepoints[] = {'u','d','r','l','o', 0, 'n','p', 0, 0,0, 0, 0,0,0};
                                     Assert(ArrayCount(codepoints) == ArrayCount(cmds));
                                     bp_cmd_list_menu_buttons(ArrayCount(cmds), cmds, codepoints);
                                 }
@@ -2282,7 +2281,7 @@ internal void bp_window_frame(void)
                                         {0},//-
                                         bp_cmd_kind_info_table[BP_CmdKind_TabSettings].string,
                                     };
-                                    U32 codepoints[] = {'c','d', 0, 'l','r', 0, 'n','p', 0, 's'};
+                                    u32 codepoints[] = {'c','d', 0, 'l','r', 0, 'n','p', 0, 's'};
                                     Assert(ArrayCount(codepoints) == ArrayCount(cmds));
                                     bp_cmd_list_menu_buttons(ArrayCount(cmds), cmds, codepoints);
                                 }
@@ -2297,13 +2296,13 @@ internal void bp_window_frame(void)
                                     UI_PrefHeight(ui_children_sum(1)) UI_Row UI_Padding(ui_pct(1, 0))
                                     {
                                         R_Handle texture = bp_state->icon_texture;
-                                        Vec2S32 texture_dim = r_size_from_tex2d(texture);
+                                        Vec2s32 texture_dim = r_size_from_tex2d(texture);
                                         UI_PrefWidth(ui_px(ui_top_font_size()*10.f, 1.f))
                                             UI_PrefHeight(ui_px(ui_top_font_size()*10.f, 1.f))
                                             ui_image(texture, R_Tex2DSampleKind_Linear, r2f32p(0, 0, texture_dim.x, texture_dim.y), v4f32(1, 1, 1, 1), 0, str8_lit(""));
                                     }
                                     ui_spacer(ui_em(1.f, 1.f));
-                                    CFG_KeyMapNode_Ptr_List key_map_nodes = cfg_key_map_node_ptr_list_from_name(scratch.arena, bp_state->key_map, bp_cmd_kind_info_table[BP_CmdKind_OpenPalette].string);
+                                    CFG_Key_Map_Node_Ptr_List key_map_nodes = cfg_key_map_node_ptr_list_from_name(scratch.arena, bp_state->key_map, bp_cmd_kind_info_table[BP_CmdKind_OpenPalette].string);
                                     CFG_Binding binding = {0};
                                     String8 binding_str = {0};
                                     if(key_map_nodes.first != 0)
@@ -2343,7 +2342,7 @@ internal void bp_window_frame(void)
                                     struct
                                     {
                                         String8 name;
-                                        U32 codepoint;
+                                        u32 codepoint;
                                         WM_Key key;
                                         UI_Key menu_key;
                                     } items[] = {
@@ -2397,7 +2396,7 @@ internal void bp_window_frame(void)
                                         {
                                             ui_set_next_fastpath_codepoint(items[idx].codepoint);
                                             bool32 alt_fastpath_key = 0;
-                                            if(bp_setting_b32_from_name(str8_lit("focus_menu_bar_with_alt")) && ui_key_press(WM_Modifier_Alt, items[idx].key))
+                                            if(bp_setting_bool32_from_name(str8_lit("focus_menu_bar_with_alt")) && ui_key_press(WM_Modifier_Alt, items[idx].key))
                                             {
                                                 alt_fastpath_key = 1;
                                             }
@@ -2510,8 +2509,8 @@ internal void bp_window_frame(void)
                         UI_PrefWidth(ui_px(button_dim, 1.f))
                             UI_FontSize(ui_top_font_size()*0.75f)
                         {
-                            min_sig = bp_icon_buttonf(BP_IconKind_WindowMinimize,  0, "##minimize");
-                            max_sig = bp_icon_buttonf(wm_window_is_maximized(ws->os) ? BP_IconKind_WindowRestore : BP_IconKind_Window, 0, "##maximize");
+                            min_sig = bp_icon_buttonf(BP_IconKind_WindowMinimize,  0, "##minimise");
+                            max_sig = bp_icon_buttonf(wm_window_is_maximised(ws->os) ? BP_IconKind_WindowRestore : BP_IconKind_Window, 0, "##maximise");
                         }
                         UI_PrefWidth(ui_px(button_dim, 1.f))
                             UI_FontSize(ui_top_font_size()*0.85f)
@@ -2520,11 +2519,11 @@ internal void bp_window_frame(void)
                         }
                         if(ui_clicked(min_sig))
                         {
-                            wm_window_set_minimized(ws->os, 1);
+                            wm_window_set_minimised(ws->os, 1);
                         }
                         if(ui_clicked(max_sig))
                         {
-                            wm_window_set_maximized(ws->os, !wm_window_is_maximized(ws->os));
+                            wm_window_set_maximised(ws->os, !wm_window_is_maximised(ws->os));
                         }
                         if(ui_clicked(cls_sig))
                         {
@@ -2561,14 +2560,14 @@ internal void bp_window_frame(void)
                 tag = str8_lit("bad_pop");
             }
       
-            DR_FStrList status_fstrs = {0};
+            DR_FStr_List status_fstrs = {0};
             {
                 if(bp_state->bind_change_active)
                 {
-                    BP_CmdKindInfo *info = bp_cmd_kind_info_from_string(bp_state->bind_change_cmd_name);
+                    BP_Cmd_Kind_Info *info = bp_cmd_kind_info_from_string(bp_state->bind_change_cmd_name);
                     String8 display_name = bp_display_from_code_name(info->string);
                     String8 string = push_str8f(scratch.arena, "Currently rebinding \"%S\"", display_name);
-                    DR_FStrParams params = {ui_top_font(), ui_top_text_raster_flags(), ui_color_from_name(str8_lit("text")), ui_top_font_size()};
+                    DR_FStr_Params params = {ui_top_font(), ui_top_text_raster_flags(), ui_color_from_name(str8_lit("text")), ui_top_font_size()};
                     dr_fstrs_push_new(scratch.arena, &status_fstrs, &params, string);
                 }
                 else if(ws->error_t >= 0.01f && ws->error_string_size != 0)
@@ -2582,8 +2581,8 @@ internal void bp_window_frame(void)
                         UI_PrefWidth(ui_text_dim(10, 1))
                         UI_TextAlignment(UI_TextAlign_Center)
                     {
-                        DR_FStrList error_fstrs = bp_fstrs_from_rich_string(scratch.arena, error_string);
-                        DR_FStrParams params = {ui_top_font(), ui_top_text_raster_flags(), ui_color_from_name(str8_lit("text")), ui_top_font_size()};
+                        DR_FStr_List error_fstrs = bp_fstrs_from_rich_string(scratch.arena, error_string);
+                        DR_FStr_Params params = {ui_top_font(), ui_top_text_raster_flags(), ui_color_from_name(str8_lit("text")), ui_top_font_size()};
                         dr_fstrs_push_new(scratch.arena, &status_fstrs, &params, bp_icon_kind_text_table[BP_IconKind_WarningBig],
                                           .font = bp_font_from_slot(BP_FontSlot_Icons),
                                           .raster_flags = bp_raster_flags_from_slot(BP_FontSlot_Icons));
@@ -2634,7 +2633,7 @@ internal void bp_window_frame(void)
         //
         bool32 is_changing_panel_boundaries = 0;
         ProfScope("non-leaf panel UI")
-            for(CFG_PanelNode *panel = panel_tree.root;
+            for(CFG_Panel_Node *panel = panel_tree.root;
                 panel != &cfg_nil_panel_node;
                 panel = cfg_panel_node_rec__depth_first_pre(panel_tree.root, panel).next)
             {
@@ -2731,7 +2730,7 @@ internal void bp_window_frame(void)
                                                 Dir2_Invalid);
                                     if(dir != Dir2_Invalid)
                                     {
-                                        CFG_PanelNode *split_panel = panel;
+                                        CFG_Panel_Node *split_panel = panel;
                                         bp_cmd(BP_CmdKind_SplitPanel,
                                                .dst_panel  = split_panel->cfg->id,
                                                .panel      = bp_state->drag_drop_regs->panel,
@@ -2743,7 +2742,7 @@ internal void bp_window_frame(void)
                         }
                         
                         Axis2 split_axis = panel->split_axis;
-                        UI_CornerRadius(corner_radius) for(CFG_PanelNode *child = panel->first;; child = child->next)
+                        UI_CornerRadius(corner_radius) for(CFG_Panel_Node *child = panel->first;; child = child->next)
                         {
                             Rng2f32 child_rect = cfg_target_rect_from_panel_node_child(panel_rect, panel, child);
                             Vec2f32 child_rect_center = center_2f32(child_rect);
@@ -2812,7 +2811,7 @@ internal void bp_window_frame(void)
                             if(ui_key_match(site_box->key, ui_drop_hot_key()) && bp_drag_drop())
                             {
                                 Dir2 dir = (panel->split_axis == Axis2_X ? Dir2_Left : Dir2_Up);
-                                CFG_PanelNode *split_panel = child;
+                                CFG_Panel_Node *split_panel = child;
                                 if(split_panel == &cfg_nil_panel_node)
                                 {
                                     split_panel = panel->last;
@@ -2833,12 +2832,12 @@ internal void bp_window_frame(void)
                     }
                 }
       
-                for(CFG_PanelNode *child = panel->first;
+                for(CFG_Panel_Node *child = panel->first;
                     child != &cfg_nil_panel_node && child->next != &cfg_nil_panel_node;
                     child = child->next)
                 {
-                    CFG_PanelNode *min_child = child;
-                    CFG_PanelNode *max_child = min_child->next;
+                    CFG_Panel_Node *min_child = child;
+                    CFG_Panel_Node *max_child = min_child->next;
                     Rng2f32 min_child_rect = cfg_target_rect_from_panel_node_child(panel_rect, panel, min_child);
                     Rng2f32 max_child_rect = cfg_target_rect_from_panel_node_child(panel_rect, panel, max_child);
                     Rng2f32 boundary_rect = {0};
@@ -2910,7 +2909,7 @@ internal void bp_window_frame(void)
             Vec2f32 content_rect_dim = dim_2f32(content_rect);
             if(content_rect_dim.x > 0 && content_rect_dim.y > 0)
             {
-                for(CFG_PanelNode *panel = panel_tree.root;
+                for(CFG_Panel_Node *panel = panel_tree.root;
                     panel != &cfg_nil_panel_node;
                     panel = cfg_panel_node_rec__depth_first_pre(panel_tree.root, panel).next)
                 {
@@ -2935,7 +2934,7 @@ internal void bp_window_frame(void)
         if(content_rect.x1 > content_rect.x0 && content_rect.y1 > content_rect.y0)
         {
             ProfScope("leaf panel UI")
-                for(CFG_PanelNode *panel = panel_tree.root;
+                for(CFG_Panel_Node *panel = panel_tree.root;
                     panel != &cfg_nil_panel_node;
                     panel = cfg_panel_node_rec__depth_first_pre(panel_tree.root, panel).next)
             {
@@ -3283,16 +3282,16 @@ internal void bp_window_frame(void)
                     //////////////////////////
                     //- rjf: compute tab build tasks
                     //
-                    typedef struct TabTask TabTask;
-                    struct TabTask
+                    typedef struct Tab_Task Tab_Task;
+                    struct Tab_Task
                     {
-                        TabTask *next;
+                        Tab_Task *next;
                         CFG_Node *tab;
-                        DR_FStrList fstrs;
+                        DR_FStr_List fstrs;
                         f32 tab_width;
                     };
-                    TabTask *first_tab_task = 0;
-                    TabTask *last_tab_task = 0;
+                    Tab_Task *first_tab_task = 0;
+                    Tab_Task *last_tab_task = 0;
                     u64 tab_task_count = 0;
                     f32 tab_close_width_px = ui_top_font_size()*2.5f;
                     f32 max_tab_width_px = ui_top_font_size()*20.f;
@@ -3308,7 +3307,7 @@ internal void bp_window_frame(void)
                             }
                             UI_TagF(tab != panel->selected_tab ? "inactive" : "")
                             {
-                                TabTask *t = push_array(scratch.arena, TabTask, 1);
+                                Tab_Task *t = push_array(scratch.arena, Tab_Task, 1);
                                 t->tab = tab;
                                 t->fstrs = bp_title_fstrs_from_cfg(scratch.arena, tab, 0);
                                 f32 tab_width_target = dr_dim_from_fstrs(ui_top_tab_size(), &t->fstrs).x + tab_close_width_px + ui_top_font_size()*1.f;
@@ -3355,9 +3354,9 @@ internal void bp_window_frame(void)
                     if(build_panel)
                     {
                         f32 best_prev_distance_px = 1000000.f;
-                        TabTask start_boundary_tab_task = {first_tab_task, &cfg_nil_node};
+                        Tab_Task start_boundary_tab_task = {first_tab_task, &cfg_nil_node};
                         f32 off = 0;
-                        for(TabTask *task = &start_boundary_tab_task; task != 0; task = task->next)
+                        for(Tab_Task *task = &start_boundary_tab_task; task != 0; task = task->next)
                         {
                             off += task->tab_width;
                             Vec2f32 anchor_pt = v2f32(tab_bar_box->rect.x0 + off, tab_bar_box->rect.y1);
@@ -3372,12 +3371,12 @@ internal void bp_window_frame(void)
                     
                     if(tab_drop_is_active && bp_state->drag_drop_regs->panel == panel->cfg->id)
                     {
-                        TabTask start_boundary_tab_task = {first_tab_task, &cfg_nil_node};
+                        Tab_Task start_boundary_tab_task = {first_tab_task, &cfg_nil_node};
                         if(tab_drop_prev->id == bp_state->drag_drop_regs->view)
                         {
                             tab_drop_is_active = 0;
                         }
-                        if(tab_drop_is_active) for(TabTask *t = &start_boundary_tab_task; t != 0; t = t->next)
+                        if(tab_drop_is_active) for(Tab_Task *t = &start_boundary_tab_task; t != 0; t = t->next)
                         {
                             if(t->tab == tab_drop_prev && t->next != 0 && t->next->tab->id == bp_state->drag_drop_regs->view)
                             {
@@ -3393,21 +3392,21 @@ internal void bp_window_frame(void)
                     if(build_panel) UI_Focus(UI_FocusKind_Off) UI_Parent(tab_bar_box) UI_Padding(ui_em(0.5f, 1.f)) UI_PrefHeight(ui_pct(1, 0)) UI_TagF("tab")
                     {
                         f32 corner_radius = ui_top_font_size()*0.6f;
-                        TabTask start_boundary_tab_task = {first_tab_task, &cfg_nil_node};
+                        Tab_Task start_boundary_tab_task = {first_tab_task, &cfg_nil_node};
                         UI_CornerRadius00(panel->tab_side == Side_Min ? corner_radius : 0)
                             UI_CornerRadius01(panel->tab_side == Side_Min ? 0 : corner_radius)
                             UI_CornerRadius10(panel->tab_side == Side_Min ? corner_radius : 0)
                             UI_CornerRadius11(panel->tab_side == Side_Min ? 0 : corner_radius)
-                            for(TabTask *tab_task = &start_boundary_tab_task; tab_task != 0; tab_task = tab_task->next)
+                            for(Tab_Task *tab_task = &start_boundary_tab_task; tab_task != 0; tab_task = tab_task->next)
                             {
                                 CFG_Node *tab = tab_task->tab;
                                 
-                                DR_FStrList tab_fstrs = tab_task->fstrs;
+                                DR_FStr_List tab_fstrs = tab_task->fstrs;
                                 f32 tab_width_px = tab_task->tab_width;
                                 if(tab != &cfg_nil_node) BP_RegsScope(.panel = panel->cfg->id, .view = tab->id, .tab = tab->id)
                                 {
                                     bool32 tab_is_selected = (tab == panel->selected_tab);
-                                    bool32 tab_is_auto = bp_view_setting_b32_from_name(str8_lit("auto"));
+                                    bool32 tab_is_auto = bp_view_setting_bool32_from_name(str8_lit("auto"));
                                     
                                     ui_set_next_child_layout_axis(Axis2_Y);
                                     ui_set_next_pref_width(ui_px(tab_width_px, 1));
@@ -3759,9 +3758,9 @@ internal void bp_window_frame(void)
     
         f32 rounded_corner_amount = bp_setting_f32_from_name(str8_lit("rounded_corner_amount"));
         f32 border_softness = 1.f;
-        bool32 do_background_blur = bp_setting_b32_from_name(str8_lit("background_blur"));
-        bool32 force_opaque_floating_backgrounds = bp_setting_b32_from_name(str8_lit("opaque_backgrounds"));
-        bool32 do_drop_shadows = bp_setting_b32_from_name(str8_lit("drop_shadows"));
+        bool32 do_background_blur = bp_setting_bool32_from_name(str8_lit("background_blur"));
+        bool32 force_opaque_floating_backgrounds = bp_setting_bool32_from_name(str8_lit("opaque_backgrounds"));
+        bool32 do_drop_shadows = bp_setting_bool32_from_name(str8_lit("drop_shadows"));
         Vec4f32 base_background_color = ui_color_from_name(str8_lit("background"));
         Vec4f32 base_border_color = ui_color_from_name(str8_lit("border"));
         Vec4f32 drop_shadow_color = ui_color_from_name(str8_lit("drop_shadow"));
@@ -3774,7 +3773,7 @@ internal void bp_window_frame(void)
         {
             Rng2f32 rect = wm_client_rect_from_window(ws->os);
             Vec2f32 size = dim_2f32(rect);
-            Vec2S32 buckets_dim = {(S32)(size.x/heatmap_bucket_size), (S32)(size.y/heatmap_bucket_size)};
+            Vec2s32 buckets_dim = {(s32)(size.x/heatmap_bucket_size), (s32)(size.y/heatmap_bucket_size)};
             heatmap_bucket_pitch = buckets_dim.x;
             heatmap_bucket_count = buckets_dim.x*buckets_dim.y;
             heatmap_buckets = push_array(scratch.arena, u64, heatmap_bucket_count);
@@ -3799,12 +3798,12 @@ internal void bp_window_frame(void)
                 box->corner_radii[Corner_11]*rounded_corner_amount,
             };
             
-            UI_BoxRec rec = ui_box_rec_df_post(box, &ui_nil_box);
+            UI_Box_Rec rec = ui_box_rec_df_post(box, &ui_nil_box);
       
             if(DEV_draw_ui_box_heatmap)
             {
                 Vec2f32 center = center_2f32(box->rect);
-                Vec2S32 p = v2s32(center.x / heatmap_bucket_size, center.y / heatmap_bucket_size);
+                Vec2s32 p = v2s32(center.x / heatmap_bucket_size, center.y / heatmap_bucket_size);
                 u64 bucket_idx = p.y * heatmap_bucket_pitch + p.x;
                 if(bucket_idx < heatmap_bucket_count)
                 {
@@ -3852,7 +3851,7 @@ internal void bp_window_frame(void)
       
             if(do_background_blur && box->flags & UI_BoxFlag_DrawBackgroundBlur)
             {
-                R_PassParams_Blur *params = dr_blur(pad_2f32(box->rect, 1.f), box->blur_size*(1-box->transparency), 0);
+                R_Pass_Params_Blur *params = dr_blur(pad_2f32(box->rect, 1.f), box->blur_size*(1-box->transparency), 0);
                 MemoryCopyArray(params->corner_radii, box_corner_radii);
             }
       
@@ -4058,7 +4057,7 @@ internal void bp_window_frame(void)
             }
       
             {
-                S32 pop_idx = 0;
+                s32 pop_idx = 0;
                 for(UI_Box *b = box; !ui_box_is_nil(b) && pop_idx <= rec.pop_count; b = b->parent)
                 {
                     pop_idx += 1;
@@ -4290,6 +4289,7 @@ NO_OPTIMIZE_END
 
 internal void bp_set_autocomp_regs_(BP_Regs *regs)
 {
+    // TODO
 }
 
 ///////////////////////////
@@ -4298,31 +4298,96 @@ internal void bp_set_autocomp_regs_(BP_Regs *regs)
 // colors
 internal MD_Node *bp_theme_tree_from_name(Arena *arena, Access *access, String8 theme_name)
 {
+    Temp scratch = scratch_begin(&arena, 1);
+    MD_Node *theme_tree = &md_nil_node;
+    if(theme_name.size != 0)
+    {
+        for EachEnumVal(BP_ThemePreset, p)
+        {
+            if(str8_match(theme_name, bp_theme_preset_display_string_table[p], 0))
+            {
+                theme_tree = bp_state->theme_preset_trees[p];
+                break;
+            }
+        }
+        if(theme_tree == &md_nil_node)
+        {
+            String8 path = str8f(scratch.arena, "%S/brokenproxy/themes/%S", get_process_info()->user_program_config_data_path, theme_name);
+            u64 endt_us = now_time_us()+100;
+            if(bp_state->frame_index <= 5)
+            {
+                endt_us = now_time_us()+50000;
+            }
+            u128 hash = fs_hash_from_path_range(path, r1u64(0, max_u64), endt_us);
+            String8 data = c_data_from_hash(access, hash);
+            theme_tree = md_tree_from_string(arena, data);
+        }
+    }
+    scratch_end(scratch);
+    return theme_tree;
 }
 
 internal Vec4f32 bp_rgba_from_code_color_slot(BP_CodeColorSlot slot)
 {
+    BP_Window_State *ws = bp_window_state_from_cfg(cfg_node_from_id(bp_regs()->window));
+    Vec4f32 result = ws->theme_code_colors[slot];
+    return result;
 }
 
 internal BP_CodeColorSlot bp_code_color_slot_from_txt_token_kind(TXT_TokenKind kind)
 {
+    BP_CodeColorSlot color = BP_CodeColorSlot_CodeDefault;
+    switch(kind)
+    {
+        default:break;
+        case TXT_TokenKind_Keyword:     {color = BP_CodeColorSlot_CodeKeyword;}break;
+        case TXT_TokenKind_Numeric:     {color = BP_CodeColorSlot_CodeNumeric;}break;
+        case TXT_TokenKind_String:      {color = BP_CodeColorSlot_CodeString;}break;
+        case TXT_TokenKind_Char:        {color = BP_CodeColorSlot_CodeString;}break;
+        case TXT_TokenKind_Meta:        {color = BP_CodeColorSlot_CodeMeta;}break;
+        case TXT_TokenKind_LineComment: {color = BP_CodeColorSlot_CodeComment;}break;
+        case TXT_TokenKind_BlockComment:{color = BP_CodeColorSlot_CodeComment;}break;
+        case TXT_TokenKind_Symbol:      {color = BP_CodeColorSlot_CodeDelimiterOperator;}break;
+    }
+    return color;
 }
 
 internal BP_CodeColorSlot bp_code_color_slot_from_txt_token_kind_lookup_string(TXT_TokenKind kind, String8 string, bool32 allow_macros, bool32 is_called)
 {
+    BP_CodeColorSlot color = BP_CodeColorSlot_CodeDefault;
+    if(kind == TXT_TokenKind_Identifier || kind == TXT_TokenKind_Keyword)
+    {
+        bool32 mapped = 0;
+        
+        // rjf: try to map as local
+        
+        // rjf: try to map as member
+        
+        // rjf: try to map as register
+    }
+    return color;
 }
 
 // fonts
 internal f32 bp_font_size(void)
 {
+    f32 size = bp_setting_f32_from_name(str8_lit("font_size"));
+    size = Clamp(6.f, size, 72.f);
+    return size;
 }
 
 internal FNT_Tag bp_font_from_slot(BP_FontSlot slot)
 {
+    FNT_Tag tag = bp_state->font_slot_table[slot];
+    return tag;
 }
 
 internal FNT_RasterFlags bp_raster_flags_from_slot(BP_FontSlot slot)
 {
+    CFG_Node *window = cfg_node_from_id(bp_regs()->window);
+    BP_Window_State *ws = bp_window_state_from_cfg(window);
+    FNT_RasterFlags flags = ws->font_slot_raster_flags[slot];
+    return flags;
 }
 
 ////////////////////////
@@ -4330,10 +4395,44 @@ internal FNT_RasterFlags bp_raster_flags_from_slot(BP_FontSlot slot)
 
 internal BP_Vocab_Info *bp_vocab_info_from_code_name(String8 code_name)
 {
+    BP_Vocab_Info *result = &bp_nil_vocab_info;
+    if(code_name.size != 0)
+    {
+        u64 hash = u64_hash_from_str8(code_name);
+        u64 slot_idx = hash % bp_state->vocab_info_map.single_slots_count;
+        for(BP_Vocab_Info_Map_Node *n = bp_state->vocab_info_map.single_slots[slot_idx].first;
+            n != 0;
+            n = n->single_next)
+        {
+            if(str8_match(n->v.code_name, code_name, 0))
+            {
+                result = &n->v;
+                break;
+            }
+        }
+    }
+    return result;
 }
 
 internal BP_Vocab_Info *bp_vocab_info_from_code_name_plural(String8 code_name_plural)
 {
+    BP_Vocab_Info *result = &bp_nil_vocab_info;
+    if(code_name_plural.size != 0)
+    {
+        u64 hash = u64_hash_from_str8(code_name_plural);
+        u64 slot_idx = hash % bp_state->vocab_info_map.plural_slots_count;
+        for(BP_Vocab_Info_Map_Node *n = bp_state->vocab_info_map.plural_slots[slot_idx].first;
+            n != 0;
+            n = n->plural_next)
+        {
+            if(str8_match(n->v.code_name_plural, code_name_plural, 0))
+            {
+                result = &n->v;
+                break;
+            }
+        }
+    }
+    return result;
 }
 
 ///////////////////////////////
@@ -4360,10 +4459,21 @@ internal Arena *bp_frame_arena(void)
 
 internal BP_Regs *bp_push_regs_(BP_Regs *regs)
 {
+    BP_Regs_Node *n = push_array(bp_frame_arena(), BP_Regs_Node, 1);
+    bp_regs_copy_contents(bp_frame_arena(), &n->v, regs);
+    SLLStackPush(bp_state->top_regs, n);
+    return &n->v;
 }
 
 internal BP_Regs *bp_pop_regs(void)
 {
+    BP_Regs *regs = &bp_state->top_regs->v;
+    SLLStackPop(bp_state->top_regs);
+    if(bp_state->top_regs == 0)
+    {
+        bp_state->top_regs = &bp_state->base_regs;
+    }
+    return regs;
 }
 
 //////////////
@@ -4372,24 +4482,67 @@ internal BP_Regs *bp_pop_regs(void)
 // name -> info
 internal BP_CmdKind bp_cmd_kind_from_string(String8 string)
 {
+    BP_CmdKind result = BP_CmdKind_Null;
+    for(u64 idx = 0; idx < ArrayCount(bp_cmd_kind_info_table); idx += 1)
+    {
+        if(str8_match(string, bp_cmd_kind_info_table[idx].string, 0))
+        {
+            result = (BP_CmdKind)idx;
+            break;
+        }
+    }
+    return result;    
 }
 
 internal BP_Cmd_Kind_Info *bp_cmd_kind_info_from_string(String8 string)
 {
+    BP_Cmd_Kind_Info *info = &bp_nil_cmd_kind_info;
+    {
+        // TODO(rjf): @dynamic_cmds extend this by looking up into dynamically-registered commands by views
+        BP_CmdKind kind = bp_cmd_kind_from_string(string);
+        if(kind != BP_CmdKind_Null)
+        {
+            info = &bp_cmd_kind_info_table[kind];
+        }
+    }
+    return info;
 }
 
 // pushing
 internal void bp_push_cmd(String8 name, BP_Regs *regs)
 {
+    bp_cmd_list_push_new(bp_state->cmds_arenas[0], &bp_state->cmds[0], name, regs);
 }
 
 // iterating
 internal bool32 bp_next_cmd(BP_Cmd **cmd)
 {
+    u64 slot = bp_state->cmds_gen % ArrayCount(bp_state->cmds);
+    BP_Cmd_Node *start_node = bp_state->cmds[slot].first;
+    if(cmd[0] != 0)
+    {
+        start_node = CastFromMember(BP_Cmd_Node, cmd, cmd[0]);
+        start_node = start_node->next;
+    }
+    cmd[0] = 0;
+    if(start_node != 0)
+    {
+        cmd[0] = &start_node->cmd;
+    }
+    return !!cmd[0];
 }
 
 internal bool32 bp_next_view_cmd(BP_Cmd **cmd)
 {
+    for(;bp_next_cmd(cmd);)
+    {
+        if(bp_regs()->view == cmd[0]->regs->view)
+        {
+            break;
+        }
+    }
+    bool32 result = !!cmd[0];
+    return result;
 }
 
 
@@ -4400,7 +4553,7 @@ internal bool32 bp_next_view_cmd(BP_Cmd **cmd)
 # define STB_IMAGE_IMPLEMENTATION
 # define STBI_ONLY_PNG
 # define STBI_ONLY_BMP
-# include "thibp_party/stb/stb_image.h"
+# include "third_party/stb/stb_image.h"
 #endif
 
 internal void bp_init(Cmd_Line *cmdline)
@@ -4415,7 +4568,7 @@ internal void bp_init(Cmd_Line *cmdline)
     bp_state->theme_path_arena   = arena_alloc();
     for (u64 idx = 0; idx < ArrayCount(bp_state->frame_arenas); idx += 1)
     {
-        bp_state->frame_areans[idx] = arena_alloc();
+        bp_state->frame_arenas[idx] = arena_alloc();
     }
     bp_state->log = log_alloc();
     log_select(bp_state->log);
@@ -4423,7 +4576,7 @@ internal void bp_init(Cmd_Line *cmdline)
         Temp scratch = scratch_begin(0, 0);
         bp_state->log_path = push_str8f(bp_state->arena, "%S/ui_thread.broken_proxy_log", g_logs_folder);
         write_data_to_file_path(bp_state->log_path, str8_zero());
-        scratch_end();
+        scratch_end(scratch);
     }
     bp_state->num_frames_requested = 2;
     bp_state->seconds_until_autosave = 0.5f;
@@ -4470,15 +4623,15 @@ internal void bp_init(Cmd_Line *cmdline)
         {
             BP_Vocab_Info_Map_Node *n = push_array(bp_state->arena, BP_Vocab_Info_Map_Node, 1);
             MemoryCopyStruct(&n->v, &bp_vocab_info_table[idx]);
-            u64 single_hash = d_hash_from_string(n->v.code_name);
-            u64 plural_hash = d_hash_from_string(n->v.code_name_plural);
+            u64 single_hash = u64_hash_from_str8(n->v.code_name);
+            u64 plural_hash = u64_hash_from_str8(n->v.code_name_plural);
             u64 single_slot_idx = single_hash % bp_state->vocab_info_map.single_slots_count;
             u64 plural_slot_idx = plural_hash % bp_state->vocab_info_map.plural_slots_count;
             if (n->v.code_name.size != 0)
             {
                 SLLQueuePush_N(bp_state->vocab_info_map.single_slots[single_slot_idx].first, bp_state->vocab_info_map.single_slots[single_slot_idx].last, n, single_next);
             }
-            if (n->v.code_name_plural_size != 0)
+            if (n->v.code_name_plural.size != 0)
             {
                 SLLQueuePush_N(bp_state->vocab_info_map.plural_slots[plural_slot_idx].first, bp_state->vocab_info_map.single_slots[single_slot_idx].last, n, plural_next);
             }
@@ -4513,7 +4666,7 @@ internal void bp_init(Cmd_Line *cmdline)
     String8 implicit_project_arg = {0};
     {
         Temp scratch2 = scratch_begin(&scratch.arena, 1);
-        for (u64 idx = = 1; idx < cmdline->argc, idx += 1)
+        for (u64 idx = 1; idx < cmdline->argc; idx += 1)
         {
             String8 arg = str8_cstring(cmdline->argv[idx]);
             bool32 is_flag = (str8_match(str8_prefix(arg, 1), str8_lit("-"), 0) ||
@@ -4532,7 +4685,7 @@ internal void bp_init(Cmd_Line *cmdline)
                     header_suffix.str = header_suffix_buffer;
                     header_suffix.size = file_read(file, r1u64(10, 10 + 256), header_suffix_buffer);
                     String8 header_type_suffix = str8_skip(header_suffix, str8_find_needle(header_suffix, 0, str8_lit(" "), 0) + 1);
-                    if (str8_match(header_type_suffix, str8_lit("user"), StringMatchFlag_RightSideSlopp))
+                    if (str8_match(header_type_suffix, str8_lit("user"), StringMatchFlag_RightSideSloppy))
                     {
                         implicit_user_arg = path_absolute_dst_from_relative_dst_src(scratch.arena, arg, get_process_info()->initial_path);
                     }
@@ -4555,7 +4708,7 @@ internal void bp_init(Cmd_Line *cmdline)
 
         // unpack commandline arguments
         String8 user_path = cmd_line_string(cmdline, str8_lit("user"));
-        String8 project_path = cmd_line_string(cmdline, st8r_lit("project"));
+        String8 project_path = cmd_line_string(cmdline, str8_lit("project"));
         {
             if (user_path.size != 0)
             {
@@ -4577,7 +4730,7 @@ internal void bp_init(Cmd_Line *cmdline)
             if (user_path.size == 0)
             {
                 String8 last_user_path = str8f(scratch2.arena, "%S/last_user", user_data_folder);
-                user_path = data_from_file_path(scracth2.arena, last_user_path);
+                user_path = data_from_file_path(scratch2.arena, last_user_path);
             }
             if (user_path.size == 0)
             {
@@ -4590,7 +4743,7 @@ internal void bp_init(Cmd_Line *cmdline)
         }
         if (project_path.size == 0)
         {
-            arena_clear(bp_sate->project_path_arena);
+            arena_clear(bp_state->project_path_arena);
             bp_state->project_path = push_str8_copy(bp_state->project_path_arena, project_path);
         }
 
@@ -4624,7 +4777,7 @@ internal void bp_init(Cmd_Line *cmdline)
         struct ICO_Entry
         {
             u8 image_width_px;
-            u8 image_hegiht_px;
+            u8 image_height_px;
             u8 num_colors;
             u8 reserved_padding; // should be 0
             union
@@ -4650,7 +4803,7 @@ internal void bp_init(Cmd_Line *cmdline)
 
         // read image entries
         u64 entries_count = hdr.num_images;
-        ICO_Entry *entires = push_array(scratch.arena, ICO_Entry, hdr.num_images);
+        ICO_Entry *entries = push_array(scratch.arena, ICO_Entry, hdr.num_images);
         {
             u64 bytes_to_read = sizeof(ICO_Entry) * entries_count;
             bytes_to_read = Min(bytes_to_read, opl - ptr);
@@ -4686,13 +4839,13 @@ internal void bp_init(Cmd_Line *cmdline)
             int width = 0;
             int height = 0;
             int components = 0;
-            image_data = stbi_load_from_memory(file_data_ptr, file_data_size, &width, &height, &componenets, 4);
+            image_data = stbi_load_from_memory(file_data_ptr, file_data_size, &width, &height, &components, 4);
             image_dim.x = width;
             image_dim.y = height;
         }
 
         // upload to gpu texture
-        bp_state->icon_texture = r_tex2d_alloc(R_ResourceKind_Static, image_dim, R_Tex2DFormat_RDBA8, image_data);
+        bp_state->icon_texture = r_tex2d_alloc(R_ResourceKind_Static, image_dim, R_Tex2DFormat_RGBA8, image_data);
 
         // release
         stbi_image_free(image_data);
@@ -4860,8 +5013,8 @@ internal void bp_frame(void)
                 vs->scroll_pos.y.off += scroll_y_diff * bp_state->scrolling_animation_rate;
                 vs->loading_t += loading_t_diff * slow_rate;
                 if ((any_window_is_focused && abs_f32(loading_t_diff) > 0.01f) ||
-                    abs_fs(scroll_x_diff) > 0.01f ||
-                    abs_fs(scroll_y_diff) > 0.01f)
+                    abs_f32(scroll_x_diff) > 0.01f ||
+                    abs_f32(scroll_y_diff) > 0.01f)
                 {
                     bp_request_frame();
                 }
@@ -4937,7 +5090,7 @@ internal void bp_frame(void)
                     frame_time_history_avg_us < candidate_frame_time_us + candidate_frame_time_us / 4)
                 {
                     best_target_hz = candidate;
-                    best_target_hz_fame_time_us_diff = frame_time_us_diff;
+                    best_target_hz_frame_time_us_diff = frame_time_us_diff;
                 }
             }
         }
@@ -5008,7 +5161,7 @@ internal void bp_frame(void)
     // build key map from config
     ProfScope("build key map from config")
     {
-        bp_state->key_map = cfg_key_ap_from_cfg(bp_frame_arena());
+        bp_state->key_map = cfg_key_map_from_cfg(bp_frame_arena());
     }
 
     ///////////////////////////
@@ -5023,11 +5176,11 @@ internal void bp_frame(void)
         {
             bp_state->font_slot_table[BP_FontSlot_Main] = fnt_tag_from_static_data_string(&bp_default_main_font_bytes);
         }
-        if (fnt_tag_match(bp_state->font_slot_table[BP_FontSlot_Code], fnt_ag_zero()))
+        if (fnt_tag_match(bp_state->font_slot_table[BP_FontSlot_Code], fnt_tag_zero()))
         {
             bp_state->font_slot_table[BP_FontSlot_Code] = fnt_tag_from_static_data_string(&bp_default_code_font_bytes);
         }
-        bp_state->font_slot_table[BP_FontSlot_Icons] = fnt_tag_from_static_state_string(&bp_icon_font_types);
+        bp_state->font_slot_table[BP_FontSlot_Icons] = fnt_tag_from_static_data_string(&bp_icon_font_bytes);
     }
 
     ////////////////////
@@ -5080,13 +5233,13 @@ internal void bp_frame(void)
                     bp_request_frame();
                     ws->menu_bar_key_held = false;
                 }
-                if (ws->menu_bar_focused && event->kind == WM_EventKind_Press && event->key == WM_Key_Alt && event->modifiers == 0 && event->is_repeaat == 0)
+                if (ws->menu_bar_focused && event->kind == WM_EventKind_Press && event->key == WM_Key_Alt && event->modifiers == 0 && event->is_repeat == 0)
                 {
                     take = true;
                     bp_request_frame();
-                    ws->manu_bar_focused = false;
+                    ws->menu_bar_focused = false;
                 }
-                else if (ws->manu_bar_focus_press_started && !ws->menu_bar_focused && event->kind == WM_EventKind_Release && event->modifiers == 0 && event->key == WM_Key_Alt && event->is_repeat == 0)
+                else if (ws->menu_bar_focus_press_started && !ws->menu_bar_focused && event->kind == WM_EventKind_Release && event->modifiers == 0 && event->key == WM_Key_Alt && event->is_repeat == 0)
                 {
                     take = true;
                     bp_request_frame();
@@ -5109,7 +5262,7 @@ internal void bp_frame(void)
                 if (key_map_nodes.first != 0)
                 {
                     u32 hit_char = wm_codepoint_from_modifiers_and_key(event->modifiers, event->key);
-                    if ((allow_text_hotkeys || hit_char == 0 || (hit_char == '\n' && alllow_text_multiline_hotkeys)))
+                    if ((allow_text_hotkeys || hit_char == 0 || (hit_char == '\n' && allow_text_multiline_hotkeys)))
                     {
                         String8 cmd_name = key_map_nodes.first->v->name;
                         for (u64 idx = 0; idx < ArrayCount(bp_binding_version_remap_old_name_table); idx += 1)
@@ -5168,12 +5321,27 @@ internal void bp_frame(void)
     ////////////////////////////////////////////////
     // loop - consume events in core, tick engine, and repeat
     ProfScope("loop - consume events in core, tick engine, and repeat") for (u64 cmd_process_loop_idx = 0; cmd_process_loop_idx < 3; cmd_process_loop_idx += 1)
+
     {
-        /////////////////////////////////////////
-        // register view "kind" -> UI function bindings for this frame
         bp_state->view_ui_rule_map = bp_view_ui_rule_map_make(scratch.arena, 64);
-        bp_view_ui_rule_map_insert(scratch.arena, bp_state->view_ui_rule_map, str8_lit("text"), BP_VIEW_UI_FUNCTION_NAME(text));
-        bp_view_ui_rule_map_insert(scratch.arena, bp_state->view_ui_rule_map, str8_lit("getting_started"), BP_VIEW_UI_FUNCTION_NAME(getting_started));
+        {
+            struct {
+                String8 name;
+                BP_View_UI_Function_Type *ui;
+            } lens_table[] = {
+                {str8_lit("text"),            BP_VIEW_UI_FUNCTION_NAME(text)},
+                {str8_lit("getting_started"), BP_VIEW_UI_FUNCTION_NAME(getting_started)},
+            };
+            /////////////////////////////////////////
+            // register view "kind" -> UI function bindings for this frame
+            for EachElement(idx, lens_table)
+            {
+                if (lens_table[idx].ui != 0)
+                {
+                    bp_view_ui_rule_map_insert(scratch.arena, bp_state->view_ui_rule_map, lens_table[idx].name, lens_table[idx].ui);
+                }
+            }
+        }
 
         ////////////////////////////////
         // evaluate unpacked settings
@@ -5222,7 +5390,7 @@ internal void bp_frame(void)
                 String8 bucket_name = {0};
                 Dir2 split_dir = Dir2_Invalid;
                 CFG_Node *split_panel = &cfg_nil_node;
-                u64 panel_sub_off = 0;
+                u64 panel_sib_off = 0;
                 u64 panel_child_off = 0;
                 Vec2s32 panel_change_dir = {0};
                 switch (kind)
@@ -5245,7 +5413,7 @@ internal void bp_frame(void)
                             CFG_Node *window = cfg_node_from_id(bp_regs()->window);
                             CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
                             CFG_Node *tab = panel_tree.focused->selected_tab;
-                            bp_cmd(BP_CmdKind_PushQuery, .expr = str8_lit("query:commands"), .do_implicit_root = true, .do_listener = 1, .do_big_rows = 1, .view = tab->id, .tab = tab->id);
+                            bp_cmd(BP_CmdKind_PushQuery, .expr = str8_lit("query:commands"), .do_implicit_root = true, .do_lister = 1, .do_big_rows = 1, .view = tab->id, .tab = tab->id);
                         }
                     } break;
                         // command fast paths
@@ -5273,7 +5441,7 @@ internal void bp_frame(void)
                                 {
                                     cmd_title = info->string;
                                 }
-                                Stirng8 file_path = sh_pick_file(scratch.arena, cmd_title, current_path_string);
+                                String8 file_path = sh_pick_file(scratch.arena, cmd_title, current_path_string);
                                 file_path = path_normalised_from_string(scratch.arena, file_path);
                                 if (file_path.size != 0)
                                 {
@@ -5286,7 +5454,7 @@ internal void bp_frame(void)
                             {
                                 bp_cmd(BP_CmdKind_PushQuery,
                                        .do_implicit_root = true,
-                                       .do_listener = (info->query.expr.size != 0),
+                                       .do_lister = (info->query.expr.size != 0),
                                        .expr = info->query.expr);
                             }
                         }
@@ -5331,11 +5499,11 @@ internal void bp_frame(void)
                     } break;
                     case BP_CmdKind_WindowSettings: {
                         {
-                            String8 expr = push_str8f(scrach.arena, "query:config.$%I64x", bp_regs()->window);
+                            String8 expr = push_str8f(scratch.arena, "query:config.$%I64x", bp_regs()->window);
                             bp_cmd(BP_CmdKind_PushQuery, .expr = expr, .do_implicit_root = true, .do_big_rows = true, .do_lister = true);
                         }
                     } break;
-                    case CmdKind_CloseWindow: {
+                    case BP_CmdKind_CloseWindow: {
                         {
                             CFG_Node_Ptr_List all_windows = cfg_node_top_level_list_from_string(scratch.arena, str8_lit("window"));
                             CFG_Node *wcfg = cfg_node_from_id(bp_regs()->window);
@@ -5420,7 +5588,7 @@ internal void bp_frame(void)
                             if (str8_match(cfg->string, str8_lit("recent_project"), 0) &&
                                 path->first->string.size != 0)
                             {
-                                bp_cmd(BP_CmdKind_OpenProject, .file_path = path->firt->string);
+                                bp_cmd(BP_CmdKind_OpenProject, .file_path = path->first->string);
                             }
                         }
                     } break;
@@ -5450,7 +5618,7 @@ internal void bp_frame(void)
                             // bad file -> alert user
                             if (!file_is_okay)
                             {
-                                log_user_errorf("\%S\" appears to refer to an existing file which is not an application config file. This would overwrite the file.", file_path);
+                                log_user_errorf("\"%S\" appears to refer to an existing file which is not an application config file. This would overwrite the file.", file_path);
                             }
 
                             // eliminate all old state under this file tree
@@ -5501,26 +5669,16 @@ internal void bp_frame(void)
                                     WM_Monitor monitor   = wm_primary_monitor();
                                     String8 monitor_name = wm_name_from_monitor(scratch.arena, monitor);
                                     Vec2f32 monitor_dim  = wm_dim_from_monitor(monitor);
-                                    f32 monitor_dpi      = wm_dpi_from_monitor(monitor);
                                     Vec2f32 window_dim   = v2f32(monitor_dim.x * 4 / 5, monitor_dim.y * 4 / 5);
                                     if (window_dim.x == 0 || window_dim.y == 0)
                                     {
-                                        window_idm - v2f32(1280, 720);
+                                        window_dim = v2f32(1280, 720);
                                     }
                                     CFG_Node *new_window = cfg_node_new(bp_state->cfg, file_root, str8_lit("window"));
-                                    CFG_Node *size - cfg_node_new(bp_state->cfg, new_window, str8_lit("size"));
+                                    CFG_Node *size = cfg_node_new(bp_state->cfg, new_window, str8_lit("size"));
                                     cfg_node_newf(bp_state->cfg, size, "%f", window_dim.x);
                                     cfg_node_newf(bp_state->cfg, size, "%f", window_dim.y);
-                                    f32 line_height_guess = 11.f * (monitor_dpi / 96.f);
-                                    f32 num_lines_in_monitor_height = monitor_dim.y / line_height_guess;
-                                    if (num_lines_in_monitor_height < 100)
-                                    {
-                                        bp_cmd(BP_CmdKind_ResetToCompactPanels, .window = new_window->id);
-                                    }
-                                    else
-                                    {
-                                        bp_cmd(BP_CmdKind_ResetToDefaultPanels, .window = new_window->id);
-                                    }
+                                    bp_cmd(BP_CmdKind_ResetToDefaultPanels, .window = new_window->id);
                                 }
                             }
 
@@ -5586,7 +5744,7 @@ internal void bp_frame(void)
                             // if just opened user -> load last project, if enabled
                             if (kind == BP_CmdKind_OpenUser && bp_setting_bool32_from_name(s("auto_load_last_project")) && bp_state->project_path.size == 0)
                             {
-                                BP_Node *user = cfg_node_child_from_string(cfg_node_root(), s("user"));
+                                CFG_Node *user = cfg_node_child_from_string(cfg_node_root(), s("user"));
                                 CFG_Node_Ptr_List recent_projects = cfg_node_child_list_from_string(scratch.arena, user, s("recent_project"));
                                 CFG_Node *recent_project = cfg_node_ptr_list_first(&recent_projects);
                                 if (recent_project != &cfg_nil_node)
@@ -5668,11 +5826,11 @@ internal void bp_frame(void)
                                 CFG_Node *project = cfg_node_child_from_string(root, s("project"));
                                 CFG_Node *name = cfg_node_child_from_string(project, s("name"));
                                 CFG_Node *recent_project_name_root = cfg_node_child_from_string_or_alloc(bp_state->cfg, recent_project, s("name"));
-                                cfg_node_new_reaplce(bp_state->cfg, recent_project_name_root, name->first->string);
+                                cfg_node_new_replace(bp_state->cfg, recent_project_name_root, name->first->string);
                             }
                             cfg_node_unhook(bp_state->cfg, user, recent_project);
                             cfg_node_insert_child(bp_state->cfg, user, &cfg_nil_node, recent_project);
-                            recent_projects = cfg_node_child_last_from_string(scratch.arena, user, str8_lit("recent_project"));
+                            recent_projects = cfg_node_child_list_from_string(scratch.arena, user, str8_lit("recent_project"));
                             if (recent_projects.count > 32)
                             {
                                 cfg_node_release(bp_state->cfg, recent_projects.last->v);
@@ -5682,7 +5840,7 @@ internal void bp_frame(void)
                     case BP_CmdKind_RecordUserAsLastOpened: {
                         {
                             String8 file_path = bp_regs()->file_path;
-                            string8 last_user_path = str8f(scratch.arena, "%S/app/last_user", get_process_info()->user_program_config_data_path);
+                            String8 last_user_path = str8f(scratch.arena, "%S/app/last_user", get_process_info()->user_program_config_data_path);
                             write_data_to_file_path(last_user_path, file_path);
                         }
                     } break;
@@ -5784,7 +5942,7 @@ internal void bp_frame(void)
                             CFG_Node *panel_cfg = panel->cfg;
                             CFG_Node *new_cfg = cfg_node_alloc(bp_state->cfg);
                             cfg_node_insert_child(bp_state->cfg, parent_cfg, split_side == Side_Max ? panel_cfg : panel_cfg->prev, new_cfg);
-                            cfg_node_requip_strinf(bp_state->cfg, new_cfg, "%f", 1.f / (parent->child_count + 1));
+                            cfg_node_equip_stringf(bp_state->cfg, new_cfg, "%f", 1.f / (parent->child_count + 1));
                             for (CFG_Panel_Node *child = parent->first; child != &cfg_nil_panel_node; child = child->next)
                             {
                                 f32 old_pct = child->pct_of_parent;
@@ -5880,7 +6038,7 @@ internal void bp_frame(void)
                         }
                         if (next_focused == &cfg_nil_panel_node)
                         {
-                            for (CFG_Panel_Node *p panel_tree.root;
+                            for (CFG_Panel_Node *p = panel_tree.root;
                                  p != &cfg_nil_panel_node;
                                  p = cfg_panel_node_rec__depth_first(panel_tree.root, p, panel_sib_off, panel_child_off).next)
                             {
@@ -5900,7 +6058,7 @@ internal void bp_frame(void)
                             CFG_Node *selection_cfg = &cfg_nil_node;
                             for (CFG_Panel_Node *p = panel_tree.root;
                                  p != &cfg_nil_panel_node;
-                                 p = cfg_panel_tree_rec__depth_first_pre(panel_tree.root, p).ext)
+                                 p = cfg_panel_node_rec__depth_first_pre(panel_tree.root, p).next)
                             {
                                 CFG_Node *p_cfg = p->cfg;
                                 CFG_Node *p_selection = cfg_node_child_from_string(p_cfg, str8_lit("selected"));
@@ -5921,7 +6079,7 @@ internal void bp_frame(void)
                             if (panel != &cfg_nil_node)
                             {
                                 cfg_node_insert_child(bp_state->cfg, panel, &cfg_nil_node, selection_cfg);
-                                CFG_Node *window = bp_window_from_config(panel);
+                                CFG_Node *window = bp_window_from_cfg(panel);
                                 BP_Window_State *ws = bp_window_state_from_cfg(window);
                                 ws->menu_bar_focused = false;
                             }
@@ -5952,7 +6110,7 @@ internal void bp_frame(void)
                                 continue;
                             }
                             Rng2f32 p_rect = cfg_target_rect_from_panel_node(r2f32(v2f32(0, 0), v2f32(1000, 1000)), panel_tree.root, p);
-                            if (contains_f232(p_rect, travel_dst))
+                            if (contains_2f32(p_rect, travel_dst))
                             {
                                 dst_root = p;
                                 break;
@@ -5979,7 +6137,7 @@ internal void bp_frame(void)
                     case BP_CmdKind_Redo:{}break;
                         // focus history
                     case BP_CmdKind_GoBack:{}break;
-                    case BP_CmdKind_BoForward:{}break;
+                    case BP_CmdKind_GoForward:{}break;
                         // files
                     case BP_CmdKind_SetCurrentPath: {
                         {
@@ -5988,12 +6146,108 @@ internal void bp_frame(void)
                             cfg_node_new_replace(bp_state->cfg, current_path, bp_regs()->file_path);
                         }
                     } break;
-                    case BP_CmdKind_ShowFileInExplorer:
+                    case BP_CmdKind_SetFileReplacementPath: {
+                        {
+                            // NOTE(rjf):
+                            //
+                            // foo.c
+                            // C:/test/bar/baz/foo.c
+                            // -> override foo.c -> C:/test/bar/baz/foo.c
+                            //
+                            // C:/foo/bar/baz.c
+                            // D:/foo/bar/baz.c
+                            // -> override C: -> D:
+                            //
+                            // C:/1/2/foo/bar.c
+                            // C:/2/3/foo/bar.c
+                            // -> override C:/1/2 -> C:2/3
+                            //
+                            // C:/foo/bar/baz.c
+                            // D:/1/2/3.c
+                            // -> override C:/foo/bar/baz.c -> D:/1/2/3.c
+            
+                            //- rjf: unpack
+                            String8 src_path = bp_regs()->string;
+                            String8 dst_path = bp_regs()->file_path;
+                            PathStyle src_style = path_style_from_str8(src_path);
+                            PathStyle dst_style = path_style_from_str8(dst_path);
+                            String8_List src_path_parts = str8_split_path(scratch.arena, src_path);
+                            String8_List dst_path_parts = str8_split_path(scratch.arena, dst_path);
+            
+                            //- rjf: reverse path parts
+                            String8_List src_path_parts__reversed = {0};
+                            String8_List dst_path_parts__reversed = {0};
+                            for(String8_Node *n = src_path_parts.first; n != 0; n = n->next)
+                            {
+                                str8_list_push_front(scratch.arena, &src_path_parts__reversed, n->string);
+                            }
+                            for(String8_Node *n = dst_path_parts.first; n != 0; n = n->next)
+                            {
+                                str8_list_push_front(scratch.arena, &dst_path_parts__reversed, n->string);
+                            }
+            
+                            //- rjf: trace from each path upwards, in lock-step, to find the first difference
+                            // between the paths
+                            String8_Node *first_diff_src = src_path_parts__reversed.first;
+                            String8_Node *first_diff_dst = dst_path_parts__reversed.first;
+                            for(;first_diff_src != 0 && first_diff_dst != 0;)
+                            {
+                                if(!str8_match(first_diff_src->string, first_diff_dst->string, StringMatchFlag_CaseInsensitive) ||
+                                   first_diff_src->next == 0 ||
+                                   first_diff_dst->next == 0)
+                                {
+                                    break;
+                                }
+                                first_diff_src = first_diff_src->next;
+                                first_diff_dst = first_diff_dst->next;
+                            }
+            
+                            //- rjf: form final map paths
+                            String8_List map_src_parts = {0};
+                            String8_List map_dst_parts = {0};
+                            for(String8_Node *n = first_diff_src; n != 0; n = n->next)
+                            {
+                                str8_list_push_front(scratch.arena, &map_src_parts, n->string);
+                            }
+                            for(String8_Node *n = first_diff_dst; n != 0; n = n->next)
+                            {
+                                str8_list_push_front(scratch.arena, &map_dst_parts, n->string);
+                            }
+                            String8 map_src = str8_path_list_join_by_style(scratch.arena, &map_src_parts, src_style);
+                            String8 map_dst = str8_path_list_join_by_style(scratch.arena, &map_dst_parts, dst_style);
+            
+                            //- rjf: store as file path map cfg
+                            CFG_Node *user = cfg_node_child_from_string(cfg_node_root(), str8_lit("user"));
+                            {
+                                CFG_Node_Ptr_List cfgs = cfg_node_child_list_from_string(scratch.arena, user, str8_lit("file_path_map"));
+                                CFG_Node *map = &cfg_nil_node;
+                                for(CFG_Node_Ptr_Node *n = cfgs.first; n != 0; n = n->next)
+                                {
+                                    CFG_Node *src = cfg_node_child_from_string(n->v, str8_lit("source"));
+                                    if(path_match_normalised(src->first->string, map_src))
+                                    {
+                                        map = n->v;
+                                        break;
+                                    }
+                                }
+                                if(map == &cfg_nil_node)
+                                {
+                                    map = cfg_node_new(bp_state->cfg, user, str8_lit("file_path_map"));
+                                }
+                                CFG_Node *src = cfg_node_child_from_string_or_alloc(bp_state->cfg, map, str8_lit("source"));
+                                CFG_Node *dst = cfg_node_child_from_string_or_alloc(bp_state->cfg, map, str8_lit("dest"));
+                                cfg_node_new_replace(bp_state->cfg, src, map_src);
+                                cfg_node_new_replace(bp_state->cfg, dst, map_dst);
+                            }
+                        }
+                    } break;
+                    case BP_CmdKind_ShowFileInExplorer: {
                         if (bp_regs()->file_path.size != 0)
                         {
                             String8 full_path = bp_regs()->file_path;
                             sh_show_in_file_browser(full_path);
-                        } break;
+                        }
+                    } break;
                         // panel removal
                     case BP_CmdKind_ClosePanel: {
                         CFG_Node *window = cfg_node_from_id(bp_regs()->window);
@@ -6045,7 +6299,7 @@ internal void bp_frame(void)
                                 else
                                 {
                                     cfg_node_insert_child(bp_state->cfg, grandparent->cfg, parent_prev->cfg, keep_child->cfg);
-                                    cfg_node_equip_stringf(bp_state->cfg, keep_child->cfg, "%f", pct_or_parent);
+                                    cfg_node_equip_stringf(bp_state->cfg, keep_child->cfg, "%f", pct_of_parent);
                                 }
 
                                 // keep-child split-axis == grandparent split-axis? bubble keep-child up into grandparent's children
@@ -6061,7 +6315,7 @@ internal void bp_frame(void)
                                         cfg_node_unhook(bp_state->cfg, keep_child->cfg, child->cfg);
                                         cfg_node_insert_child(bp_state->cfg, grandparent->cfg, prev, child->cfg);
                                         prev = child->cfg;
-                                        f32 old_pct = child->act_of_parent;
+                                        f32 old_pct = child->pct_of_parent;
                                         f32 new_pct = old_pct * pct_of_parent;
                                         cfg_node_equip_stringf(bp_state->cfg, child->cfg, "%f", new_pct);
                                     }
@@ -6102,7 +6356,7 @@ internal void bp_frame(void)
                                     {
                                         CFG_Node *cfg = child->cfg;
                                         f32 old_pct = child->pct_of_parent;
-                                        f32 new_pct = old_pct / (1.f - remove_size_pct);
+                                        f32 new_pct = old_pct / (1.f - removed_size_pct);
                                         cfg_node_equip_stringf(bp_state->cfg, cfg, "%f", new_pct);
                                     }
                                 }
@@ -6166,7 +6420,7 @@ internal void bp_frame(void)
                     case BP_CmdKind_NextTab: {
                         {
                             CFG_Node *window = cfg_node_from_id(bp_regs()->window);
-                            CFG_Panel_Tree panel_tree = cfg_paneL_tree_from_cfg(scratch.arena, window);
+                            CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
                             CFG_Panel_Node *focused = panel_tree.focused;
                             CFG_Node_Ptr_Node *selected_tab_n = 0;
                             for (CFG_Node_Ptr_Node *n = focused->tabs.first; n != 0; n = n->next)
@@ -6209,13 +6463,13 @@ internal void bp_frame(void)
                                     break;
                                 }
                             }
-                            CFG_Node *next_selected &cfg_nil_node;
+                            CFG_Node *next_selected_tab = &cfg_nil_node;
                             u64 idx = 0;
                             for (CFG_Node_Ptr_Node *tab_n = selected_tab_n;
                                  tab_n != 0 && (tab_n != selected_tab_n || idx == 0);
-                                 ((tab->prev == 0) ? (tab_n = focused->tabs.last) : (tab_n = tab_n->prev)), idx += 1)
+                                 ((tab_n->prev == 0) ? (tab_n = focused->tabs.last) : (tab_n = tab_n->prev)), idx += 1)
                             {
-                                if (!bp_cfg_is_project_filtered(tab_n->v) && tab_n !- selected_tab_N)
+                                if (!bp_cfg_is_project_filtered(tab_n->v) && tab_n != selected_tab_n)
                                 {
                                     next_selected_tab = tab_n->v;
                                     break;
@@ -6375,7 +6629,7 @@ internal void bp_frame(void)
                     case BP_CmdKind_TabBarBottom: {
                         {
                             CFG_Node *panel = cfg_node_from_id(bp_regs()->panel);
-                            cfg_node_child_from_string_or_alloc(bp_state->cfg, str8_lit("tabs_on_bottom"));
+                            cfg_node_child_from_string_or_alloc(bp_state->cfg, panel, str8_lit("tabs_on_bottom"));
                         }
                     } break;
                     case BP_CmdKind_TabSettings: {
@@ -6385,7 +6639,7 @@ internal void bp_frame(void)
                                    .expr = expr,
                                    .do_implicit_root = true,
                                    .do_big_rows = 1,
-                                   .do_listener = true);
+                                   .do_lister = true);
                         }
                     } break;
                         // files
@@ -6408,15 +6662,13 @@ internal void bp_frame(void)
                         }
                     } break;
                         // panel built-in layout builds
-                    case BP_CmdKind_ResetToDefaultPanels:
-                    case BP_CmdKind_ResetToCompactPanels:
-                    case BP_CmdKind_ResetToSimplePanels: {
+                    case BP_CmdKind_ResetToDefaultPanels: {
                         {
                             CFG_Node *window = cfg_node_from_id(bp_regs()->window);
                             CFG_Node *panels = cfg_node_child_from_string(window, str8_lit("panels"));
                             CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
                             
-                            // find the fixed "getting_started" tab and all "text" tabs
+                            //- rjf: find the fixed "getting_started" tab and all "text" tabs
                             CFG_Node *getting_started = &cfg_nil_node;
                             CFG_Node_Ptr_List texts = {0};
                             for(CFG_Panel_Node *panel = panel_tree.root;
@@ -6444,8 +6696,31 @@ internal void bp_frame(void)
                                 cfg_node_equip_string(bp_state->cfg, getting_started, str8_lit("getting_started"));
                             }
                             
-                            //- rjf: release the old panel tree, rebuild as a single panel
+                            //- rjf: release the old panel tree
                             cfg_node_release(bp_state->cfg, panels);
+                            
+                            //- rjf: eliminate all tab selections on the tabs we're about to reuse
+                            //
+                            if(getting_started != &cfg_nil_node)
+                            {
+                                for(CFG_Node *s = cfg_node_child_from_string(getting_started, str8_lit("selected"));
+                                    s != &cfg_nil_node;
+                                    s = cfg_node_child_from_string(getting_started, str8_lit("selected")))
+                                {
+                                    cfg_node_release(bp_state->cfg, s);
+                                }
+                            }
+                            for(CFG_Node_Ptr_Node *n = texts.first; n != 0; n = n->next)
+                            {
+                                for(CFG_Node *s = cfg_node_child_from_string(n->v, str8_lit("selected"));
+                                    s != &cfg_nil_node;
+                                    s = cfg_node_child_from_string(n->v, str8_lit("selected")))
+                                {
+                                    cfg_node_release(bp_state->cfg, s);
+                                }
+                            }
+                            
+                            //- rjf: rebuild as a single panel
                             panels = cfg_node_new(bp_state->cfg, window, str8_lit("panels"));
                             CFG_Node *main_panel = panels;
                             if(getting_started != &cfg_nil_node)
@@ -6467,7 +6742,7 @@ internal void bp_frame(void)
                             BP_Window_State *ws = bp_window_state_from_cfg(window);
                             if(ws != &bp_nil_window_state)
                             {
-                                ws->window_layout_reset = true;
+                                ws->window_layout_reset = 1;
                             }
                         }
                     } break;
@@ -6516,7 +6791,7 @@ internal void bp_frame(void)
                                         {
                                             str8_list_push(temp.arena, &try_path_parts, try_n->string);
                                         }
-                                        String8 try_path = str8_list_join(temp.arena, &try_path_parts, &(StringJoin){.sep = str8_lit("/")});
+                                        String8 try_path = str8_list_join(temp.arena, &try_path_parts, &(String_Join){.sep = str8_lit("/")});
                                         File_Properties try_props = properties_from_file_path(try_path);
                                         if(try_props.modified != 0)
                                         {
@@ -6558,7 +6833,7 @@ internal void bp_frame(void)
                             bool32 prefer_new_tab = bp_regs()->prefer_new_tab;
             
                             //- rjf: if transient tabs are turned off, always prefer new tab
-                            if(!bp_setting_b32_from_name(str8_lit("transient_tabs")))
+                            if(!bp_setting_bool32_from_name(str8_lit("transient_tabs")))
                             {
                                 prefer_new_tab = 1;
                             }
@@ -6615,7 +6890,7 @@ internal void bp_frame(void)
                                     {
                                         CFG_Node *tab = tab_n->v;
                                         if(bp_cfg_is_project_filtered(tab)) { continue; }
-                                        if(str8_match(tab->string, str8_lit("text"), 0) && path_match_normalized(bp_path_from_cfg(tab), file_path))
+                                        if(str8_match(tab->string, str8_lit("text"), 0) && path_match_normalised(bp_path_from_cfg(tab), file_path))
                                         {
                                             info->panel_w_this_file = panel;
                                             info->view_w_this_file = tab;
@@ -6638,7 +6913,7 @@ internal void bp_frame(void)
                                             if(bp_cfg_is_project_filtered(tab)) { continue; }
                                             BP_RegsScope(.tab = tab->id, .view = tab->id)
                                             {
-                                                if(str8_match(tab->string, str8_lit("text"), 0) && bp_view_setting_b32_from_name(str8_lit("auto")))
+                                                if(str8_match(tab->string, str8_lit("text"), 0) && bp_view_setting_bool32_from_name(str8_lit("auto")))
                                                 {
                                                     info->panel_w_auto = panel;
                                                     info->view_w_auto = tab;
@@ -6792,7 +7067,7 @@ internal void bp_frame(void)
                     case BP_CmdKind_PushQuery: {
                         {
                             String8 cmd_name = bp_regs()->cmd_name;
-                            BP_CmdKindInfo *cmd_kind_info = bp_cmd_kind_info_from_string(cmd_name);
+                            BP_Cmd_Kind_Info *cmd_kind_info = bp_cmd_kind_info_from_string(cmd_name);
             
                             // rjf: close existing context menus
                             {
@@ -6893,7 +7168,7 @@ internal void bp_frame(void)
                                         String8 current_path_string = current_path->first->string;
                                         if(current_path_string.size == 0)
                                         {
-                                            current_path_string = path_normalized_from_string(scratch.arena, get_current_path(scratch.arena));
+                                            current_path_string = path_normalised_from_string(scratch.arena, get_current_path(scratch.arena));
                                         }
                                         initial_input = current_path_string;
                                         initial_input = push_str8f(scratch.arena, "%S/", initial_input);
@@ -6961,7 +7236,7 @@ internal void bp_frame(void)
             
                             // rjf: complete query, either by closing the query popup, or closing the
                             // tab-embedded query edit
-                            BP_CmdKindInfo *cmd_kind_info = bp_cmd_kind_info_from_string(cmd_name);
+                            BP_Cmd_Kind_Info *cmd_kind_info = bp_cmd_kind_info_from_string(cmd_name);
                             if(is_lister)
                             {
                                 ws->query_is_active = 0;
@@ -7182,7 +7457,7 @@ internal void bp_frame(void)
                             C_Key text_key = regs->text_key;
                             TXT_LangKind lang_kind = regs->lang_kind;
                             Rng1u64 range = r1u64(regs->cursor, regs->mark);
-                            U128 hash = {0};
+                            u128 hash = {0};
                             TXT_Text_Info info = txt_text_info_from_key_lang(access, text_key, lang_kind, &hash);
                             String8 data = c_data_from_hash(access, hash);
                             String8 expr = str8_substr(data, range);
@@ -7810,7 +8085,7 @@ internal void bp_frame(void)
         {
             for (BP_Window_State *ws = bp_state->first_window_state; ws != &bp_nil_window_state; ws = ws->order_next)
             {
-                bp_window_set_title(ws->os, window_title);
+                wm_window_set_title(ws->os, window_title);
             }
         }
         bp_state->last_window_title = str8_copy(bp_frame_arena(), window_title);
@@ -7849,7 +8124,7 @@ internal void bp_frame(void)
             MemoryCopy(bp_state->cmds,
                        bp_state->cmds + 1,
                        sizeof(bp_state->cmds[0]) * (ArrayCount(bp_state->cmds) - 1));
-            bp_state->cmds_arenas[ArrayCount(bp_count->cmds_arenas) - 1] = first_arena;
+            bp_state->cmds_arenas[ArrayCount(bp_state->cmds_arenas) - 1] = first_arena;
             bp_state->cmds[ArrayCount(bp_state->cmds_arenas) - 1] = first_cmds;
         }
 
@@ -7866,13 +8141,13 @@ internal void bp_frame(void)
     }
 
     ////////////////////////////////////////////////
-    // Computer all ambiguous paths from view titles
+    // Compute all ambiguous paths from view titles
 
-    ProcScope("compute all ambiguous paths from view titles")
+    ProfScope("compute all ambiguous paths from view titles")
     {
         Temp scratch = scratch_begin(0, 0);
         bp_state->ambiguous_path_slots_count = 512;
-        bp_state->ambiguous_path_slots = push_array(bp_frame_arena(), BP_Amiguous_Path_Node *, bp_state->ambiguous_path_slots_count);
+        bp_state->ambiguous_path_slots = push_array(bp_frame_arena(), BP_Ambiguous_Path_Node *, bp_state->ambiguous_path_slots_count);
         for (BP_Window_State *ws = bp_state->first_window_state; ws != &bp_nil_window_state; ws = ws->order_next)
         {
             CFG_Node *window = cfg_node_from_id(ws->cfg_id);
@@ -7890,8 +8165,8 @@ internal void bp_frame(void)
                     if (file_path.size != 0)
                     {
                         String8 name = str8_skip_last_slash(file_path);
-                        u64 hash = d_hash_from_string__case_insensitive(name);
-                        u64 slot_idx = hash % bp_state->ambiguous_path-slots[slot_idx];
+                        u64 hash = u64_hash_from_str8__case_insensitive(name);
+                        u64 slot_idx = hash % bp_state->ambiguous_path_slots_count;
                         BP_Ambiguous_Path_Node *node = 0;
                         for (BP_Ambiguous_Path_Node *n = bp_state->ambiguous_path_slots[slot_idx]; n != 0; n = n->next)
                         {
@@ -7918,23 +8193,21 @@ internal void bp_frame(void)
     ////////////////////////////////////////
     // Compute animation rates, given config
     {
-        f32 master_animations_f    = (f32)!!bp_setting_b32_from_name(str8_lit("animations"));
-        f32 scrolling_animations_f = (f32)!!bp_setting_b32_from_name(str8_lit("scrolling_animations"));
-        f32 tooltop_animations_f   = (f32)!!bp_setting_b32_from_name(str8_lit("tooltop_animations"));
-        f32 menu_atnimations_f     = (f32)!!bp_setting_b32_from_name(str8_lit("menu_animations"));
+        f32 master_animations_f    = (f32)!!bp_setting_bool32_from_name(str8_lit("animations"));
+        f32 scrolling_animations_f = (f32)!!bp_setting_bool32_from_name(str8_lit("scrolling_animations"));
+        f32 tooltip_animations_f   = (f32)!!bp_setting_bool32_from_name(str8_lit("tooltop_animations"));
+        f32 menu_animations_f      = (f32)!!bp_setting_bool32_from_name(str8_lit("menu_animations"));
         bp_state->catchall_animation_rate    = 1 - master_animations_f * pow_f32(2, (-60.f * bp_state->frame_dt));
         bp_state->menu_animation_rate        = 1 - master_animations_f * menu_animations_f * pow_f32(2, (-70.f * bp_state->frame_dt));
         bp_state->menu_animation_rate__slow  = 1 - master_animations_f * menu_animations_f * pow_f32(2, (-50.f * bp_state->frame_dt));
-        bp_state->entry_alive_animation_rate = 1 - master_animations_f * menu_animations_f * pow_f32(2, (-30.f * bp_state->frame_dt));
-        bp_state->rich_hover_animation_rate  = 1 - master_animations_f * menu_animtionas_f * pow_f32(2, (-50.f * bp_state->frame_dt));
-        bp_state->scorlling_animation_rate   = 1 - master_animations_f * scrolling_animations_f * pow_f32(2, (-60.f * bp_state->frame_dt));
+        bp_state->scrolling_animation_rate   = 1 - master_animations_f * scrolling_animations_f * pow_f32(2, (-60.f * bp_state->frame_dt));
         bp_state->tooltip_animation_rate     = 1 - master_animations_f * tooltip_animations_f   * pow_f32(2, (-60.f * bp_state->frame_dt));
     }
 
     //////////////////////////
     // animate confirmation
     {
-        f32 rate = bp_setting_b32_from_name(str8_lit("menu_animations")) ? 1 - pow_f32(2, (-30.f * bp_state->frame_dt)) : 1.f;
+        f32 rate = bp_setting_bool32_from_name(str8_lit("menu_animations")) ? 1 - pow_f32(2, (-30.f * bp_state->frame_dt)) : 1.f;
         bool32 popup_open = bp_state->popup_active;
         bp_state->popup_t += rate * ((f32)!!popup_open - bp_state->popup_t);
         if (abs_f32(bp_state->popup_t - (f32)!!popup_open) > 0.005f)
@@ -8034,8 +8307,8 @@ internal void bp_frame(void)
         for (BP_Window_State *w = bp_state->first_window_state; w != &bp_nil_window_state; w = w->order_next)
         {
             r_window_begin_frame(w->os, w->r);
-            dr_submit_bucket(w->os, w->r, w->draw_bucklet);
-            r_window_end_frame(w->os, r->r);
+            dr_submit_bucket(w->os, w->r, w->draw_bucket);
+            r_window_end_frame(w->os, w->r);
         }
         r_end_frame();
     }
@@ -8049,7 +8322,7 @@ internal void bp_frame(void)
         {
             if (w->frames_alive == 1)
             {
-                cfg_is_list_push(scratch.arena, &windows_to_show, w->cfg_id);
+                cfg_id_list_push(scratch.arena, &windows_to_show, w->cfg_id);
             }
         }
         for (CFG_ID_Node *n = windows_to_show.first; n != 0; n = n->next)
@@ -8097,8 +8370,8 @@ internal void bp_frame(void)
         {
             String8 error_log = log.strings[LogMsgKind_UserError];
             String8_List error_log_lines = str8_split(scratch.arena, error_log, (u8 *)"\n", 1, 0);
-            String8 error_log_string = str8_list_join(scratch.arena, &error_log_lines, &(StringJoin){.sep = str8_lit(" ")});
-            for (BP_Window_State *ws = bp_state->first_window_state; ws != &bp_nil_window_state; bp = bp->order_next)
+            String8 error_log_string = str8_list_join(scratch.arena, &error_log_lines, &(String_Join){.sep = str8_lit(" ")});
+            for (BP_Window_State *ws = bp_state->first_window_state; ws != &bp_nil_window_state; ws = ws->order_next)
             {
                 ws->error_string_size = Min(sizeof(ws->error_buffer), error_log_string.size);
                 MemoryCopy(ws->error_buffer, error_log_string.str, ws->error_string_size);
