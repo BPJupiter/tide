@@ -1,4 +1,9 @@
 
+/////////////////////
+// Generated Code
+
+#include "generated/tide.meta.c"
+
 /////////////////////////////
 // Main Layer Top-Level Calls
 
@@ -38,6 +43,8 @@ internal void ti_init(Cmd_Line *cmdline)
                                                    WM_WindowFlag_UseDefaultPosition,
                                                    str8_lit("TIDE"));
         ti_state->window_state->r = r_window_equip(ti_state->window_state->os);
+        ti_state->window_state->ui = ui_state_alloc();
+        ui_select_state(ti_state->window_state->ui);
         wm_window_first_paint(ti_state->window_state->os);
     }
 
@@ -68,12 +75,23 @@ internal void ti_frame(void)
     DR_BucketScope(bucket) ProfScope("draw")
     {
         Vec2f32 mouse = wm_mouse_from_window(ti_state->window_state->os);
-        FNT_Tag font = fnt_tag_from_path(str8_lit("P:/brokenProxy/data/Inconsolata-Regular.ttf"));
+        /*
+        UI_Box *container_box = ui_build_box_from_stringf(0, "container");
+        UI_Parent(container_box)
+            UI_PrefWidth(ui_px(200, 1.f))
+            UI_PrefHeight(ui_em(2.f, 1.f))
+            UI_BackgroundColor(v4f32(0.1f, 0.1f, 0.1f, 1.f))
+        {
+            UI_Signal sig = ui_button(str8_lit("Click me"));
+        }
+        Vec2f32 mouse = ui_mouse();
+        */
+        FNT_Tag font = fnt_tag_from_static_data_string(&ti_default_main_font_bytes);
         dr_text(font, 16.f, 0, 0,
                 FNT_RasterFlag_Smooth|FNT_RasterFlag_Hinted,
                 v2f32(30 + mouse.x, 30 + mouse.y),
                 v4f32(1, 1, 1, 1),
-                str8_lit("This is a test!"));
+                str8f(scratch.arena, "%.2f, %.2f", mouse.x, mouse.y));
     }
     r_window_submit(ti_state->window_state->os, ti_state->window_state->r, &bucket->passes);
     r_window_end_frame(ti_state->window_state->os, ti_state->window_state->r);

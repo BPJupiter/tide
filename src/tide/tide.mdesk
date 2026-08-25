@@ -1,0 +1,7 @@
+
+///////////////////
+// Embedded Data
+
+//@embed_file ti_icon_font_bytes:         "../data/icons.tff"
+@embed_file ti_default_main_font_bytes: "../data/Inconsolata-Regular.ttf""
+//@embed_file ti_icon_file_bytes:         "../data/logo.ico"

@@ -2,6 +2,11 @@
 #ifndef TIDE_CORE_H
 #define TIDE_CORE_H
 
+///////////////////
+// Generated Code
+
+#include "generated/tide.meta.h"
+
 /////////////////////
 // Per-Window State
 
