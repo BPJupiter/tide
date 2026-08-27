@@ -301,6 +301,15 @@ struct Dns_Client {
     Dns_TransportProtocol dns_protocol;
 };
 
+/////////////////////////
+// Server Structures
+
+typedef struct Dns_Server Dns_Server;
+struct Dns_Server {
+    Net_Listener listener;
+    Dns_TransportProtocol dns_protocol;
+};
+
 ////////////////////////////////
 // Enum -> String conversions
 
@@ -549,8 +558,19 @@ internal String8 dns_msg_header_to_str8(Arena *arena, Dns_Msg_Header h);
 
 internal Dns_Client dns_client_alloc(Arena *arena, Net_AddressFamily family, Dns_TransportProtocol protocol);
 internal void       dns_client_release(Dns_Client client);
-internal Dns_Msg    dns_client_exchange(Arena *arena, Dns_Client client, Dns_Msg msg, Net_Address address);
+internal Dns_Msg    dns_exchange(Arena *arena, Dns_Msg msg, Dns_TransportProtocol protocol, String8 target); // TODO
+internal Dns_Msg    dns_client_exchange(Arena *arena, Dns_Client client, Dns_Msg msg, String8 target); // TODO
+internal Dns_Msg    dns_client_exchange_with_address(Arena *arena, Dns_Client client, Dns_Msg msg, Net_Address address);
 
+////////////////////////
+// Server Functions
+
+internal Dns_Server dns_server_alloc(Arena *arena, Net_AddressFamily family, Dns_TransportProtocol protocol); // TODO
+internal void       dns_server_release(Dns_Server server);
+internal void       dns_listen_and_serve(String8 address, Dns_TransportProtocol protocol); // TODO
+internal void       dns_server_listen_and_serve(Dns_Server server);
+internal void       dns_server_shutdown(Dns_Server *server); // TODO
+internal void       dns_server_shutdown_and_release(Dns_Server *server); // TODO
 
 ///////////////////////
 // Utility Functions

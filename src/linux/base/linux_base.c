@@ -55,7 +55,7 @@ internal File_Properties lnx_file_properties_from_stat(struct stat *s)
     props.created  = lnx_dense_time_from_timespec(s->st_ctim);
     props.modified = lnx_dense_time_from_timespec(s->st_mtim);
     if (s->st_mode & S_IFDIR) {
-        props.flags | FilePropertyFlag_IsFolder;
+        props.flags |= FilePropertyFlag_IsFolder;
     }
     return props;
 }

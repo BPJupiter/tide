@@ -1,0 +1,153 @@
+
+////////////////////////////////////
+// DNS Type RDATA Field Table
+
+@table(id  obsolete qustion_only  type rfc_csv     c_type1 name1      c_type2 name2      c_type3 name3      c_type4 name4      c_type5 name5      c_type6 name6      c_type7 name7      c_type8 name8      c_type9 name9     c_type10 name10)
+//    /    /    ____/             /    /                  |                  |                  |                  |                  |                  |                  |                  |                  |                  |
+//   /    /    /  _______________/    /                   |                  |                  |                  |                  |                  |                  |                  |                  |                  |
+DNS_TypeTable:// /            _______/                    |                  |                  |                  |                  |                  |                  |                  |                  |                  |
+{//       |  /  /            /                            |                  |                  |                  |                  |                  |                  |                  |                  |                  |
+   //0          <reserved>   "6895"
+    {1    0  0   A           "1035"                    u32 address                                                                                                                                                                          },
+    {2    0  0   NS          "1035"                String8 nsdname                                                                                                                                                                          },
+    {3    1  0   MD          "883,973,1035"        String8 madname                                                                                                                                                                          },
+    {4    1  0   MF          "883,973,1035"        String8 madname                                                                                                                                                                          },
+    {5    0  0   CNAME       "1035"                String8 cname                                                                                                                                                                            },
+    {6    0  0   SOA         "1035,2308"           String8 mname      String8 rname          u32 serial         u32 refresh        u32 retry          u32 expire         u32 minimum                                                        },
+    {7    1  0   MB          "883,1035,2505"       String8 madname                                                                                                                                                                          },
+    {8    1  0   MG          "883,1035,2505"       String8 mgmname                                                                                                                                                                          },
+    {9    1  0   MR          "883,1035,2505"       String8 newname                                                                                                                                                                          },
+    {10   1  0   NULL        "883,1035"            String8 data                                                                                                                                                                             },
+    {11   1  0   WKS         "883,1035,1123,1127"      u32 address         u8 protocol   String8 bitmap                                                                                                                                     },
+    {12   0  0   PTR         "1035"                String8 ptrdname                                                                                                                                                                         },
+    {13   0  0   HINFO       "883,1035,8482"       String8 cpu        String8 os                                                                                                                                                            },
+    {14   1  0   MINFO       "883,1035,2505"       String8 rmailbx    String8 emailbx                                                                                                                                                       },
+    {15   0  0   MX          "1035,7505"               u16 preference String8 exchange                                                                                                                                                      },
+    {16   0  0   TXT         "1035"                String8 txt_data                                                                                                                                                                         },
+    {17   1  0   RP          "1183"                String8 mbox_dname String8 txt_dname                                                                                                                                                     },
+    {18   0  0   AFSDB       "1183"                    u16 subtype    String8 hostname                                                                                                                                                      },
+    {19   1  0   X25         "1183"                String8 psdn_addr                                                                                                                                                                        },
+    {20   1  0   ISDN        "1183"                String8 isdn_addr  String8 sub_addr                                                                                                                                                      },
+    {21   1  0   RT          "1183"                    u16 preference String8 intrm_host                                                                                                                                                    },
+    {22   1  0   NSAP        "1706"                String8 data                                                                                                                                                                             },
+    {23   1  0   NSAPPTR     "1706"                String8 ptrdname                                                                                                                                                                         },
+    {24   1  0   SIG         "2065,2535,3755"          u16 type_cverd      u8 algorithm       u8 labels         u32 ttl            u32 sig_expire     u32 time_signd     u16 key_ftprnt String8 signr_name String8 signature                },
+    {25   1  0   KEY         "2065,2535,2930,3755"     u16 flags           u8 protocol        u8 algorithm  String8 pubkey                                                                                                                  },
+    {26   1  0   PX          "2163"                    u16 preference String8 map_822    String8 map_x400                                                                                                                                   },
+    {27   1  0   GPOS        "1712"                String8 longitude  String8 latitude   String8 altitude                                                                                                                                   },
+    {28   0  0   AAAA        "3596"                   u128 address                                                                                                                                                                          },
+    {29   0  0   LOC         "1876"                     u8 version         u8 size            u8 horiz_pre       u8 vert_pre       u32 latitude       u32 longitude      u32 altitude                                                       },
+    {30   1  0   NXT         "2065,3755"           String8 next_dname String8 type_bitmap                                                                                                                                                   },
+    {31   1  0   EID         ""                    String8 endpoint_id                                                                                                                                                                      },
+    {32   1  0   NIMLOC      ""                    String8 nimrod_loc                                                                                                                                                                       },
+    // NOTE: NB and NBSTAT conflict with
+    //       NIMLOC and SRV respectively.
+    //       These seem to be part of the NetBIOS standard.
+    //       The IANA assignments website:
+    //        "In [RFC1002], two types are defined.
+    //         It is not clear that these are in use,
+    //         though if so their assignment does conflict
+    //         with those above."
+    {32   1  0   NB          "1002"                    u16 nb_flags       u32 nb_address                                                                                                                                                    },
+    {33   1  0   NBSTAT      "1002"                     u8 num_names  String8 n_name_arr String8 statistics                                                                                                                                 },
+    {33   0  0   SRV         "2782"                    u16 priority       u16 weight         u16 port       String8 target                                                                                                                  },
+    // NOTE: ATMA has so little documentation.
+    //       This is my best guess based on
+    //       the bind9 source code.
+    {34   1  0   ATMA        "1706"                String8 mctx       String8 format     String8 atma           u16 atma_len                                                                                                                },
+    {35   0  0   NAPTR       "3403"                    u16 order          u16 preference String8 flags      String8 service    String8 regexp     String8 replacement                                                                       },
+    {36   0  0   KX          "2230"                    u16 preference String8 exchanger                                                                                                                                                     },
+    {37   0  0   CERT        "4398"                    u16 type           u16 key_tag         u8 algorithm  String8 certificate                                                                                                             },
+    {38   1  0   A6          "2874,3363,6563"           u8 prefix_len String8 addr_suffx String8 prefix_name                                                                                                                                },
+    {39   0  0   DNAME       "6672"                String8 target                                                                                                                                                                           },
+    {40   1  0   SINK        ""                         u8 coding          u8 subcoding  String8 data                                                                                                                                       },
+    {41   0  0   OPT         "3225,6891"                                                                                                                                                                                                    },
+    {42   1  0   APL         "3123"                                                                                                                                                                                                         },
+    {43   0  0   DS          "4034"                                                                                                                                                                                                         },
+    {44   0  0   SSHFP       "4255"                                                                                                                                                                                                         },
+    {45   0  0   IPSECKEY    "4025"                                                                                                                                                                                                         },
+    {46   0  0   RRSIG       "4034"                                                                                                                                                                                                         },
+    {47   0  0   NSEC        "4034"                                                                                                                                                                                                         },
+    {48   0  0   DNSKEY      "4034"                                                                                                                                                                                                         },
+    {49   0  0   DHCID       "4701"                                                                                                                                                                                                         },
+    {50   0  0   NSEC3       "5155"                                                                                                                                                                                                         },
+    {51   0  0   NSEC3PARAM  "5155"                                                                                                                                                                                                         },
+    {52   0  0   TLSA        "6698"                                                                                                                                                                                                         },
+    {53   0  0   SMIMEA      "8162"                                                                                                                                                                                                         },
+   //54         <unassigned>
+    {55   0  0   HIP         "8005"
+    {56   1  0   NINFO       ""
+    {57   1  0   RKEY        ""
+    {58   1  0   TAILINK     ""
+    {59   0  0   CDS         "7344"
+    {60   0  0   CDNSKEY     "7344"
+    {61   0  0   OPENPGPKEY  "7929"
+    {62   0  0   CSYNC       "7477"
+    {63   0  0   ZONEMD      "8976"
+    {64   0  0   SVCB        "9460"
+    {65   0  0   HTTPS       "9460"
+    {66   0  0   DSYNC       "9859"
+    {67   0  0   HHIT        "9886"
+    {68   0  0   BRID        "9886"
+   //69         <unassigned>
+   //98         <unassigned>
+    {99   1  0   SPF         "4408,7208"
+    {100  1  0   UINFO       ""
+    {101  1  0   UID         ""
+    {102  1  0   GID         ""
+    {103  1  0   UNSPEC      ""
+    {104  0  0   NID         "6742"
+    {105  0  0   L32         "6742"
+    {106  0  0   L64         "6742"
+    {107  0  0   LP          "6742"
+    {108  0  0   EUI48       "7043"
+    {109  0  0   EUI64       "7043"
+   //110        <unassigned>
+   //127        <unassigned>
+    {128  0  0   NXNAME      "9824"
+   //129        <unassigned>
+   //248        <unassigned>
+    {249  0  0   TKEY        "2930"
+    {250  0  0   TSIG        "2845"
+    {251  0  1   IXFR        "1995,1996"
+    {252  0  1   AXFR        "1035"
+    {253  0  1   MAILB       "883,1035,2505"
+    {254  1  1   MAILA       "883,973,1035"
+    {255  0  1   ANY         "1035"
+    {256  0  0   URI         "7553"
+    {257  0  0   CAA         "8659"
+    {258  0  0   AVC         ""
+    {259  1  0   DOA         ""
+    {260  0  0   AMTRELAY    "8777"
+    {261  0  0   RESINFO     "9606"
+    {262  0  0   WALLET      ""
+    {263  0  0   CLA         ""
+    {264  0  0   IPN         ""
+   //265        <unassigned>
+   //32767      <unassigned>
+    {32768 0 0   TA          ""
+    {32769 1 0   DLV         "4431,8749"
+   //32770      <unassigned>
+   //65279      <unassigned>
+   //65280      <private>
+   //65534      <private>
+   //65535      <reserved>
+}
+
+@enum DNS_Type:
+{
+    @expand(DNS_TypeTable a) `$(a.type .. =>12) = $(a.id)`,
+}
+
+@gen
+{
+    @expand(DNS_TypeTable a)
+    ```
+typedef struct DNS_RData_$(a.type) DNS_RData_$(a.type);
+struct DNS_RData_$(a.type)
+{$(a.c_type1 != "" -> '\n' .. a.c_type1 .. ' ' .. a.name1 .. ';')$(a.c_type2 != "" -> '\n' .. a.c_type2 .. ' ' .. a.name2 .. ';')$(a.c_type3 != "" -> '\n' .. a.c_type3 .. ' ' .. a.name3 .. ';')$(a.c_type4 != "" -> '\n' .. a.c_type4 .. ' ' .. a.name4 .. ';')$(a.c_type5 != "" -> '\n' .. a.c_type5 .. ' ' .. a.name5 .. ';')$(a.c_type6 != "" -> '\n' .. a.c_type6 .. ' ' .. a.name6 .. ';')$(a.c_type7 != "" -> '\n' .. a.c_type7 .. ' ' .. a.name7 .. ';')$(a.c_type8 != "" -> '\n' .. a.c_type8 .. ' ' .. a.name8 .. ';')$(a.c_type9 != "" -> '\n' .. a.c_type9 .. ' ' .. a.name9 .. ';')
+};
+ ```
+}
+
+

@@ -105,7 +105,7 @@ internal void dns_client_release(Dns_Client client)
     net_client_close(client.dialer);
 }
 
-internal Dns_Msg dns_client_exchange(Arena *arena, Dns_Client client, Dns_Msg msg, Net_Address address)
+internal Dns_Msg dns_client_exchange_with_address(Arena *arena, Dns_Client client, Dns_Msg msg, Net_Address address)
 {
     // @Cleanup: make this not have 1 million dns_protocol checks.
     //           probably dispatch instead.

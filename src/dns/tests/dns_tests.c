@@ -46,7 +46,7 @@ internal void print_msg_data(Dns_Msg *msg)
     scratch_end(scratch);
 }
 
-Test(stub_client_exchange)
+Test(stub_client_exchange_with_address)
 {
     // @TODO: Make this work with TCP
     Temp scratch = scratch_begin(0, 0);
@@ -57,7 +57,7 @@ Test(stub_client_exchange)
     Net_Address address = {0};
     (void)net_str8_to_address(&address, str8_lit("8.8.8.8:53"));
 
-    Dns_Msg response = dns_client_exchange(scratch.arena, client, msg, address);
+    Dns_Msg response = dns_client_exchange_with_address(scratch.arena, client, msg, address);
     
     T_Ok(msg.header.id == response.header.id);
     
@@ -68,7 +68,7 @@ Test(stub_client_exchange)
     scratch_end(scratch);
 }
 
-Test(stub_client_exchange_nxdomain)
+Test(stub_client_exchange_with_address_nxdomain)
 {
     Temp scratch = scratch_begin(0, 0);
     Dns_Type question_type = Dns_Type_A;
@@ -78,7 +78,7 @@ Test(stub_client_exchange_nxdomain)
     Net_Address address = {0};
     (void)net_str8_to_address(&address, str8_lit("8.8.8.8:53"));
 
-    Dns_Msg response = dns_client_exchange(scratch.arena, client, msg, address);
+    Dns_Msg response = dns_client_exchange_with_address(scratch.arena, client, msg, address);
 
     T_Ok(msg.header.id == response.header.id);
     T_Ok(response.header.rcode == Dns_RCode_NameError);
@@ -99,16 +99,36 @@ Test(iterative_lookup)
 
     Dns_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("www.auckland.ac.nz"), question_type);
     msg.header.recursion_desired = false;
+    
     Dns_Client client = dns_client_alloc(scratch.arena, Net_AddressFamily_IPv4, Dns_TransportProtocol_UDP);
+    
+
+    String8 root_ip = str8_cat(scratch.arena,
+                               net_ipv4_to_str8(scratch.arena, dns_root_server_to_ipv4[Dns_RootServer_A]),
+                               s(":53"));
     Net_Address address = {0};
-    String8 root_ip = net_ipv4_to_str8(scratch.arena, dns_root_server_to_ipv4[Dns_RootServer_A]);
-    root_ip = str8_cat(scratch.arena, root_ip, s(":53"));
     (void)net_str8_to_address(&address, root_ip);
 
-    Dns_Msg response = dns_client_exchange(scratch.arena, client, msg, address);
+    Dns_Msg response = dns_client_exchange_with_address(scratch.arena, client, msg, address);
 
     T_Ok(msg.header.id == response.header.id);
     T_Ok(response.header.rcode == Dns_RCode_Success);
 
     scratch_end(scratch);
+}
+
+Test(server)
+{
+    struct {
+        String8 name;
+        Dns_TransportProtocol network;
+        String8 addr;
+    } test_server[] = {
+        {str8_lit("udp"), Dns_TransportProtocol_UDP, str8_lit(":0")},
+        //{str8_lit("tcp"), Dns_TransportProtocol_TCP, str8_lit(":0")},
+    };
+    for (u64 ts; ts < ArrayCount(test_server); ts += 1)
+    {
+        
+    }
 }
