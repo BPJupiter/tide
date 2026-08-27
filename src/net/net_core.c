@@ -177,9 +177,9 @@ internal String8 net_ipv6_to_str8(Arena *arena, u128 ip)
     return result;
 }
 
-internal bool32 net_str8_to_address(Net_Address *out, String8 string)
+internal bool32 net_str8_to_address(NET_Address *out, String8 string)
 {
-    Net_Address result = {0};
+    NET_Address result = {0};
     Temp scratch = scratch_begin(0, 0);
 
     bool32 ip_ok, port_ok = false;
@@ -195,7 +195,7 @@ internal bool32 net_str8_to_address(Net_Address *out, String8 string)
             port_ok = (port >= 0 && port <= max_u16);
 
             if (ip_ok && port_ok) {
-                result.family = Net_AddressFamily_IPv4;
+                result.family = NET_AddressFamily_IPv4;
                 result.port = (u16)port;
             }
         }
@@ -205,7 +205,7 @@ internal bool32 net_str8_to_address(Net_Address *out, String8 string)
             port_ok = (port >= 0 && port <= max_u16);
         
             if (ip_ok && port_ok) {
-                result.family = Net_AddressFamily_IPv6;
+                result.family = NET_AddressFamily_IPv6;
                 result.port = (u16)port;
             }
         }
@@ -219,6 +219,6 @@ internal bool32 net_str8_to_address(Net_Address *out, String8 string)
     return ip_ok && port_ok;
 }
 
-internal String8 net_address_to_str8(Arena *arena, Net_Address address)
+internal String8 net_address_to_str8(Arena *arena, NET_Address address)
 {
 }

@@ -216,24 +216,24 @@ Test(str8_to_address)
     };
 
     // local_persist here stops padded memory from having uninitialized garbage data.
-    local_persist Net_Address seed_to_struct[] = {
+    local_persist NET_Address seed_to_struct[] = {
         // We set the last two bytes of our padding to 0xFFFF so that our
         // ipv4 address is also valid when reading it as an ipv6 address.
-        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0xC0A80101 }, .family = Net_AddressFamily_IPv4, .port = 8080 },
-        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x7F000001 }, .family = Net_AddressFamily_IPv4, .port = 80 },
-        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x7F000001 }, .family = Net_AddressFamily_IPv4, .port = 80 },
-        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x00000000 }, .family = Net_AddressFamily_IPv4, .port = 443 },
-        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0xFFFFFFFF }, .family = Net_AddressFamily_IPv4, .port = 65535 },
+        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0xC0A80101 }, .family = NET_AddressFamily_IPv4, .port = 8080 },
+        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x7F000001 }, .family = NET_AddressFamily_IPv4, .port = 80 },
+        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x7F000001 }, .family = NET_AddressFamily_IPv4, .port = 80 },
+        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x00000000 }, .family = NET_AddressFamily_IPv4, .port = 443 },
+        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0xFFFFFFFF }, .family = NET_AddressFamily_IPv4, .port = 65535 },
         
-        { .ip = { .v6 = u128_lit64(0x20010DB800000000, 0x0000000000000001) }, .family = Net_AddressFamily_IPv6, .port = 8000 },
-        { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000000000000001) }, .family = Net_AddressFamily_IPv6, .port = 443 },
-        { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000000000000000) }, .family = Net_AddressFamily_IPv6, .port = 0 },
-        { .ip = { .v6 = u128_lit64(0x20010DB885A30000, 0x00008A2E03707334) }, .family = Net_AddressFamily_IPv6, .port = 22 },
-        { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000FFFFC0A80101) }, .family = Net_AddressFamily_IPv6, .port = 8080 },
+        { .ip = { .v6 = u128_lit64(0x20010DB800000000, 0x0000000000000001) }, .family = NET_AddressFamily_IPv6, .port = 8000 },
+        { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000000000000001) }, .family = NET_AddressFamily_IPv6, .port = 443 },
+        { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000000000000000) }, .family = NET_AddressFamily_IPv6, .port = 0 },
+        { .ip = { .v6 = u128_lit64(0x20010DB885A30000, 0x00008A2E03707334) }, .family = NET_AddressFamily_IPv6, .port = 22 },
+        { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000FFFFC0A80101) }, .family = NET_AddressFamily_IPv6, .port = 8080 },
     };
 
     for (u64 i = 0; i < ArrayCount(valid_seeds); i++) {
-        Net_Address result = {0};
+        NET_Address result = {0};
         T_Ok(net_str8_to_address(&result, valid_seeds[i]));
         T_Ok(MemoryMatchStruct(&result, &seed_to_struct[i]));
     }
@@ -294,7 +294,7 @@ Test(str8_to_address)
     scratch_end(scratch);
 }
 
-internal void print_recv_hexdump(Net_Client client)
+internal void print_recv_hexdump(NET_Client client)
 {
     Temp scratch = scratch_begin(0, 0);
     
@@ -316,11 +316,11 @@ Test(connect_to_server)
                                    "Host: 8.8.8.8\r\n"
                                    "\r\n");
 
-        Net_Address target;
+        NET_Address target;
         T_Ok(net_str8_to_address(&target, str8_lit("8.8.8.8:443")));
-        Net_Client conn = net_client_alloc(scratch.arena,
+        NET_Client conn = net_client_alloc(scratch.arena,
                                            target.family,
-                                           Net_TransportProtocol_TCP);
+                                           NET_TransportProtocol_TCP);
         conn = net_client_connect(conn, target);
         ring_try_write(conn.send_buffer, request.size, request.str);
         T_Ok(net_client_send_from_ring(&conn));

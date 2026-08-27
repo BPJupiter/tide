@@ -24,16 +24,16 @@ internal void w32_print_winsock_error(const char *msg)
 }
 
 ///////////////////////////////////
-// Networking Conversion Helpers
+// NETworking Conversion Helpers
 
-internal void w32_sockaddr_storage_to_net_address(Net_Address *out, SOCKADDR_STORAGE *in)
+internal void w32_sockaddr_storage_to_net_address(NET_Address *out, SOCKADDR_STORAGE *in)
 {
     switch (in->ss_family)
     {
         case AF_INET: {
             SOCKADDR_IN *addr = (SOCKADDR_IN *)in;
             
-            out->family = Net_AddressFamily_IPv4;
+            out->family = NET_AddressFamily_IPv4;
             out->port = net_to_host_u16(addr->sin_port);
             out->ip.v4 = net_to_host_u32(addr->sin_addr.S_un.S_addr);
         } break;
@@ -43,7 +43,7 @@ internal void w32_sockaddr_storage_to_net_address(Net_Address *out, SOCKADDR_STO
             // should be in network byte order, except for the family.
             SOCKADDR_IN6_LH *addr = (SOCKADDR_IN6_LH *)in;
 
-            out->family = Net_AddressFamily_IPv6;
+            out->family = NET_AddressFamily_IPv6;
             out->port = net_to_host_u16(addr->sin6_port);
             MemoryCopyArray(out->ip.v6.u8, addr->sin6_addr.u.Byte);
         } break;
@@ -53,18 +53,18 @@ internal void w32_sockaddr_storage_to_net_address(Net_Address *out, SOCKADDR_STO
     }
 }
 
-internal void w32_net_address_to_sockaddr_storage(SOCKADDR_STORAGE *out, Net_Address *in)
+internal void w32_net_address_to_sockaddr_storage(SOCKADDR_STORAGE *out, NET_Address *in)
 {
     switch (in->family)
     {
-        case Net_AddressFamily_IPv4: {
+        case NET_AddressFamily_IPv4: {
             SOCKADDR_IN *addr = (SOCKADDR_IN *)out;
 
             addr->sin_family = AF_INET;
             addr->sin_port = host_to_net_u16(in->port);
             addr->sin_addr.S_un.S_addr = host_to_net_u32(in->ip.v4);
         } break;
-        case Net_AddressFamily_IPv6: {
+        case NET_AddressFamily_IPv6: {
             SOCKADDR_IN6_LH *addr = (SOCKADDR_IN6_LH *)out;
 
             addr->sin6_family = AF_INET6;
@@ -80,42 +80,42 @@ internal void w32_net_address_to_sockaddr_storage(SOCKADDR_STORAGE *out, Net_Add
 }
 
 /////////////////////////////////////
-// @per_os_impl Networking Primitives
+// @per_os_impl NETworking Primitives
 
-internal Net_Socket net_socket_alloc(Net_AddressFamily family, Net_TransportProtocol protocol)
+internal NET_Socket net_socket_alloc(NET_AddressFamily family, NET_TransportProtocol protocol)
 {
     W32_Entity *entity = w32_entity_alloc(W32_EntityKind_Socket);
     
     u16 af = 0;
     switch(family) {
         default:
-        case Net_AddressFamily_Any:
-        case Net_AddressFamily_IPv4: {
+        case NET_AddressFamily_Any:
+        case NET_AddressFamily_IPv4: {
             af = AF_INET;
         } break;
-        case Net_AddressFamily_IPv6: {
+        case NET_AddressFamily_IPv6: {
             af = AF_INET6;
         } break;
     }
     
     switch (protocol) {
         default:
-        case Net_TransportProtocol_RAW: {
+        case NET_TransportProtocol_RAW: {
             entity->socket = socket(af, SOCK_RAW, 0);
         } break;
-        case Net_TransportProtocol_TCP: {
+        case NET_TransportProtocol_TCP: {
             entity->socket = socket(af, SOCK_STREAM, 0);
         } break;
-        case Net_TransportProtocol_UDP: {
+        case NET_TransportProtocol_UDP: {
             entity->socket = socket(af, SOCK_DGRAM, 0);
         } break;
     }
     
-    Net_Socket socket = {IntFromPtr(entity)};
+    NET_Socket socket = {IntFromPtr(entity)};
     return socket;
 }
 
-internal void net_socket_release(Net_Socket socket)
+internal void net_socket_release(NET_Socket socket)
 {
     W32_Entity *entity = (W32_Entity *)PtrFromInt(socket.u64[0]);
     closesocket(entity->socket);
@@ -123,16 +123,16 @@ internal void net_socket_release(Net_Socket socket)
 }
 
 /////////////////////////////////////////////
-// @per_os_impl Network Listener Functions
+// @per_os_impl NETwork Listener Functions
 
-internal Net_Listener net_listener_alloc(Net_AddressFamily family, Net_TransportProtocol protocol, u16 port)
+internal NET_Listener net_listener_alloc(NET_AddressFamily family, NET_TransportProtocol protocol, u16 port)
 {
     SOCKADDR_STORAGE storage = {0};
-    Net_Address address = {0};
+    NET_Address address = {0};
     address.family = family;
     address.port = port;
     w32_net_address_to_sockaddr_storage(&storage, &address);
-    Net_Listener listener = {0};
+    NET_Listener listener = {0};
     {
         listener.port = port;
         listener.family = family;
@@ -155,7 +155,7 @@ internal Net_Listener net_listener_alloc(Net_AddressFamily family, Net_Transport
     return listener;
 }
 
-internal Net_Client net_listener_accept(Arena *arena, Net_Listener listener)
+internal NET_Client net_listener_accept(Arena *arena, NET_Listener listener)
 {
     SOCKADDR_STORAGE storage = {0};
     int storagelen = sizeof(storage);
@@ -168,11 +168,11 @@ internal Net_Client net_listener_accept(Arena *arena, Net_Listener listener)
     }
     W32_Entity *accept_entity = w32_entity_alloc(W32_EntityKind_Socket);
     accept_entity->socket = socket;
-    Net_Socket accept_socket = {IntFromPtr(accept_entity)};
+    NET_Socket accept_socket = {IntFromPtr(accept_entity)};
     // This is yuck and currently creates a dummy socket that we have to release.
     // Might be worth duplicating the logic of net_client_alloc
     // if this ends up being a lot of overhead.
-    Net_Client client = net_client_alloc(arena, listener.family, listener.protocol);
+    NET_Client client = net_client_alloc(arena, listener.family, listener.protocol);
     net_socket_release(client.socket);
     client.socket = accept_socket;
     w32_sockaddr_storage_to_net_address(&client.address, &storage);
@@ -181,24 +181,24 @@ internal Net_Client net_listener_accept(Arena *arena, Net_Listener listener)
     return client;
 }
 
-internal void net_listener_close(Net_Listener listener)
+internal void net_listener_close(NET_Listener listener)
 {
     net_socket_release(listener.socket);
 }
 
 ///////////////////////////////////////////
-// @per_os_impl Network Client Functions
+// @per_os_impl NETwork Client Functions
 
-internal Net_Client net_client_alloc(Arena *arena, Net_AddressFamily family, Net_TransportProtocol protocol)
+internal NET_Client net_client_alloc(Arena *arena, NET_AddressFamily family, NET_TransportProtocol protocol)
 {
-    Net_Socket client_socket = net_socket_alloc(family, protocol);
+    NET_Socket client_socket = net_socket_alloc(family, protocol);
     W32_Entity *entity = (W32_Entity *)PtrFromInt(client_socket.u64[0]);
     if (INVALID_SOCKET == entity->socket) {
         w32_print_winsock_error("socket");
         // @TODO: Error handling
     }
 
-    Net_Client client = {0};
+    NET_Client client = {0};
     client.arena = arena;
     client.family = family;
     client.protocol = protocol;
@@ -208,7 +208,7 @@ internal Net_Client net_client_alloc(Arena *arena, Net_AddressFamily family, Net
     return client;
 }
 
-internal Net_Client net_client_connect(Net_Client client, Net_Address target)
+internal NET_Client net_client_connect(NET_Client client, NET_Address target)
 {
     SOCKADDR_STORAGE storage = {0};
     w32_net_address_to_sockaddr_storage(&storage, &target);
@@ -223,14 +223,14 @@ internal Net_Client net_client_connect(Net_Client client, Net_Address target)
     return client;
 }
 
-internal s64 net_client_send_raw(Net_Client *client, u32 size, void *data)
+internal s64 net_client_send_raw(NET_Client *client, u32 size, void *data)
 {
     s64 result = -1;
     W32_Entity *entity = (W32_Entity *)PtrFromInt(client->socket.u64[0]);
     
     switch (client->protocol)
     {
-        case Net_TransportProtocol_TCP: {
+        case NET_TransportProtocol_TCP: {
             u64 total = 0;
             u64 remaining = size;
             s64 n = 0;
@@ -248,7 +248,7 @@ internal s64 net_client_send_raw(Net_Client *client, u32 size, void *data)
                 result = total;
             }
         } break;
-        case Net_TransportProtocol_UDP: {
+        case NET_TransportProtocol_UDP: {
             SOCKADDR_STORAGE dest = {0};
             w32_net_address_to_sockaddr_storage(&dest, &client->address);
             int n = sendto(entity->socket, data, size, 0, (SOCKADDR *)&dest, sizeof(dest));
@@ -273,14 +273,14 @@ internal s64 net_client_send_raw(Net_Client *client, u32 size, void *data)
     return result;
 }
 
-internal s64 net_client_recv_raw(Net_Client *client, u32 size, void *out)
+internal s64 net_client_recv_raw(NET_Client *client, u32 size, void *out)
 {
     s64 result = -1;
     W32_Entity *entity = (W32_Entity *)PtrFromInt(client->socket.u64[0]);
 
     switch (client->protocol)
     {
-        case Net_TransportProtocol_TCP: {
+        case NET_TransportProtocol_TCP: {
             int n = recv(entity->socket, (char *)out, (int)size, 0);
             if (0 == n) {
                 // peer closed the connection
@@ -290,7 +290,7 @@ internal s64 net_client_recv_raw(Net_Client *client, u32 size, void *out)
             }
             result = (s64)n;
         } break;
-        case Net_TransportProtocol_UDP: {
+        case NET_TransportProtocol_UDP: {
             SOCKADDR_STORAGE from = {0};
             int fromsize = sizeof(from);
 
@@ -309,7 +309,7 @@ internal s64 net_client_recv_raw(Net_Client *client, u32 size, void *out)
     return result;
 }
 
-internal bool32 net_client_send_from_ring(Net_Client *client)
+internal bool32 net_client_send_from_ring(NET_Client *client)
 {
     bool32 result = false;
     Temp scratch = scratch_begin(0, 0);
@@ -328,7 +328,7 @@ internal bool32 net_client_send_from_ring(Net_Client *client)
     return result;
 }
 
-internal bool32 net_client_recv_to_ring(Net_Client *client)
+internal bool32 net_client_recv_to_ring(NET_Client *client)
 {
     bool32 result = false;
     Temp scratch = scratch_begin(0, 0);
@@ -344,7 +344,7 @@ internal bool32 net_client_recv_to_ring(Net_Client *client)
     return result;
 }
 
-internal void net_client_close(Net_Client client)
+internal void net_client_close(NET_Client client)
 {
     net_socket_release(client.socket);
 }

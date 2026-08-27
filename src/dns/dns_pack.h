@@ -19,14 +19,14 @@
 ////////////////////////////
 // Wire Packing/Unpacking
 
-internal bool32 dns_pack_rdata   (Ring *ring, Dns_RR *rr);
-internal bool32 dns_pack_question(Ring *ring, Dns_RR *rr);
-internal bool32 dns_pack_rr      (Ring *ring, Dns_RR *rr);
-internal bool32 dns_pack_msg     (Ring *ring, Dns_Msg *msg);
+internal bool32 dns_pack_rdata   (Ring *ring, DNS_RR *rr);
+internal bool32 dns_pack_question(Ring *ring, DNS_RR *rr);
+internal bool32 dns_pack_rr      (Ring *ring, DNS_RR *rr);
+internal bool32 dns_pack_msg     (Ring *ring, DNS_Msg *msg);
 
 internal bool32 dns_unpack_labels  (Arena *arena, Ring *ring, String8 *out);
-internal bool32 dns_unpack_rdata   (Arena *arena, Ring *ring, Dns_RR *rr, u16 rdlength);
-internal bool32 dns_unpack_question(Arena *arena, Ring *ring, Dns_RR *rr);
-internal bool32 dns_unpack_rr      (Arena *arena, Ring *ring, Dns_RR *rr);
-internal bool32 dns_unpack_msg     (Arena *arena, Ring *ring, Dns_Msg *msg);
+internal bool32 dns_unpack_rdata   (Arena *arena, Ring *ring, DNS_RR *rr, u16 rdlength);
+internal bool32 dns_unpack_question(Arena *arena, Ring *ring, DNS_RR *rr);
+internal bool32 dns_unpack_rr      (Arena *arena, Ring *ring, DNS_RR *rr);
+internal bool32 dns_unpack_msg     (Arena *arena, Ring *ring, DNS_Msg *msg);
 

@@ -2,24 +2,24 @@
 //////////////////
 // Wire Packing
 
-internal bool32 dns_pack_rdata(Ring *ring, Dns_RR *rr)
+internal bool32 dns_pack_rdata(Ring *ring, DNS_RR *rr)
 {
     bool32 result = true;
     Temp scratch = scratch_begin(0, 0);
     switch (rr->type) {
-        case Dns_Type_A: {
+        case DNS_Type_A: {
             u32 addr = host_to_net_u32(rr->rdata.A.addr);
             result &= ring_try_write_struct(ring, &addr);
         } break;
-        case Dns_Type_NS: {
+        case DNS_Type_NS: {
             String8 ns = str8_to_name_labels(scratch.arena, rr->rdata.NS.ns);
             result &= ring_try_write(ring, ns.size, ns.str);
         } break;
-        case Dns_Type_CNAME: {
+        case DNS_Type_CNAME: {
             String8 cname = str8_to_name_labels(scratch.arena, rr->rdata.CNAME.target);
             result &= ring_try_write(ring, cname.size, cname.str);
         } break;
-        case Dns_Type_SOA: {
+        case DNS_Type_SOA: {
             String8 mname = str8_to_name_labels(scratch.arena, rr->rdata.SOA.master_name);
             String8 rname = str8_to_name_labels(scratch.arena, rr->rdata.SOA.responsible_name);
             u32 serial  = host_to_net_u32(rr->rdata.SOA.serial);
@@ -35,7 +35,7 @@ internal bool32 dns_pack_rdata(Ring *ring, Dns_RR *rr)
             result &= ring_try_write_struct(ring, &expire);
             result &= ring_try_write_struct(ring, &minimum);
         } break;
-        case Dns_Type_AAAA: {
+        case DNS_Type_AAAA: {
             u128 addr = host_to_net_u128(rr->rdata.AAAA.addr);
             result &= ring_try_write_struct(ring, &addr);
         } break;
@@ -49,7 +49,7 @@ internal bool32 dns_pack_rdata(Ring *ring, Dns_RR *rr)
     return result;
 }
 
-internal bool32 dns_pack_question(Ring *ring, Dns_RR *rr)
+internal bool32 dns_pack_question(Ring *ring, DNS_RR *rr)
 {
     /*
                                     1  1  1  1  1  1
@@ -81,7 +81,7 @@ internal bool32 dns_pack_question(Ring *ring, Dns_RR *rr)
     return result;
 }
 
-internal bool32 dns_pack_rr(Ring *ring, Dns_RR *rr)
+internal bool32 dns_pack_rr(Ring *ring, DNS_RR *rr)
 {
     /*
                                     1  1  1  1  1  1
@@ -137,7 +137,7 @@ internal bool32 dns_pack_rr(Ring *ring, Dns_RR *rr)
     return result;
 }
 
-internal bool32 dns_pack_msg(Ring *ring, Dns_Msg *msg)
+internal bool32 dns_pack_msg(Ring *ring, DNS_Msg *msg)
 {
     /*
 
@@ -297,24 +297,24 @@ internal bool32 dns_unpack_labels(Arena *arena, Ring *ring, String8 *out)
     return result;
 }
 
-internal bool32 dns_unpack_rdata(Arena *arena, Ring *ring, Dns_RR *rr, u16 rdlength)
+internal bool32 dns_unpack_rdata(Arena *arena, Ring *ring, DNS_RR *rr, u16 rdlength)
 {
     bool32 result = true;
     Temp scratch = scratch_begin(&arena, 1);
 
     switch(rr->type) {
-        case Dns_Type_A: {
+        case DNS_Type_A: {
             u32 addr;
             result &= ring_try_read_struct(ring, &addr);
             rr->rdata.A.addr = net_to_host_u32(addr);
         } break;
-        case Dns_Type_NS: {
+        case DNS_Type_NS: {
             result &= dns_unpack_labels(arena, ring, &rr->rdata.NS.ns);
         } break;
-        case Dns_Type_CNAME: {
+        case DNS_Type_CNAME: {
             result &= dns_unpack_labels(arena, ring, &rr->rdata.CNAME.target);
         } break;
-        case Dns_Type_SOA: {
+        case DNS_Type_SOA: {
             result &= dns_unpack_labels(arena, ring, &rr->rdata.SOA.master_name);
             result &= dns_unpack_labels(arena, ring, &rr->rdata.SOA.responsible_name);
             u32 serial, refresh, retry, expire, minimum;
@@ -329,7 +329,7 @@ internal bool32 dns_unpack_rdata(Arena *arena, Ring *ring, Dns_RR *rr, u16 rdlen
             rr->rdata.SOA.expire  = net_to_host_u32(expire);
             rr->rdata.SOA.minimum = net_to_host_u32(minimum);
         } break;
-        case Dns_Type_AAAA: {
+        case DNS_Type_AAAA: {
             u128 addr;
             result &= ring_try_read_struct(ring, &addr);
             rr->rdata.AAAA.addr = net_to_host_u128(addr);
@@ -346,7 +346,7 @@ internal bool32 dns_unpack_rdata(Arena *arena, Ring *ring, Dns_RR *rr, u16 rdlen
 }
 
 
-internal bool32 dns_unpack_question(Arena *arena, Ring *ring, Dns_RR *rr)
+internal bool32 dns_unpack_question(Arena *arena, Ring *ring, DNS_RR *rr)
 {
     /*
                                     1  1  1  1  1  1
@@ -375,7 +375,7 @@ internal bool32 dns_unpack_question(Arena *arena, Ring *ring, Dns_RR *rr)
     return result;
 }
 
-internal bool32 dns_unpack_rr(Arena *arena, Ring *ring, Dns_RR *rr)
+internal bool32 dns_unpack_rr(Arena *arena, Ring *ring, DNS_RR *rr)
 {
     /*
                                     1  1  1  1  1  1
@@ -425,7 +425,7 @@ internal bool32 dns_unpack_rr(Arena *arena, Ring *ring, Dns_RR *rr)
     return result;
 }
 
-internal bool32 dns_unpack_msg(Arena *arena, Ring *ring, Dns_Msg *msg)
+internal bool32 dns_unpack_msg(Arena *arena, Ring *ring, DNS_Msg *msg)
 {
     /*
 
@@ -491,10 +491,10 @@ internal bool32 dns_unpack_msg(Arena *arena, Ring *ring, Dns_Msg *msg)
         msg->header.nameserver_count = net_to_host_u16(nscount);
         msg->header.additional_count = net_to_host_u16(arcount);
 
-        msg->question = push_array(arena, Dns_RR, msg->header.question_count);
-        msg->answer   = push_array(arena, Dns_RR, msg->header.answer_count);
-        msg->ns       = push_array(arena, Dns_RR, msg->header.nameserver_count);
-        msg->extra    = push_array(arena, Dns_RR, msg->header.additional_count);
+        msg->question = push_array(arena, DNS_RR, msg->header.question_count);
+        msg->answer   = push_array(arena, DNS_RR, msg->header.answer_count);
+        msg->ns       = push_array(arena, DNS_RR, msg->header.nameserver_count);
+        msg->extra    = push_array(arena, DNS_RR, msg->header.additional_count);
 
         u64 i = 0;
         for (i = 0; i < msg->header.question_count; i++) {
