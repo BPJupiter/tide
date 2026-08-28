@@ -129,35 +129,50 @@ internal DNS_Msg dns_client_exchange_with_address(Arena *arena, DNS_Client clien
     // @Cleanup: make this not have 1 million dns_protocol checks.
     //           probably dispatch instead.
     DNS_Msg result = {0};
-    
     bool32 ok = true;
-    if (client.dns_protocol == DNS_TransportProtocol_TCP) {
-        (void)net_client_connect(client.dialer, address);
-        u64 length64 = dns_msg_wire_length(&msg);
-        u16 length16 = safe_cast_u16(safe_cast_u32(length64));
-        ok &= ring_try_write(client.dialer.send_buffer, 2, &length16);
-    }
-    ok &= dns_pack_msg(client.dialer.send_buffer, &msg);
-    if (ok) {
-        client.dialer.address = address;
-        ok = net_client_send_from_ring(&client.dialer);
-        if (ok) {
-            ok = net_client_recv_to_ring(&client.dialer);
-            if (ok) {
+
+    switch (client.dns_protocol)
+    {
+        default:{}break;
+        case DNS_TransportProtocol_UDP: {
+            {
+                client.dialer.address = address;
+                ok = dns_pack_msg(client.dialer.send_buffer, &msg);
+                if (!ok) goto end;
+                ok = net_client_send_from_ring(&client.dialer);
+                if (!ok) goto end;
+                ok = net_client_recv_to_ring(&client.dialer);
+                if (!ok) goto end;
+                ok = dns_unpack_msg(arena, client.dialer.recv_buffer, &result);
+            }
+        } break;
+        case DNS_TransportProtocol_TCP: {
+            {
+                net_client_connect(client.dialer, address);
+                u64 length64 = dns_msg_wire_length(&msg);
+                u16 length16 = host_to_net_u16(safe_cast_u16(safe_cast_u32(length64)));
+                ok = ring_try_write_struct(client.dialer.send_buffer, &length16);
+                if (!ok) goto end;
+                ok = dns_pack_msg(client.dialer.send_buffer, &msg);
+                if (!ok) goto end;
+                ok = net_client_send_from_ring(&client.dialer);
+                if (!ok) goto end;
+                ok = net_client_recv_to_ring(&client.dialer);
+                if (!ok) goto end;
                 u16 unpacklen = 0;
-                if (client.dns_protocol == DNS_TransportProtocol_TCP) {
-                    ok &= ring_try_read(client.dialer.recv_buffer, 2, &unpacklen);
-                }
+                ok = ring_try_read_struct(client.dialer.recv_buffer, &unpacklen);
+                unpacklen = net_to_host_u16(unpacklen);
+                if (!ok) goto end;
                 u16 unread = ring_peek_unread_quantity(client.dialer.recv_buffer);
                 ok = dns_unpack_msg(arena, client.dialer.recv_buffer, &result);
-                if (client.dns_protocol == DNS_TransportProtocol_TCP) {
-                    //ok &= (unpacklen == unread);
-                    //printf("%hu, %hu\n", unpacklen, unread);
-                }
+                ok = (unpacklen == unread);
             }
-        }
+        } break;
     }
-    if (!ok) {
+
+ end:;
+    if (!ok)
+    {
         MemoryZeroStruct(&result);
     }
 

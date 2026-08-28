@@ -48,47 +48,76 @@ internal void print_msg_data(DNS_Msg *msg)
 
 Test(stub_client_exchange_with_address)
 {
-    // @TODO: Make this work with TCP
-    Temp scratch = scratch_begin(0, 0);
-    DNS_Type question_type = DNS_Type_A;
-
-    DNS_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("www.example.org"), question_type);
-    DNS_Client client = dns_client_alloc(scratch.arena, NET_AddressFamily_IPv4, DNS_TransportProtocol_UDP);
-    NET_Address address = {0};
-    (void)net_str8_to_address(&address, str8_lit("8.8.8.8:53"));
-
-    DNS_Msg response = dns_client_exchange_with_address(scratch.arena, client, msg, address);
-    
-    T_Ok(msg.header.id == response.header.id);
-    
-    for (u64 i = 0; i < response.header.answer_count; i++) {
-        T_Ok(response.answer[i].type == question_type);
+    DNS_TransportProtocol protocols[] = {
+        DNS_TransportProtocol_UDP,
+        DNS_TransportProtocol_TCP,
+    };
+    DNS_Type types[] = {
+        DNS_Type_A,
+        DNS_Type_AAAA,
+    };
+    for (u64 p = 0; p < ArrayCount(protocols); p += 1)
+    {
+        for (u64 t = 0; t < ArrayCount(types); t += 1)
+        {
+            Temp scratch = scratch_begin(0, 0);
+            DNS_Type type = types[t];
+            DNS_TransportProtocol protocol = protocols[p];
+            
+            DNS_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("www.example.org"), type);
+            DNS_Client client = dns_client_alloc(scratch.arena, NET_AddressFamily_IPv4, protocol);
+            NET_Address address = {0};
+            (void)net_str8_to_address(&address, str8_lit("8.8.8.8:53"));
+            
+            DNS_Msg response = dns_client_exchange_with_address(scratch.arena, client, msg, address);
+            
+            T_Ok(msg.header.id == response.header.id);
+            
+            for (u64 i = 0; i < response.header.answer_count; i++) {
+                T_Ok(response.answer[i].type == type);
+            }
+            
+            scratch_end(scratch);
+        }
     }
-    
-    scratch_end(scratch);
 }
 
 Test(stub_client_exchange_with_address_nxdomain)
 {
-    Temp scratch = scratch_begin(0, 0);
-    DNS_Type question_type = DNS_Type_A;
-
-    DNS_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("iasldjkosajdf"), question_type);
-    DNS_Client client = dns_client_alloc(scratch.arena, NET_AddressFamily_IPv4, DNS_TransportProtocol_UDP);
-    NET_Address address = {0};
-    (void)net_str8_to_address(&address, str8_lit("8.8.8.8:53"));
-
-    DNS_Msg response = dns_client_exchange_with_address(scratch.arena, client, msg, address);
-
-    T_Ok(msg.header.id == response.header.id);
-    T_Ok(response.header.rcode == DNS_RCode_NXDomain);
-
-    // Authority section should contain the SOA record.
-    for (u64 i = 0; i < response.header.nameserver_count; i++) {
-        T_Ok(response.ns[i].type == DNS_Type_SOA);
+    DNS_TransportProtocol protocols[] = {
+        DNS_TransportProtocol_UDP,
+        DNS_TransportProtocol_TCP,
+    };
+    DNS_Type types[] = {
+        DNS_Type_A,
+        DNS_Type_AAAA,
+    };
+    for (u64 p = 0; p < ArrayCount(protocols); p += 1)
+    {
+        for (u64 t = 0; t < ArrayCount(types); t += 1)
+        {
+            Temp scratch = scratch_begin(0, 0);
+            DNS_Type type = types[t];
+            DNS_TransportProtocol protocol = protocols[p];
+            
+            DNS_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("iasldjkosajdf"), type);
+            DNS_Client client = dns_client_alloc(scratch.arena, NET_AddressFamily_IPv4, protocol);
+            NET_Address address = {0};
+            (void)net_str8_to_address(&address, str8_lit("8.8.8.8:53"));
+            
+            DNS_Msg response = dns_client_exchange_with_address(scratch.arena, client, msg, address);
+            
+            T_Ok(msg.header.id == response.header.id);
+            T_Ok(response.header.rcode == DNS_RCode_NXDomain);
+            
+            // Authority section should contain the SOA record.
+            for (u64 i = 0; i < response.header.nameserver_count; i++) {
+                T_Ok(response.ns[i].type == DNS_Type_SOA);
+            }
+            
+            scratch_end(scratch);
+        }
     }
-    
-    scratch_end(scratch);
 }
 
 Test(iterative_lookup)
@@ -101,7 +130,6 @@ Test(iterative_lookup)
     msg.header.recursion_desired = false;
     
     DNS_Client client = dns_client_alloc(scratch.arena, NET_AddressFamily_IPv4, DNS_TransportProtocol_UDP);
-    
 
     NET_Address address = {0};
     (void)net_str8_to_address(&address,
@@ -111,6 +139,9 @@ Test(iterative_lookup)
 
     T_Ok(msg.header.id == response.header.id);
     T_Ok(response.header.rcode == DNS_RCode_NoError);
+    for (u64 i = 0; i < response.header.nameserver_count; i++) {
+        T_Ok(response.ns[i].type == DNS_Type_NS);
+    }
 
     scratch_end(scratch);
 }
