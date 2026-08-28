@@ -105,12 +105,8 @@ internal NET_Listener net_listener_alloc(NET_AddressFamily family, NET_Transport
     address.port = port;
     lnx_net_address_to_sockaddr_storage(&storage, &address);
     NET_Listener listener = {0};
-    {
-        listener.port = port;
-        listener.family = family;
-        listener.protocol = protocol;
-        listener.socket = net_socket_alloc(family, protocol);
-    }
+    listener.socket = net_socket_alloc(family, protocol);
+    
     LNX_Entity *entity = (LNX_Entity *)PtrFromInt(listener.socket.u64[0]);
     if (-1 == entity->socket) {
         // @TODO: Error handling
@@ -136,10 +132,35 @@ internal NET_Listener net_listener_alloc(NET_AddressFamily family, NET_Transport
         perror("bind");
         fprintf(stderr, "LNX NET ERROR AT %s %d\n", __FILE__, __LINE__);
     }
-    if (0 > listen(entity->socket, SOMAXCONN)) {
-        // @TODO: Error handling
-        perror("listen");
-        fprintf(stderr, "LNX NET ERROR AT %s %d\n", __FILE__, __LINE__);
+    if (protocol == NET_TransportProtocol_TCP)
+    {
+        if (0 > listen(entity->socket, SOMAXCONN))
+        {
+            // TODO
+            perror("listen");
+            fprintf(stderr, "LNX NET ERROR AT %s %d\n", __FILE__, __LINE__);
+        }
+    }
+    {
+        socklen_t storagelen = sizeof(storage);
+        if (0 > getsockname(entity->socket, (struct sockaddr *)&storage, &storagelen))
+        {
+            perror("getsockname");
+            fprintf(stderr, "LNX NET ERROR AT %s %d\n", __FILE__, __LINE__);
+        }
+        switch (storage.ss_family)
+        {
+            case AF_INET: {
+                struct sockaddr_in *in = (struct sockaddr_in *)&storage;
+                listener.port = ntohs(in->sin_port);
+            } break;
+            case AF_INET6: {
+                struct sockaddr_in6 *in = (struct sockaddr_in6 *)&storage;
+                listener.port = ntohs(in->sin6_port);
+            } break;
+        }
+        listener.family = family;
+        listener.protocol = protocol;
     }
     return listener;
 }
@@ -148,25 +169,39 @@ internal NET_Client net_listener_accept(Arena *arena, NET_Listener listener)
 {
     struct sockaddr_storage storage = {0};
     socklen_t storagelen = sizeof(storage);
-
-    LNX_Entity *listen_entity = (LNX_Entity *)PtrFromInt(listener.socket.u64[0]);
-    int socket = accept(listen_entity->socket, (struct sockaddr *)&storage, &storagelen);
-    if (-1 == socket) {
-        // @TODO: Error handling
-        perror("accept");
-        fprintf(stderr, "LNX NET ERROR AT %s %d\n", __FILE__, __LINE__);
-    }
-    LNX_Entity *accept_entity = lnx_entity_alloc(LNX_EntityKind_Socket);
-    accept_entity->socket = socket;
-    NET_Socket accept_socket = {IntFromPtr(accept_entity)};
-    // This is yuck and currently creates a dummy socket that we have to release.
-    // Might be worth duplicating the logic of net_client_alloc
-    // if this ends up being a lot of overhead.
     NET_Client client = net_client_alloc(arena, listener.family, listener.protocol);
-    net_socket_release(client.socket);
-    client.socket = accept_socket;
-    lnx_sockaddr_storage_to_net_address(&client.address, &storage);
-    client.connected = true;
+
+    switch (listener.protocol)
+    {
+        case NET_TransportProtocol_TCP: {
+            {
+                LNX_Entity *listen_entity = (LNX_Entity *)PtrFromInt(listener.socket.u64[0]);
+                int socket = accept(listen_entity->socket, (struct sockaddr *)&storage, &storagelen);
+                if (-1 == socket) {
+                    // @TODO: Error handling
+                    perror("accept");
+                    fprintf(stderr, "LNX NET ERROR AT %s %d\n", __FILE__, __LINE__);
+                }
+                LNX_Entity *accept_entity = lnx_entity_alloc(LNX_EntityKind_Socket);
+                accept_entity->socket = socket;
+                NET_Socket accept_socket = {IntFromPtr(accept_entity)};
+                // This is yuck and currently creates a dummy socket that we have to release.
+                // Might be worth duplicating the logic of net_client_alloc
+                // if this ends up being a lot of overhead.
+                NET_Client client = net_client_alloc(arena, listener.family, listener.protocol);
+                net_socket_release(client.socket);
+                client.socket = accept_socket;
+                lnx_sockaddr_storage_to_net_address(&client.address, &storage);
+                client.connected = true;
+            }
+        } break;
+        case NET_TransportProtocol_UDP: {
+            {
+                client.socket = listener.socket;
+                net_client_recv_to_ring(&client);
+            }
+        } break;
+    }
 
     return client;
 }
@@ -307,6 +342,7 @@ internal s64 net_client_recv_raw(NET_Client *client, u32 size, void *out)
             }
             else {
                 result = n;
+                lnx_sockaddr_storage_to_net_address(&client->address, &from);
             }
         } break;
         default: {

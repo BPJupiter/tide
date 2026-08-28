@@ -211,7 +211,6 @@ internal void dns_server_listen_and_serve(DNS_Server server)
         case DNS_TransportProtocol_UDP: {
             {
                 NET_Client client = net_listener_accept(scratch.arena, server.listener);
-                fprintf(stderr, "%llu\n", ring_peek_unread_quantity(client.recv_buffer));
                 u8 foo = 255;
                 ring_try_write_struct(client.send_buffer, &foo);
                 net_client_send_from_ring(&client);
