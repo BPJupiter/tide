@@ -211,7 +211,7 @@ return result;
 }
 
 internal String8
-dns_dname_of_rootserver(DNS_RootServer v)
+dns_dname_of_root_server(DNS_RootServer v)
 {
 String8 result = str8_lit("<Unknown DNS_RootServer>");
 switch(v)
@@ -235,7 +235,7 @@ return result;
 }
 
 internal String8
-dns_ipv4_string_of_rootserver(DNS_RootServer v)
+dns_ipv4_string_of_root_server(DNS_RootServer v)
 {
 String8 result = str8_lit("<Unknown DNS_RootServer>");
 switch(v)
@@ -259,7 +259,7 @@ return result;
 }
 
 internal String8
-dns_ipv6_string_of_rootserver(DNS_RootServer v)
+dns_ipv6_string_of_root_server(DNS_RootServer v)
 {
 String8 result = str8_lit("<Unknown DNS_RootServer>");
 switch(v)
@@ -283,7 +283,7 @@ return result;
 }
 
 internal String8
-dns_operator_of_rootserver(DNS_RootServer v)
+dns_operator_of_root_server(DNS_RootServer v)
 {
 String8 result = str8_lit("<Unknown DNS_RootServer>");
 switch(v)

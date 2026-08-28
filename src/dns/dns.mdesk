@@ -359,25 +359,25 @@ DNS_RootServerTable:
 }
 
 @enum2string_switch(DNS_RootServer)
-dns_dname_of_rootserver:
+dns_dname_of_root_server:
 {
     @expand(DNS_RootServerTable a) `case DNS_RootServer_$(a.id):{result = str8_lit("$(a.dname)");}break`;
 }
 
 @enum2string_switch(DNS_RootServer)
-dns_ipv4_string_of_rootserver:
+dns_ipv4_string_of_root_server:
 {
     @expand(DNS_RootServerTable a) `case DNS_RootServer_$(a.id):{result = str8_lit("$(a.addr4)");}break`;
 }
 
 @enum2string_switch(DNS_RootServer)
-dns_ipv6_string_of_rootserver:
+dns_ipv6_string_of_root_server:
 {
     @expand(DNS_RootServerTable a) `case DNS_RootServer_$(a.id):{result = str8_lit("$(a.addr6)");}break`;
 }
 
 @enum2string_switch(DNS_RootServer)
-dns_operator_of_rootserver:
+dns_operator_of_root_server:
 {
     @expand(DNS_RootServerTable a) `case DNS_RootServer_$(a.id):{result = str8_lit("$(a.operator)");}break`;
 }

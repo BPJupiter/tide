@@ -110,6 +110,20 @@ internal void dns_client_release(DNS_Client client)
     net_client_close(client.dialer);
 }
 
+internal DNS_Msg dns_exchange(Arena *arena, DNS_Msg msg, DNS_TransportProtocol protocol, String8 target)
+{
+    // TODO
+    DNS_Msg result = {0};
+    return result;
+}
+
+internal DNS_Msg dns_client_exchange(Arena *arena, DNS_Client client, DNS_Msg msg, String8 target)
+{
+    // TODO
+    DNS_Msg result = {0};
+    return result;
+}
+
 internal DNS_Msg dns_client_exchange_with_address(Arena *arena, DNS_Client client, DNS_Msg msg, NET_Address address)
 {
     // @Cleanup: make this not have 1 million dns_protocol checks.
@@ -149,6 +163,75 @@ internal DNS_Msg dns_client_exchange_with_address(Arena *arena, DNS_Client clien
 
     return result;
 }
+
+////////////////////////
+// Server Functions
+
+internal DNS_Server dns_server_alloc(NET_AddressFamily family, DNS_TransportProtocol protocol, u16 port)
+{
+    DNS_Server server = {0};
+
+    server.dns_protocol = protocol;
+    NET_TransportProtocol ipproto = 0;
+    switch (protocol)
+    {
+        case DNS_TransportProtocol_TLS:
+        case DNS_TransportProtocol_HTTPS:
+        case DNS_TransportProtocol_TCP: {
+            ipproto = NET_TransportProtocol_TCP;
+        } break;
+        case DNS_TransportProtocol_UDP: {
+            ipproto = NET_TransportProtocol_UDP;
+        } break;
+    }
+    server.listener = net_listener_alloc(family, ipproto, port);
+    
+    return server;
+}
+
+internal void dns_server_release(DNS_Server server)
+{
+    NOTIMPL_WARNING(dns_server_release);
+    // TODO
+}
+
+internal void dns_listen_and_serve(String8 address, DNS_TransportProtocol protocol)
+{
+    NOTIMPL_WARNING(dns_listen_and_serve);
+    // TODO
+}
+
+internal void dns_server_listen_and_serve(DNS_Server server)
+{
+    // TODO: Sanity checking on server.dns_protocol and server.listener.protocol
+    Temp scratch = scratch_begin(0, 0);
+    switch(server.dns_protocol)
+    {
+        default:{}break;
+        case DNS_TransportProtocol_UDP: {
+            {
+                NET_Client client = net_listener_accept(scratch.arena, server.listener);
+                fprintf(stderr, "%llu\n", ring_peek_unread_quantity(client.recv_buffer));
+                u8 foo = 255;
+                ring_try_write_struct(client.send_buffer, &foo);
+                net_client_send_from_ring(&client);
+            }
+        } break;
+    }
+    scratch_end(scratch);
+}
+
+internal void dns_server_shutdown(DNS_Server *server)
+{
+    NOTIMPL_WARNING(dns_server_shutdown);
+}
+
+internal void dns_server_shutdown_and_release(DNS_Server *server)
+{
+    NOTIMPL_WARNING(dns_server_shutdown_and_release);
+    // TODO
+}
+
 
 ////////////////////
 // Utility Functions
@@ -363,8 +446,7 @@ internal bool32 dns_is_blocked_on_this_network(DNS_TransportProtocol protocol)
     for (u64 i = 0; i < DNS_RootServer_COUNT; i++) {
         DNS_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("www.example.org"), DNS_Type_A);
         NET_Address address;
-        String8 root_ip = net_ipv4_to_str8(scratch.arena, dns_root_server_to_ipv4[i]);
-        (void)net_str8_to_address(&address, str8_cat(scratch.arena, root_ip, str8_lit(":53")));
+        (void)net_str8_to_address(&address, str8_cat(scratch.arena, dns_dname_of_root_server(i), str8_lit(":53")));
         bool32 ok = dns_pack_msg(udp_client.dialer.send_buffer, &msg);
         ok &= dns_pack_msg(tcp_client.dialer.send_buffer, &msg);
     }

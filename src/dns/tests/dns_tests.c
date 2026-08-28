@@ -103,11 +103,9 @@ Test(iterative_lookup)
     DNS_Client client = dns_client_alloc(scratch.arena, NET_AddressFamily_IPv4, DNS_TransportProtocol_UDP);
     
 
-    String8 root_ip = str8_cat(scratch.arena,
-                               net_ipv4_to_str8(scratch.arena, dns_root_server_to_ipv4[DNS_RootServer_A]),
-                               s(":53"));
     NET_Address address = {0};
-    (void)net_str8_to_address(&address, root_ip);
+    (void)net_str8_to_address(&address,
+                              str8_cat(scratch.arena, dns_ipv4_string_of_root_server(DNS_RootServer_A), s(":53")));
 
     DNS_Msg response = dns_client_exchange_with_address(scratch.arena, client, msg, address);
 
@@ -117,18 +115,47 @@ Test(iterative_lookup)
     scratch_end(scratch);
 }
 
+internal void server_thread_func(void *params)
+{
+    ThreadNameF("test_server_thread_func");
+    DNS_Server s = *(DNS_Server *)params;
+    dns_server_listen_and_serve(s);
+}
+
+internal DNS_Server *dns_test_server(Arena *arena, NET_AddressFamily family, DNS_TransportProtocol protocol)
+{
+    DNS_Server *s = push_array(arena, DNS_Server, 1);
+    *s = dns_server_alloc(family, protocol, 0);
+    Thread server_thread = thread_launch(server_thread_func, s);
+    
+    return s;
+}
+
 Test(server)
 {
+    Temp scratch = scratch_begin(0, 0);
+    
     struct {
         String8 name;
+        NET_AddressFamily family;
         DNS_TransportProtocol network;
-        String8 addr;
-    } test_server[] = {
-        {str8_lit("udp"), DNS_TransportProtocol_UDP, str8_lit(":0")},
-        //{str8_lit("tcp"), DNS_TransportProtocol_TCP, str8_lit(":0")},
+    } ts[] = {
+        {str8_lit("udp"), NET_AddressFamily_IPv4, DNS_TransportProtocol_UDP},
+        //{str8_lit("tcp"), DNS_TransportProtocol_TCP},
     };
-    for (u64 ts; ts < ArrayCount(test_server); ts += 1)
+    
+    for (u64 idx = 0; idx < ArrayCount(ts); idx += 1)
     {
-        
+        DNS_Server *async_server = dns_test_server(scratch.arena, ts[idx].family, ts[idx].network);
+        u16 port = async_server->listener.port;
+
+        DNS_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("www.example.org"), DNS_Type_A);
+        DNS_Client client = dns_client_alloc(scratch.arena, NET_AddressFamily_IPv4, ts[idx].network);
+        NET_Address address = {0};
+        String8 target = str8_cat(scratch.arena, str8_lit("127.0.0.1"), str8f(scratch.arena, ":%hu", port));
+        (void)net_str8_to_address(&address, target);
+        DNS_Msg response = dns_client_exchange_with_address(scratch.arena, client, msg, address);
     }
+    
+    scratch_end(scratch);
 }

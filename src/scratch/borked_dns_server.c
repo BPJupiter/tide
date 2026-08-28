@@ -9,15 +9,16 @@
 // Includes
 
 #include "base/base_inc.h"
+#include "socket/socket_inc.h"
 #include "net/net_inc.h"
 #include "dns/dns_inc.h"
 
 #include "base/base_inc.c"
+#include "socket/socket_inc.c"
 #include "net/net_inc.c"
 #include "dns/dns_inc.c"
 
-internal void
-bdns_help(void)
+internal void bdns_help(void)
 {
     fprintf(stderr, "--- Help -------------------------------------------------------\n");
     fprintf(stderr, " %s\n\n", BUILD_TITLE_STRING_LITERAL);
@@ -25,11 +26,17 @@ bdns_help(void)
     fprintf(stderr, " Options:\n");
 }
 
-internal void
-entry_point(Cmd_Line *cmdline)
+internal void entry_point(Cmd_Line *cmdline)
 {
     Temp scratch = scratch_begin(0, 0);
     u64 exit_code = max_u64;
+
+    String8 foo = str8_lit("I'm literally a super awesome packet!");
+    SOCK_Protocol protocol = SOCK_Protocol_TCP;
+    SOCK_Endpoint endpoint = sock_endpoint_from_string(s("8.8.8.8:53"));
+    sock_send(foo.str, foo.size, &protocol, &endpoint, now_time_us() + (5 * 1000000));
+
+    sleep_ms(2000);
     
     String8_List inputs = {0};
     str8_list_concat_in_place(&inputs, &cmdline->inputs);

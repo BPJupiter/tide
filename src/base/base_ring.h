@@ -45,6 +45,7 @@ internal bool32 guarded_ring_try_write(Ring_Guard *guard, u64 size, void *ptr);
 internal bool32 guarded_ring_try_read(Ring_Guard *guard, u64 size, void *ptr);
 #define guarded_ring_try_write_struct(ring, ptr) guarded_ring_try_write((ring), sizeof(*(ptr)), (ptr))
 #define guarded_ring_try_read_struct(ring, ptr) guarded_ring_try_read((ring), sizeof(*(ptr)), (ptr))
+internal void  *guarded_ring_push_or_wait(Ring_Guard *guard, u64 size, u64 endt_us);
 internal bool32 guarded_ring_write_or_wait(Ring_Guard *guard, u64 size, void *ptr, u64 endt_us);
 internal bool32 guarded_ring_read_or_wait(Ring_Guard *guard, u64 size, void *ptr, u64 endt_us);
 #define guarded_ring_write_struct_or_wait(ring, ptr, endt_us) guarded_ring_write_or_wait((ring), sizeof(*(ptr)), (ptr), (endt_us))

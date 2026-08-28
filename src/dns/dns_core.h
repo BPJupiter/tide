@@ -114,54 +114,6 @@ struct DNS_Server {
     DNS_TransportProtocol dns_protocol;
 };
 
-global String8 dns_root_server_to_domain_name[] = {
-    [DNS_RootServer_A] = str8_lit_comp("a.root-servers.net"),
-    [DNS_RootServer_B] = str8_lit_comp("b.root-servers.net"),
-    [DNS_RootServer_C] = str8_lit_comp("c.root-servers.net"),
-    [DNS_RootServer_D] = str8_lit_comp("d.root-servers.net"),
-    [DNS_RootServer_E] = str8_lit_comp("e.root-servers.net"),
-    [DNS_RootServer_F] = str8_lit_comp("f.root-servers.net"),
-    [DNS_RootServer_G] = str8_lit_comp("g.root-servers.net"),
-    [DNS_RootServer_H] = str8_lit_comp("h.root-servers.net"),
-    [DNS_RootServer_I] = str8_lit_comp("i.root-servers.net"),
-    [DNS_RootServer_J] = str8_lit_comp("j.root-servers.net"),
-    [DNS_RootServer_K] = str8_lit_comp("k.root-servers.net"),
-    [DNS_RootServer_L] = str8_lit_comp("l.root-servers.net"),
-    [DNS_RootServer_M] = str8_lit_comp("m.root-servers.net"),
-};
-
-global u32 dns_root_server_to_ipv4[] = {
-    [DNS_RootServer_A] = 0xC6290004, // 198.41.0.4
-    [DNS_RootServer_B] = 0xAAF7AA02, // 170.247.170.2
-    [DNS_RootServer_C] = 0xC021040C, // 192.33.4.12
-    [DNS_RootServer_D] = 0xC7075B0D, // 199.7.91.13
-    [DNS_RootServer_E] = 0xC0CBE60A, // 192.203.230.10
-    [DNS_RootServer_F] = 0xC00505F1, // 192.5.5.241
-    [DNS_RootServer_G] = 0xC0702404, // 192.112.36.4
-    [DNS_RootServer_H] = 0xC661BE35, // 198.97.190.53
-    [DNS_RootServer_I] = 0xC0249411, // 192.36.148.17
-    [DNS_RootServer_J] = 0xC03A801E, // 192.58.128.30
-    [DNS_RootServer_K] = 0xC1000E81, // 193.0.14.129
-    [DNS_RootServer_L] = 0xC707532A, // 199.7.83.42
-    [DNS_RootServer_M] = 0xCA0C1B21, // 202.12.27.33
-};
-
-global u128 dns_root_server_to_ipv6[] = {
-    [DNS_RootServer_A] = u128_lit64(0x20010503BA3E0000, 0x0000000000020030), // 2001:503:ba3e::2:30
-    [DNS_RootServer_B] = u128_lit64(0x280101B800100000, 0x000000000000000B), // 2801:1b8:10::b
-    [DNS_RootServer_C] = u128_lit64(0x2001050000020000, 0x000000000000000C), // 2001:500:2::c
-    [DNS_RootServer_D] = u128_lit64(0x20010500002D0000, 0x000000000000000D), // 2001:500:2d::d
-    [DNS_RootServer_E] = u128_lit64(0x2001050000A80000, 0x000000000000000E), // 2001:500:a8::e
-    [DNS_RootServer_F] = u128_lit64(0x20010500002F0000, 0x000000000000000F), // 2001:500:2f::f
-    [DNS_RootServer_G] = u128_lit64(0x2001050000120000, 0x0000000000000D0D), // 2001:500:12::d0d
-    [DNS_RootServer_H] = u128_lit64(0x2001050000010000, 0x0000000000000053), // 2001:500:1::53
-    [DNS_RootServer_I] = u128_lit64(0x200107FE00000000, 0x0000000000000053), // 2001:7fe::53
-    [DNS_RootServer_J] = u128_lit64(0x200105030C270000, 0x0000000000020030), // 2001:503:c27::2:30
-    [DNS_RootServer_K] = u128_lit64(0x200107FD00000000, 0x0000000000000001), // 2001:7fd::1
-    [DNS_RootServer_L] = u128_lit64(0x20010500009F0000, 0x0000000000000042), // 2001:500:9f::42
-    [DNS_RootServer_M] = u128_lit64(0x20010DC300000000, 0x0000000000000035), // 2001:dc3::35
-};
-
 ///////////////
 // Constants
 
@@ -211,10 +163,10 @@ internal DNS_Msg    dns_client_exchange_with_address(Arena *arena, DNS_Client cl
 ////////////////////////
 // Server Functions
 
-internal DNS_Server dns_server_alloc(Arena *arena, NET_AddressFamily family, DNS_TransportProtocol protocol); // TODO
-internal void       dns_server_release(DNS_Server server);
+internal DNS_Server dns_server_alloc(NET_AddressFamily family, DNS_TransportProtocol protocol, u16 port); // TODO
+internal void       dns_server_release(DNS_Server server); // TODO
 internal void       dns_listen_and_serve(String8 address, DNS_TransportProtocol protocol); // TODO
-internal void       dns_server_listen_and_serve(DNS_Server server);
+internal void       dns_server_listen_and_serve(DNS_Server server); // TODO
 internal void       dns_server_shutdown(DNS_Server *server); // TODO
 internal void       dns_server_shutdown_and_release(DNS_Server *server); // TODO
 

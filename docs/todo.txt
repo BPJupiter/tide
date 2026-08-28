@@ -1,3 +1,4 @@
+NET: Remove and replace with rad debuggers new socket/ layer... its so clean im mogged
 NOT PROXY RELATED DIRECTLY: Make a test website that pulls in a bunch of random test crap,
                             (google maps, other services, etc.)
 Proxy: Measurement Caching

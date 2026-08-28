@@ -55,38 +55,41 @@ internal void main_thread_base_entry_point(int arguments_count, char **arguments
     }
 
     // Initialize all included layers
+#if defined(SOCKET_H) && !defined(SOCK_INIT_MANUAL)
+    sock_init();
+#endif
 #if defined(HTTP_H) && !defined(HTTP_INIT_MANUAL)
-  http_init();
+    http_init();
 #endif
 #if defined(SYMBOL_SERVER_H) && !defined(SMSV_INIT_MANUAL)
-  smsv_init();
+    smsv_init();
 #endif
 #if defined(ARTIFACT_CACHE_H) && !defined(AC_INIT_MANUAL)
-  ac_init();
+    ac_init();
 #endif
 #if defined(CONTENT_H) && !defined(C_INIT_MANUAL)
-  c_init();
+    c_init();
 #endif
 #if defined(FILE_STREAM_H) && !defined(FS_INIT_MANUAL)
-  fs_init();
+    fs_init();
 #endif
 #if defined(MUTABLE_TEXT_H) && !defined(MTX_INIT_MANUAL)
-  mtx_init();
+    mtx_init();
 #endif
 #if defined(DEMON_CORE_H) && !defined(DMN_INIT_MANUAL)
-  dmn_init();
+    dmn_init();
 #endif
 #if defined(WINDOW_MANAGER_H) && !defined(WM_INIT_MANUAL)
-  wm_init();
+    wm_init();
 #endif
 #if defined(FONT_PROVIDER_H) && !defined(FP_INIT_MANUAL)
-  fp_init();
+    fp_init();
 #endif
 #if defined(RENDER_CORE_H) && !defined(R_INIT_MANUAL)
-  r_init(&cmdline);
+    r_init(&cmdline);
 #endif
 #if defined(FONT_CACHE_H) && !defined(FNT_INIT_MANUAL)
-  fnt_init();
+    fnt_init();
 #endif
 
     // launch async threads
@@ -169,55 +172,58 @@ internal bool32 update(void)
 
 internal void async_thread_entry_point(void *params)
 {
-     Lane_Ctx lctx = *(Lane_Ctx *)params;
-     lane_ctx(lctx);
-     is_async_thread = true;
-     ThreadNameF("async_thread_%I64u", lane_idx());
-     for(;;) {
-         // rjf: wait for signal if we need, otherwise reset loop signal & continue
-         if(lane_idx() == 0) {
-             if(!ins_atomic_u32_eval(&async_loop_again)) {
-                 MutexScope(async_tick_start_mutex) cond_var_wait(async_tick_start_cond_var, async_tick_start_mutex, now_time_us()+1000000);
-             }
-             ins_atomic_u32_eval_assign(&async_loop_again, 0);
-             ins_atomic_u32_eval_assign(&async_loop_again_high_priority, 0);
-         }
-         lane_sync();
-         
-         // rjf: do all ticks for all layers
-         ProfScope("async tick")
-         {
+    Lane_Ctx lctx = *(Lane_Ctx *)params;
+    lane_ctx(lctx);
+    is_async_thread = true;
+    ThreadNameF("async_thread_%I64u", lane_idx());
+    for(;;) {
+        // rjf: wait for signal if we need, otherwise reset loop signal & continue
+        if(lane_idx() == 0) {
+            if(!ins_atomic_u32_eval(&async_loop_again)) {
+                MutexScope(async_tick_start_mutex) cond_var_wait(async_tick_start_cond_var, async_tick_start_mutex, now_time_us()+1000000);
+            }
+            ins_atomic_u32_eval_assign(&async_loop_again, 0);
+            ins_atomic_u32_eval_assign(&async_loop_again_high_priority, 0);
+        }
+        lane_sync();
+        
+        // rjf: do all ticks for all layers
+        ProfScope("async tick")
+        {
 #if defined(ARTIFACT_CACHE_H)
-             ac_async_tick();
+            ac_async_tick();
 #endif
 #if defined(CONTENT_H)
-             c_async_tick();
+            c_async_tick();
 #endif
 #if defined(FILE_STREAM_H)
-             fs_async_tick();
+            fs_async_tick();
+#endif
+#if defined(SOCKET_H)
+            sock_async_tick();
 #endif
 #if defined(HTTP_H)
-             http_async_tick();
+            http_async_tick();
 #endif
 #if defined(SYMBOL_SERVER_H)
-             smsv_async_tick();
+            smsv_async_tick();
 #endif
 #if defined(DBG_INFO_H)
-             di_async_tick();
+            di_async_tick();
 #endif
-         }
-    
-         // rjf: take exit signal; break if set
-         lane_sync();
-         bool32 need_exit = false;
-         if(lane_idx() == 0) {
-             need_exit = ins_atomic_u32_eval(&global_async_exit);
-         }
-         lane_sync_u64(&need_exit, 0);
-         if(need_exit) {
-             break;
-         }
-     }
+        }
+        
+        // rjf: take exit signal; break if set
+        lane_sync();
+        bool32 need_exit = false;
+        if(lane_idx() == 0) {
+            need_exit = ins_atomic_u32_eval(&global_async_exit);
+        }
+        lane_sync_u64(&need_exit, 0);
+        if(need_exit) {
+            break;
+        }
+    }
 }
 
 

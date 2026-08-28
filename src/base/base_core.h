@@ -437,6 +437,20 @@ C_LINKAGE void __asan_unpoison_memory_region(void const volatile *addr, size_t s
 # define zero_struct {0}
 #endif
 
+///////////////////////////
+// Compile Time Warnings
+
+#if COMPILER_GCC || COMPILER_CLANG
+# define DO_PRAGMA(x) _Pragma(#x)
+# define COMPTIME_WARNING(msg) DO_PRAGMA(GCC warning msg)
+#elif COMPILER_MSVC
+# define COMPTIME_WARNING(msg) __pragma(message(__FILE__ "(" Stringify(__LINE__) ") : warning CUSTOM: " msg))
+#else
+# define COMPTIME_WARNING(msg)
+#endif
+
+#define NOTIMPL_WARNING(func_name) COMPTIME_WARNING(#func_name " not implemented.")
+
 /////////////////
 // Base types
 
