@@ -1,4 +1,15 @@
 NET: Remove and replace with rad debuggers new socket/ layer... its so clean im mogged
+TIDE: tabs for:
+      - Turn geo .json files into internal format for rendering
+      - Map rendering with zooming and panning.
+      - Map View with Cable Rendering
+      - Detect mouse hover over cables 
+        - Traceroute visualisation on the map
+      - Website requests from current proxy session
+        - Dropdown for each request; dns information and traceroute vis
+      - Cable indexing via. a search bar ala. submarinecablemap.com
+      - .pcap and .pcapng file parsing & creation. Need to figure out if I need a custom extension of the file format.
+      
 NOT PROXY RELATED DIRECTLY: Make a test website that pulls in a bunch of random test crap,
                             (google maps, other services, etc.)
 Proxy: Measurement Caching
