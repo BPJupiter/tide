@@ -2,6 +2,8 @@
 ///////////////////
 // Embedded Data
 
-//@embed_file ti_icon_font_bytes:         "../data/icons.tff"
-@embed_file ti_default_main_font_bytes: "../data/Inconsolata-Regular.ttf""
-//@embed_file ti_icon_file_bytes:         "../data/logo.ico"
+//@embed_file ti_icon_font_bytes:              "../data/icons.tff"
+@embed_file ti_default_main_font_bytes:      "../data/Inconsolata-Regular.ttf""
+//@embed_file ti_icon_file_bytes:              "../data/logo.ico"
+@embed_file ti_cable_geo_json_bytes:         "../data/telegeography/cable-geo.json"
+@embed_file ti_landing_point_geo_json_bytes: "../data/telegeography/landing-point-geo.json"

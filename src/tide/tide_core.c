@@ -74,13 +74,14 @@ internal void ti_window_frame(void)
     
     //////////////////////////////
     // @window_frame_part build UI
+    f32 font_size = 16.f;
     ProfScope("build UI")
     {
         //////////////////////////
         // @window_ui_part set up
         {
             // get font size info
-            f32 font_size = 16.f;
+            font_size = 16.f;
 
             // build icon info
             UI_Icon_Info icon_info = {0};
@@ -90,12 +91,12 @@ internal void ti_window_frame(void)
             // build animation info
             UI_Animation_Info animation_info = {0};
             {
-                animation_info.hot_animation_rate      = 5.f;
-                animation_info.active_animation_rate   = 5.f;
+                animation_info.hot_animation_rate      = ti_state->catchall_animation_rate;
+                animation_info.active_animation_rate   = ti_state->catchall_animation_rate;
                 animation_info.focus_animation_rate    = 1.f;
-                animation_info.tooltip_animation_rate  = 4.f;
-                animation_info.menu_animation_rate     = 3.f;
-                animation_info.scroll_animation_rate   = 6.f;
+                animation_info.tooltip_animation_rate  = ti_state->tooltip_animation_rate;
+                animation_info.menu_animation_rate     = ti_state->menu_animation_rate;
+                animation_info.scroll_animation_rate   = ti_state->scrolling_animation_rate;
             }
 
             // begin & push initial stack values
@@ -117,67 +118,66 @@ internal void ti_window_frame(void)
         //////////////////////////////////////////
         // @window_ui_part button test
         {
-            // absolute
-            f32 width = 200.f;
-            f32 height = ui_top_font_size() * 2.f;
-            Vec2f32 center = center_2f32(window_rect);
-            Rng2f32 button_rect = r2f32p(center.x - width * 0.5f, center.y - height * 0.5f,
-                                         center.x + width * 0.5f, center.y + height * 0.5f);
-            ui_set_next_fixed_x(button_rect.x0);
-            ui_set_next_fixed_y(button_rect.y0);
-            ui_set_next_fixed_width(dim_2f32(button_rect).x);
-            ui_set_next_fixed_height(dim_2f32(button_rect).y);
-            UI_Box *pane = ui_build_box_from_stringf(UI_BoxFlag_Floating, "###button_test");
-            UI_Parent(pane)
+            if (DEV_button_test)
             {
-                UI_Signal sig = ui_button(str8_lit("Click me"));
-                if (ui_clicked(sig))
+                UI_TextAlignment(UI_TextAlign_Center) UI_Focus(UI_FocusKind_Root)
                 {
-                    sh_message(0, s("button clicked"), s("I have been clicked"));
-                }
-            }
-
-            // in div
-            {
-                UI_Box *center_row;
-                UI_WidthFill UI_HeightFill
-                {
-                    center_row = ui_build_box_from_stringf(0, "center_row");
-                    center_row->child_layout_axis = Axis2_X;
-                }
-                UI_Parent(center_row)
-                {
-                    ui_spacer(ui_pct(1, 0));
-
-                    UI_Box *center_col = ui_build_box_from_stringf(0, "center_col");
-                    center_col->child_layout_axis = Axis2_Y;
-                    UI_Parent(center_col)
-                        UI_PrefWidth(ui_px(200, 1.f))
+                    Vec2f32 window_dim = dim_2f32(window_rect);
+                    UI_Box *bg_box = &ui_nil_box;
+                    Vec4f32 shadow_color = ui_color_from_name(str8_lit("drop_shadow"));
+                    shadow_color.w += (1.f - shadow_color.w) * 0.5f;
+                    UI_Rect(window_rect)
+                        UI_ChildLayoutAxis(Axis2_X)
+                        UI_Focus(UI_FocusKind_On)
+                        UI_TagF("floating")
+                        UI_BackgroundColor(shadow_color)
                     {
-                        ui_spacer(ui_pct(1, 0));
-
-                        UI_Box *container = ui_build_box_from_stringf(0, "container");
-                        UI_Parent(container)
-                            UI_PrefWidth(ui_px(200, 1.f))
-                            UI_PrefHeight(ui_em(1.f, 1.f))
-                            UI_BackgroundColor(v4f32(0.1f, 0.1f, 0.1f, 1.f))
+                        bg_box = ui_build_box_from_stringf(UI_BoxFlag_FixedSize|
+                                                           UI_BoxFlag_Floating|
+                                                           UI_BoxFlag_Clickable|
+                                                           UI_BoxFlag_Scroll|
+                                                           UI_BoxFlag_DefaultFocusNav|
+                                                           UI_BoxFlag_DisableFocusOverlay|
+                                                           UI_BoxFlag_DisableFocusBorder|
+                                                           UI_BoxFlag_DrawBackground, "###popup");
+                    }
+                    UI_Parent(bg_box)
+                    {
+                        UI_WidthFill UI_PrefHeight(ui_children_sum(1.f)) UI_Column UI_Padding(ui_pct(1, 0)) UI_TagF("floating")
                         {
-                            UI_Signal sig = ui_button(str8_lit("Click me"));
-                            if (ui_clicked(sig))
+                            ui_set_next_pref_width(ui_children_sum(1));
+                            ui_set_next_pref_height(ui_children_sum(1));
+                            ui_set_next_child_layout_axis(Axis2_Y);
+                            UI_Box *panel = ui_build_box_from_stringf(UI_BoxFlag_DrawBackground|UI_BoxFlag_DrawBackgroundBlur|UI_BoxFlag_DrawBorder|UI_BoxFlag_DrawDropShadow, "");
+                            UI_Parent(panel)
                             {
-                                sh_message(0, s("button clicked"), s("I have been clicked"));
+                                ui_spacer(ui_em(1.5f, 1.f));
+                                UI_FontSize(font_size) UI_PrefHeight(ui_em(3.f, 1.f)) ui_label(s("I'm the label!"));
+                                UI_PrefHeight(ui_em(3.f, 1.f)) UI_TagF("weak") ui_label(s("I'm the popup description!"));
+                                ui_spacer(ui_em(1.5f, 1.f));
+                                UI_Row UI_Padding(ui_pct(1.f, 0.f)) UI_PrefWidth(ui_em(16.f, 1.f)) UI_PrefHeight(ui_em(3.5f, 1.f)) UI_CornerRadius(font_size * 0.5f)
+                                {
+                                    UI_TagF("pop")
+                                        if (ui_clicked(ui_buttonf("OK")) || ui_slot_press(UI_EventActionSlot_Accept))
+                                        {
+                                            sh_message(0, s("OK"), s("You pressed OK"));
+                                        }
+                                    ui_spacer(ui_em(1.f, 1.f));
+                                    if (ui_clicked(ui_buttonf("Cancel")) || ui_slot_press(UI_EventActionSlot_Cancel))
+                                    {
+                                        sh_message(0, s("CANCEL"), s("You pressed CANCEL"));
+                                    }
+                                }
+                                ui_spacer(ui_em(3.f, 1.f));
                             }
                         }
-
-                        ui_spacer(ui_pct(1, 0));
                     }
-
-                    ui_spacer(ui_pct(1, 0));
+                    ui_signal_from_box(bg_box);
                 }
             }
+            
+            ui_end_build();
         }
-
-        ui_end_build();
     }
 
     ///////////////////////////////
@@ -224,6 +224,17 @@ internal void ti_window_frame(void)
         // draw window border
         {
             dr_rect(window_rect, base_border_color, 0, 1.f, border_softness * 0.5f);
+        }
+
+        // draw 3D test
+        if (DEV_draw_3D_test)
+        {
+            Rng2f32 rect = wm_client_rect_from_window(ws->os);
+
+            ti_draw_line(v2f32(rect.x0 + 20, rect.y0 + 20),
+                         v2f32(rect.x1 - 20, rect.y1 - 20),
+                         3.f,
+                         v4f32(1, 0, 0, 1));
         }
 
         // recurse & draw
@@ -911,6 +922,7 @@ internal void ti_frame(void)
             bool32 fallthrough_event = false;
             if (wm_event->kind == WM_EventKind_Press) fallthrough_event = true;
             if (wm_event->kind == WM_EventKind_Release) fallthrough_event = true;
+            if (wm_event->kind == WM_EventKind_MouseMove) fallthrough_event = true;
             if (wm_event->kind == WM_EventKind_Text) fallthrough_event = true;
             if (wm_event->kind == WM_EventKind_Scroll) fallthrough_event = true;
             if (wm_event->kind == WM_EventKind_FileDrop) fallthrough_event = true;
@@ -922,6 +934,7 @@ internal void ti_frame(void)
                     {
                         case WM_EventKind_Press:     {kind = UI_EventKind_Press;}break;
                         case WM_EventKind_Release:   {kind = UI_EventKind_Release;}break;
+                        case WM_EventKind_MouseMove: {kind = UI_EventKind_MouseMove;}break;
                         case WM_EventKind_Text:      {kind = UI_EventKind_Text;}break;
                         case WM_EventKind_Scroll:    {kind = UI_EventKind_Scroll;}break;
                         case WM_EventKind_FileDrop:  {kind = UI_EventKind_FileDrop;}break;
@@ -940,7 +953,7 @@ internal void ti_frame(void)
         }
     }
 
-    ////////////////////////////////////
+   ////////////////////////////////////
     // compute amimation rates, given config
     {
         f32 master_animations_f    = 1.f;
@@ -963,6 +976,7 @@ internal void ti_frame(void)
         dr_begin_frame(fnt_tag_from_static_data_string(&ti_default_main_font_bytes));
         {
             ti_window_frame();
+            MemoryZeroStruct(&ti_state->window_state->ui_events);
         }
     }
 

@@ -7,6 +7,11 @@
 
 #include "generated/tide.meta.h"
 
+/////////////////
+// Cable State
+
+
+
 /////////////////////
 // Per-Window State
 
@@ -80,7 +85,9 @@ read_only global TI_Window_State ti_nil_window_state = {0};
 global TI_State *ti_state = 0;
 
 // Dev flags
-global bool32 DEV_draw_ui_text_pos = false;
+global bool32 DEV_draw_3D_test        = true;
+global bool32 DEV_button_test         = true;
+global bool32 DEV_draw_ui_text_pos    = false;
 global bool32 DEV_draw_ui_focus_debug = false;
 global bool32 DEV_draw_ui_box_heatmap = false;
 
