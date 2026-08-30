@@ -476,7 +476,7 @@ internal TI_Window_State *ti_window_state_from_os_handle(WM_Window os)
              w != &ti_nil_window_state;
              w = w->order_next)
         {
-            if (wm_window_match(ws->os, os))
+            if (wm_window_match(w->os, os))
             {
                 ws = w;
                 break;
@@ -512,7 +512,7 @@ internal void ti_window_frame(void)
 
     /////////////////////////////////////
     // @window_frame_part compute window's frame
-    //
+    //
     {
         Access *access = access_open();
 
@@ -764,14 +764,14 @@ internal void ti_window_frame(void)
                             UI_Row UI_Padding(ui_pct(1.f, 0.f)) UI_PrefWidth(ui_em(16.f, 1.f)) UI_PrefHeight(ui_em(3.5f, 1.f)) UI_CornerRadius(ui_top_font_size() * 0.5f)
                             {
                                 UI_TagF("pop")
-                                if (ui_clicked(ui_buttonf("OK")) || ui_slot_press(UI_EventActionSlot_Accept))
+                                if (ui_clicked(ui_buttonf("Open a new window")) || ui_slot_press(UI_EventActionSlot_Accept))
                                 {
-                                    sh_message(0, s("OK"), s("You pressed OK"));
+                                    ti_cmd(TI_CmdKind_OpenWindow);
                                 }
                                 ui_spacer(ui_em(1.f, 1.f));
-                                if (ui_clicked(ui_buttonf("Cancel")) || ui_slot_press(UI_EventActionSlot_Cancel))
+                                if (ui_clicked(ui_buttonf("Close this window")) || ui_slot_press(UI_EventActionSlot_Cancel))
                                 {
-                                    sh_message(0, s("CANCEL"), s("You pressed CANCEL"));
+                                    ti_cmd(TI_CmdKind_CloseWindow);
                                 }
                             }
                             ui_spacer(ui_em(3.f, 1.f));
@@ -1901,6 +1901,24 @@ internal void ti_frame(void)
                     } break;
                 }
             }
+        }
+
+        //////////////
+        // tick measurement engine
+        // TODO
+        u64 cmd_count_pre_tick = ti_state->cmds[0].count;
+
+        //////////////////////////
+        // process measurement engine events
+        // TODO
+
+        
+        /////////////////////////
+        // early out if no new commands
+        //
+        if (ti_state->cmds[0].count == cmd_count_pre_tick)
+        {
+            break;
         }
     }
 
