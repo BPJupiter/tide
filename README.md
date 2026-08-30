@@ -158,7 +158,7 @@ A list of the layers in the codebase and their associated namespaces is below:
 - `dns` (`DNS_`): This layer implements both high-level DNS funtions (such as
   its own stub resolver), as well as allowing for iterative and recursive DNS
   queries, as well as serving DNS messages to clients. This layer takes inspiration
-  from the (miekg/dns)[https://codeberg.org/miekg/dns] DNS library.
+  from the [miekg/dns](https://codeberg.org/miekg/dns) DNS library.
 - `draw` (`DR_`): Implements a high-level grapihcs drawing API for the proxy's
   purposes, using the underlying `render` abstraction layer. Provides
   high-level APIs for various draw commands, but takes care of batching them,

@@ -2,8 +2,186 @@
 ///////////////////
 // Embedded Data
 
-//@embed_file ti_icon_font_bytes:              "../data/icons.tff"
-@embed_file ti_default_main_font_bytes:      "../data/Inconsolata-Regular.ttf""
-//@embed_file ti_icon_file_bytes:              "../data/logo.ico"
+@embed_file ti_icon_font_bytes:              "../data/icons.ttf"
+@embed_file ti_default_main_font_bytes:      "../data/Inconsolata-Regular.ttf"
+@embed_file ti_icon_file_bytes:              "../data/logo.ico"
 @embed_file ti_cable_geo_json_bytes:         "../data/telegeography/cable-geo.json"
 @embed_file ti_landing_point_geo_json_bytes: "../data/telegeography/landing-point-geo.json"
+
+//////////////////////////
+// Registers Type Table
+
+@table(c_type  name_lower  name)
+TI_RegTable:
+{
+    {CFG_ID        window          Window            }
+    {`WM_Event *`  wm_event        WMEvent           }
+}
+
+@enum TI_RegSlot:
+{
+    Null,
+    @expand(TI_RegTable a) `$(a.name)`,
+    COUNT,
+}
+
+@struct TI_Regs:
+{
+    @expand(TI_RegTable a) `$(a.c_type) $(a.name_lower)`
+}
+
+@data(String8) ti_reg_slot_code_name_table:
+{
+    `{0}`,
+    @expand(TI_RegTable a) `str8_lit_comp("$(a.name_lower)")`
+}
+
+@data(Rng1u64) ti_reg_slot_range_table:
+{
+    `{0}`,
+    @expand(TI_RegTable a) `{OffsetOf(TI_Regs, $(a.name_lower)), OffsetOf(TI_Regs, $(a.name_lower)) + sizeof($(a.c_type))}`
+}
+
+@gen
+{
+    `#define ti_regs_lit_init_top \\`
+    @expand(TI_RegTable a) `.$(a.name_lower) = ti_regs()->$(a.name_lower),\\`
+        ``;
+}
+
+///////////////
+// Command Table
+
+@table(name                    ui_vis                      canonical_icon                 string                      display_name                     desc)
+//    /                        |                           |                              |                           |                                |
+//   /                         |                           |                              |                           |                                |
+TI_CmdTable:
+{
+    // exiting
+    {Exit                       1                           X                              "exit"                      "Exit"                           "Exits the TIDE program."                              }
+    
+    //os event passthrough
+    {WMEvent                    0                           Null                           "wm_event"                  "OS Event"                       ""                                                     }
+
+    // windows
+    {OpenWindow                 1                           Window                         "open_window"               "Open New Window"                "Opens a new window."                                  }
+    {CloseWindow                1                           Window                         "close_window"              "Close Window"                   "Closes an opened window."                             }
+    
+}
+
+@enum TI_CmdKind:
+{
+    `Null`,
+    @expand(TI_CmdTable a) `$(a.name)`,
+    COUNT,
+}
+
+@struct TI_Cmd_Kind_Info:
+{
+    `String8 string`;
+    `String8 description`;
+    `TI_CmdKindFlags flags`;
+}
+
+@data(TI_Cmd_Kind_Info) @c_file ti_cmd_kind_info_table:
+{
+    `{0}`,
+    @expand(TI_CmdTable a)
+        ```{ str8_lit_comp("$(a.string)"), str8_lit_comp("$(a.desc)"), TI_CmdKindFlag_ListInUI*$(a.ui_vis)}```;
+        
+}
+
+//////////
+// Icons
+
+@table(name  text)
+TI_IconTable:
+{
+  (Null                     "")
+  (FolderOpenOutline        "b")
+  (FolderClosedOutline      "c")
+  (FolderOpenFilled         "B")
+  (FolderClosedFilled       "C")
+  (FileOutline              "f")
+  (FileFilled               "F")
+  (Play                     "g")
+  (PlayStepForward          "h")
+  (Pause                    "r")
+  (Stop                     "s")
+  (Info                     "i")
+  (WarningSmall             "w")
+  (WarningBig               "W")
+  (Unlocked                 "k")
+  (Locked                   "K")
+  (LeftArrow                "L")
+  (RightArrow               "R")
+  (UpArrow                  "U")
+  (DownArrow                "D")
+  (Gear                     "G")
+  (Pencil                   "P")
+  (Trash                    "3")
+  (Pin                      "p")
+  (RadioHollow              "O")
+  (RadioFilled              "o")
+  (CheckHollow              "!")
+  (CheckFilled              "1")
+  (Check                    "V")
+  (LeftCaret                "<")
+  (RightCaret               ">")
+  (UpCaret                  "^")
+  (DownCaret                "v")
+  (UpScroll                 "9")
+  (DownScroll               "0")
+  (LeftScroll               "7")
+  (RightScroll              "8")
+  (Add                      "+")
+  (Minus                    "-")
+  (Thread                   "'")
+  (Threads                  '\\"')
+  (Machine                  "M")
+  (CircleFilled             ".")
+  (X                        "x")
+  (Refresh                  "q")
+  (Undo                     "j")
+  (Redo                     "u")
+  (Save                     "m")
+  (Window                   "n")
+  (Target                   "l")
+  (Clipboard                "a")
+  (Scheduler                "z")
+  (Module                   "y")
+  (XSplit                   "X")
+  (YSplit                   "Y")
+  (ClosePanel               "S")
+  (StepInto                 "T")
+  (StepOver                 "Z")
+  (StepOut                  "d")
+  (Find                     "N")
+  (Palette                  "E")
+  (Thumbnails               "H")
+  (Glasses                  "e")
+  (Binoculars               "I")
+  (List                     "J")
+  (Grid                     "A")
+  (QuestionMark             "?")
+  (Person                   "4")
+  (Briefcase                "5")
+  (Dot                      "6")
+  (Bitmap                   "&")
+  (Cube                     "*")
+  (WindowRestore            "(")
+  (WindowMinimize           ")")
+  (Duplicate                "#")
+}
+
+@enum TI_IconKind:
+{
+    @expand(TI_IconTable a) `$(a.name)`,
+    COUNT,
+}
+
+@data(String8) ti_icon_kind_text_table:
+{
+    @expand(TI_IconTable a) `str8_lit_comp("$(a.text)")`;
+}
+
