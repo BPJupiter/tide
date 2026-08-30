@@ -1136,7 +1136,7 @@ r_window_submit(WM_Window window, R_Handle window_equip, R_Pass_List *passes)
             R_D3D11_Tex2D *texture = r_d3d11_tex2d_from_handle(texture_handle);
             
             // rjf: get texture sample map matrix, based on format
-            Mat4x4f32 texture_sample_channel_map = r_sample_channel_map_from_tex2d_format(texture->format);
+            Mat4x4f32 texture_sample_channel_map = r_sample_channel_map_from_tex2dformat(texture->format);
             
             // rjf: upload uniforms
             R_D3D11_Uniforms_Rect uniforms = {0};

@@ -9,11 +9,11 @@
 /////////////
 // Helpers
 
-internal u64 r_bytes_per_pixel_from_tex2d_fmt(R_Tex2DFmt fmt)
+internal u64 r_bytes_per_pixel_from_tex2dfmt(R_Tex2DFmt fmt)
 {
     u64 num_bits = 0;
     for EachIndex(channel_idx, 4) {
-        R_ChannelSizeKind size_kind = r_size_kind_from_tex2d_fmt_channel(fmt, channel_idx);
+        R_ChannelSizeKind size_kind = r_size_kind_from_tex2dfmt_channel(fmt, channel_idx);
         switch (size_kind)
         {
             default:{}break;
@@ -33,7 +33,7 @@ internal u64 r_bytes_per_pixel_from_tex2d_fmt(R_Tex2DFmt fmt)
     return num_bytes;
 }
 
-internal Mat4x4f32 r_sample_channel_map_from_tex2d_fmt(R_Tex2DFmt fmt)
+internal Mat4x4f32 r_sample_channel_map_from_tex2dfmt(R_Tex2DFmt fmt)
 {
     Mat4x4f32 result = {
         {
@@ -46,7 +46,7 @@ internal Mat4x4f32 r_sample_channel_map_from_tex2d_fmt(R_Tex2DFmt fmt)
     return result;
 }
 
-internal Mat4x4f32 r_sample_channel_map_from_tex2d_format(R_Tex2DFormat fmt)
+internal Mat4x4f32 r_sample_channel_map_from_tex2dformat(R_Tex2DFormat fmt)
 {
     Mat4x4f32 result = {
         {

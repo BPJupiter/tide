@@ -442,9 +442,9 @@ internal TI_Window_State *ti_window_state_from_cfg(CFG_Node *cfg)
         {
             wm_window_set_fullscreen(ws->os, 1);
         }
-        if (cfg_node_child_from_string(window_cfg, str8_lit("maximised")) != &cfg_nil_node)
+        if (cfg_node_child_from_string(window_cfg, str8_lit("maximized")) != &cfg_nil_node)
         {
-            wm_window_set_maximised(ws->os, 1);
+            wm_window_set_maximized(ws->os, 1);
         }
 
         // hook up window links
@@ -561,8 +561,8 @@ internal void ti_window_frame(void)
     {
         Temp scratch = scratch_begin(0, 0);
         bool32 is_fullscreen = wm_window_is_fullscreen(ws->os);
-        bool32 is_maximised = wm_window_is_maximised(ws->os);
-        bool32 is_minimised = wm_window_is_minimised(ws->os);
+        bool32 is_maximized = wm_window_is_maximized(ws->os);
+        bool32 is_minimized = wm_window_is_minimized(ws->os);
         if (is_fullscreen)
         {
             cfg_node_child_from_string_or_alloc(ti_state->cfg, window, str8_lit("fullscreen"));
@@ -571,13 +571,13 @@ internal void ti_window_frame(void)
         {
             cfg_node_release(ti_state->cfg, cfg_node_child_from_string(window, str8_lit("fullscreen")));
         }
-        if (is_maximised)
+        if (is_maximized)
         {
-            cfg_node_child_from_string_or_alloc(ti_state->cfg, window, str8_lit("maximised"));
+            cfg_node_child_from_string_or_alloc(ti_state->cfg, window, str8_lit("maximized"));
         }
         else
         {
-            cfg_node_release(ti_state->cfg, cfg_node_child_from_string(window, str8_lit("maximised")));
+            cfg_node_release(ti_state->cfg, cfg_node_child_from_string(window, str8_lit("maximized")));
         }
 
         // dpi changes -> xform font size / window size
@@ -595,7 +595,7 @@ internal void ti_window_frame(void)
 
         // commit position
         Rng2f32 window_rect = wm_rect_from_window(ws->os);
-        if (!is_fullscreen && !is_maximised && !is_minimised)
+        if (!is_fullscreen && !is_maximized && !is_minimized)
         {
             Vec2f32 pos = window_rect.p0;
             CFG_Node *pos_root = cfg_node_child_from_string_or_alloc(ti_state->cfg, window, str8_lit("pos"));
@@ -620,7 +620,7 @@ internal void ti_window_frame(void)
         }
 
         // commit size
-        if (!is_fullscreen && !is_maximised && !is_minimised)
+        if (!is_fullscreen && !is_maximized && !is_minimized)
         {
             Vec2f32 size = dim_2f32(window_rect);
             CFG_Node *size_root = cfg_node_child_from_string_or_alloc(ti_state->cfg, window, str8_lit("size"));
@@ -646,7 +646,7 @@ internal void ti_window_frame(void)
         
         
         // commit monitor
-        if (!is_minimised)
+        if (!is_minimized)
         {
             WM_Monitor monitor = wm_monitor_from_window(ws->os);
             String8 monitor_name = wm_name_from_monitor(scratch.arena, monitor);
@@ -1843,7 +1843,7 @@ internal void ti_frame(void)
                                     !str8_match(old_child->string, str8_lit("pos"), 0) &&
                                     !str8_match(old_child->string, str8_lit("monitor"), 0) &&
                                     !str8_match(old_child->string, str8_lit("fullscreen"), 0) &&
-                                    !str8_match(old_child->string, str8_lit("maximised"), 0))
+                                    !str8_match(old_child->string, str8_lit("maximized"), 0))
                                 {
                                     CFG_Node *new_child = cfg_node_deep_copy(ti_state->cfg, old_child);
                                     cfg_node_insert_child(ti_state->cfg, new_window, new_window->last, new_child);

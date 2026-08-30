@@ -686,7 +686,7 @@ w32_wm_wnd_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
               rect->top += frame_y + padding;
               // If we do not do this hidden taskbar can not be unhidden on mouse hover
-              // Unfortunately it can create an ugly bottom border when maximised...
+              // Unfortunately it can create an ugly bottom border when maximized...
               rect->bottom -= 1; 
             }
           }
@@ -1151,7 +1151,7 @@ wm_window_first_paint(WM_Window window_handle)
   W32_WM_Window *window = w32_wm_window_from_handle(window_handle);
   window->first_paint_done = 1;
   ShowWindow(window->hwnd, SW_SHOW);
-  if(window->maximised)
+  if(window->maximized)
   {
     ShowWindow(window->hwnd, SW_MAXIMIZE);
   }
@@ -1216,7 +1216,7 @@ wm_window_set_fullscreen(WM_Window handle, bool32 fullscreen)
 }
 
 internal bool32
-wm_window_is_maximised(WM_Window handle)
+wm_window_is_maximized(WM_Window handle)
 {
   bool32 result = 0;
   W32_WM_Window *window = w32_wm_window_from_handle(handle);
@@ -1228,14 +1228,14 @@ wm_window_is_maximised(WM_Window handle)
 }
 
 internal void
-wm_window_set_maximised(WM_Window handle, bool32 maximised)
+wm_window_set_maximized(WM_Window handle, bool32 maximized)
 {
   W32_WM_Window *window = w32_wm_window_from_handle(handle);
   if(window != 0)
   {
     if(window->first_paint_done)
     {
-      switch(maximised)
+      switch(maximized)
       {
         default:
         case 0:{ShowWindow(window->hwnd, SW_RESTORE);}break;
@@ -1244,13 +1244,13 @@ wm_window_set_maximised(WM_Window handle, bool32 maximised)
     }
     else
     {
-      window->maximised = maximised;
+      window->maximized = maximized;
     }
   }
 }
 
 internal bool32
-wm_window_is_minimised(WM_Window handle)
+wm_window_is_minimized(WM_Window handle)
 {
   bool32 result = 0;
   W32_WM_Window *window = w32_wm_window_from_handle(handle);
@@ -1262,12 +1262,12 @@ wm_window_is_minimised(WM_Window handle)
 }
 
 internal void
-wm_window_set_minimised(WM_Window handle, bool32 minimised)
+wm_window_set_minimized(WM_Window handle, bool32 minimized)
 {
   W32_WM_Window *window = w32_wm_window_from_handle(handle);
-  if(window != 0 && minimised != wm_window_is_minimised(handle))
+  if(window != 0 && minimized != wm_window_is_minimized(handle))
   {
-    switch(minimised)
+    switch(minimized)
     {
       default:
       case 0:{ShowWindow(window->hwnd, SW_RESTORE);}break;

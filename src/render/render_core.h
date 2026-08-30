@@ -55,9 +55,9 @@ typedef u64 R_Tex2DFmt;
 // 9 bits per channel, * number of channels, e.g. 4 channels -> 36 bits
 
 #define R_Channel(channel_idx, code_name, size_kind_name, type_kind_name) ((((u64)(R_ChannelCode_##code_name & 0x7)) | ((u64)(R_ChannelSizeKind_##size_kind_name & 0x7) << 3) | ((u64)(R_ChannelTypeKind_##type_kind_name & 0x7) << 6)) << ((channel_idx) * 9))
-#define r_code_from_tex2d_fmt_channel(fmt, channel_idx) ((R_ChannelCode)(((fmt) & (0x7 << ((channel_idx) * 9))) >> ((channel_idx) * 9)))
-#define r_size_kind_from_tex2d_fmt_channel(fmt, channel_idx) ((R_ChannelSizeKind)(((fmt) & (0x38 << ((channel_idx) * 9))) >> ((channel_idx) * 9 + 3)))
-#define r_type_kind_from_tex2d_fmt_channel(fmt, channel_idx) ((R_ChannelTypeKind)(((fmt) & (0x1c0 << ((channel_idx) * 9))) >> ((channel_idx) * 9 + 6)))
+#define r_code_from_tex2dfmt_channel(fmt, channel_idx) ((R_ChannelCode)(((fmt) & (0x7 << ((channel_idx) * 9))) >> ((channel_idx) * 9)))
+#define r_size_kind_from_tex2dfmt_channel(fmt, channel_idx) ((R_ChannelSizeKind)(((fmt) & (0x38 << ((channel_idx) * 9))) >> ((channel_idx) * 9 + 3)))
+#define r_type_kind_from_tex2dfmt_channel(fmt, channel_idx) ((R_ChannelTypeKind)(((fmt) & (0x1c0 << ((channel_idx) * 9))) >> ((channel_idx) * 9 + 6)))
 
 #define R_Tex2DFmt_R8    (R_Channel(0, R, 8, uint))
 #define R_Tex2DFmt_RG8   (R_Channel(0, R, 8, uint) | R_Channel(1, G, 8, uint))
@@ -228,9 +228,9 @@ struct R_Pass_List {
 /////////////
 // Helpers
 
-internal u64 r_bytes_per_pixel_from_tex2d_fmt(R_Tex2DFmt fmt);
-internal Mat4x4f32 r_sample_channel_map_from_tex2d_fmt(R_Tex2DFmt fmt);
-internal Mat4x4f32 r_sample_channel_map_from_tex2d_format(R_Tex2DFormat fmt);
+internal u64 r_bytes_per_pixel_from_tex2dfmt(R_Tex2DFmt fmt);
+internal Mat4x4f32 r_sample_channel_map_from_tex2dfmt(R_Tex2DFmt fmt);
+internal Mat4x4f32 r_sample_channel_map_from_tex2dformat(R_Tex2DFormat fmt);
 
 ///////////////////////////
 // Handle Type Functions

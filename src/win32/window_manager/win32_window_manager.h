@@ -39,7 +39,7 @@ struct W32_WM_Window {
     WINDOWPLACEMENT last_window_placement;
     f32 dpi;
     bool32 first_paint_done;
-    bool32 maximised;
+    bool32 maximized;
     bool32 custom_border;
     f32 custom_border_title_thickness;
     f32 custom_border_edge_thickness;
