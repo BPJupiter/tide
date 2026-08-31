@@ -8,7 +8,7 @@
 #if OS_WINDOWS
 # include "win32/socket/win32_socket.h"
 #else
-# include "socket_sub.h"
+# include "socket_stub.h"
 #endif
 
 #endif // SOCKET_INC_H

@@ -120,14 +120,15 @@ internal bool32 dns_pack_rr(Ring *ring, DNS_RR *rr)
     result &= ring_try_write_struct(ring, &type);
     result &= ring_try_write_struct(ring, &class);
     result &= ring_try_write_struct(ring, &ttl);
+    
     u64 rdlength_offset = ring->write_pos; // save offset to write to rdlength later
     result &= ring_try_write_struct(ring, &rdlength);
 
     result &= dns_pack_rdata(ring, rr);
-    rdlength = ring->write_pos - rdlength_offset;
-    rdlength = host_to_net_u16(rdlength);
+    rdlength = ring->write_pos - rdlength_offset - sizeof(rdlength);
     if (rdlength <= DNS_MAX_MSG_SIZE) { // overflow
-        MemoryCopyStruct(&ring->base[rdlength_offset], &rdlength);
+        rdlength = host_to_net_u16(rdlength);
+        MemoryCopy(&ring->base[rdlength_offset % ring->size], &rdlength, sizeof(rdlength));
     }
     else {
         // @TODO: Handle inconsistent rdata length...
