@@ -38,31 +38,8 @@ struct DNS_RR {
     DNS_Type  type;
     DNS_Class class;
     u32       ttl;
-    
-    union
-    {
-        struct {
-            u32 addr;
-        } A;
-        struct {
-            String8 ns;
-        } NS;
-        struct {
-            String8 target;
-        } CNAME;
-        struct {
-            String8 master_name;
-            String8 responsible_name;
-            u32 serial;
-            u32 refresh;
-            u32 retry;
-            u32 expire;
-            u32 minimum;
-        } SOA;
-        struct {
-            u128 addr;
-        } AAAA;
-    } rdata;
+
+    DNS_RData rdata;
 };
 
 typedef struct DNS_Msg_Header DNS_Msg_Header;

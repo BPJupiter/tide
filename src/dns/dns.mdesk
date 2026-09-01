@@ -5,12 +5,12 @@
 @table(id obsolete question_only class friendly_name rfc_csv)
 DNS_ClassTable:
 {
-    {1    0  0   IN   "Internet"                   "1035"},
-    {2    1  0   CS   "Computer Science Network"   "1035"},
-    {3    0  0   CH   "Chaos"                      "1035"},
-    {4    0  0   HS   "Hesiod"                     "1035"},
-    {254  0  1   NONE "None"                       "2136"},
-    {255  0  1   ANY  "Any"                        "1035"},
+    {1    0  0   IN   "Internet"                   "1035"} 
+    {2    1  0   CS   "Computer Science Network"   "1035"} 
+    {3    0  0   CH   "Chaos"                      "1035"} 
+    {4    0  0   HS   "Hesiod"                     "1035"} 
+    {254  0  1   NONE "None"                       "2136"} 
+    {255  0  1   ANY  "Any"                        "1035"} 
 }
 
 @enum DNS_Class:
@@ -86,38 +86,38 @@ dns_rfc_references_from_class:
 DNS_TypeTable:// /           ________/          |                                              |                  |                  |                  |                  |                  |                  |                  |                  |
 {//       |  /  /           /                   |                                              |                  |                  |                  |                  |                  |                  |                  |                  |
    //0          <reserved>  "6895"
-    {1    0  0   A          "1035"               "a host address"                           u32 address                                                                                                                                                                       },
-    {2    0  0   NS         "1035"               "an authrotitative name server"        String8 nsdname                                                                                                                                                                       },
-    {3    1  0   MD         "883,973,1035"       "a mail destination"                   String8 madname                                                                                                                                                                       },
-    {4    1  0   MF         "883,973,1035"       "a mail forwarder"                     String8 madname                                                                                                                                                                       },
-    {5    0  0   CNAME      "1035"               "the canonical name for an alias"      String8 cname                                                                                                                                                                         },
-    {6    0  0   SOA        "1035,2308"          "marks the start of a zone of authority" String8 mname    String8 rname          u32 serial         u32 refresh        u32 retry          u32 expire         u32 minimum                                                     },
-    {7    1  0   MB         "883,1035,2505"      "a mailbox domain name"                String8 madname                                                                                                                                                                       },
-    {8    1  0   MG         "883,1035,2505"      "a mail group member"                  String8 mgmname                                                                                                                                                                       },
-    {9    1  0   MR         "883,1035,2505"      "a mail rename domain name"            String8 newname                                                                                                                                                                       },
-    {10   1  0   NULL       "883,1035"           "a null RR"                            String8 data                                                                                                                                                                          },
-    {11   1  0   WKS        "883,1035,1123,1127" "a well known service description"         u32 address         u8 protocol   String8 bitmap                                                                                                                                  },
-    {12   0  0   PTR        "1035"               "a domain name pointer"                String8 ptrdname                                                                                                                                                                      },
-    {13   0  0   HINFO      "883,1035,8482"      "host information"                     String8 cpu        String8 os                                                                                                                                                         },
-    {14   1  0   MINFO      "883,1035,2505"      "mailbox or mail list information"     String8 rmailbx    String8 emailbx                                                                                                                                                    },
-    {15   0  0   MX         "1035,7505"          "mail exchange"                            u16 preference String8 exchange                                                                                                                                                   },
-    {16   0  0   TXT        "1035"               "text strings"                         String8 txt_data                                                                                                                                                                      },
-    {17   1  0   RP         "1183"               "for Responsible Person"               String8 mbox_dname String8 txt_dname                                                                                                                                                  },
-    {18   0  0   AFSDB      "1183"               "for AFS Data Base location"               u16 subtype    String8 hostname                                                                                                                                                   },
-    {19   1  0   X25        "1183"               "for X.25 PSDN address"                String8 psdn_addr                                                                                                                                                                     },
-    {20   1  0   ISDN       "1183"               "for ISDN address"                     String8 isdn_addr  String8 sub_addr                                                                                                                                                   },
-    {21   1  0   RT         "1183"               "for Route Through"                        u16 preference String8 intrm_host                                                                                                                                                 },
-    {22   1  0   NSAP       "1706"               "for NSAP address, NSAP style A record" String8 data                                                                                                                                                                         },
-    {23   1  0   NSAPPTR    "1706"               "for domain name pointer, NSAP style"  String8 ptrdname                                                                                                                                                                      },
-    {24   1  0   SIG        "2065,2535,3755"     "for security signature"                   u16 type_covered    u8 algorithm       u8 labels         u32 ttl            u32 sig_expire     u32 time_signd     u16 key_ftprnt String8 signr_name String8 signature             },
-    {25   1  0   KEY        "2065,2535,2930,3755" "for security key"                        u16 flags           u8 protocol        u8 algorithm  String8 pubkey                                                                                                               },
-    {26   1  0   PX         "2163"               "X.400 mail mapping information"           u16 preference String8 map_822    String8 map_x400                                                                                                                                },
-    {27   1  0   GPOS       "1712"               "Geographical Position"                String8 longitude  String8 latitude   String8 altitude                                                                                                                                },
-    {28   0  0   AAAA       "3596"               "IPv6 Address"                            u128 address                                                                                                                                                                       },
-    {29   0  0   LOC        "1876"               "Location Information"                      u8 version         u8 size            u8 horiz_pre       u8 vert_pre       u32 latitude       u32 longitude      u32 altitude                                                    },
-    {30   1  0   NXT        "2065,3755"          "Next Domain"                          String8 next_dname String8 type_bitmap                                                                                                                                                },
-    {31   1  0   EID        ""                   "Endpoint Identifier"                  String8 endpoint_id                                                                                                                                                                   },
-    {32   1  0   NIMLOC     ""                   "Nimrod Locator"                       String8 nimrod_loc                                                                                                                                                                    },
+    {1    0  0   A          "1035"               "a host address"                           u32 addr                                                                                                                                                                          } 
+    {2    0  0   NS         "1035"               "an authrotitative name server"        String8 ns                                                                                                                                                                            } 
+    {3    1  0   MD         "883,973,1035"       "a mail destination"                   String8 madname                                                                                                                                                                       } 
+    {4    1  0   MF         "883,973,1035"       "a mail forwarder"                     String8 madname                                                                                                                                                                       } 
+    {5    0  0   CNAME      "1035"               "the canonical name for an alias"      String8 target                                                                                                                                                                        } 
+    {6    0  0   SOA        "1035,2308"          "marks the start of a zone of authority" String8 master_name String8 responsible_name u32 serial    u32 refresh        u32 retry          u32 expire         u32 minimum                                                     } 
+    {7    1  0   MB         "883,1035,2505"      "a mailbox domain name"                String8 madname                                                                                                                                                                       } 
+    {8    1  0   MG         "883,1035,2505"      "a mail group member"                  String8 mgmname                                                                                                                                                                       } 
+    {9    1  0   MR         "883,1035,2505"      "a mail rename domain name"            String8 newname                                                                                                                                                                       } 
+    {10   1  0   NULL       "883,1035"           "a null RR"                            String8 data                                                                                                                                                                          } 
+    {11   1  0   WKS        "883,1035,1123,1127" "a well known service description"         u32 address         u8 protocol   String8 bitmap                                                                                                                                  } 
+    {12   0  0   PTR        "1035"               "a domain name pointer"                String8 ptrdname                                                                                                                                                                      } 
+    {13   0  0   HINFO      "883,1035,8482"      "host information"                     String8 cpu        String8 os                                                                                                                                                         } 
+    {14   1  0   MINFO      "883,1035,2505"      "mailbox or mail list information"     String8 rmailbx    String8 emailbx                                                                                                                                                    } 
+    {15   0  0   MX         "1035,7505"          "mail exchange"                            u16 preference String8 exchange                                                                                                                                                   } 
+    {16   0  0   TXT        "1035"               "text strings"                         String8 txt_data                                                                                                                                                                      } 
+    {17   1  0   RP         "1183"               "for Responsible Person"               String8 mbox_dname String8 txt_dname                                                                                                                                                  } 
+    {18   0  0   AFSDB      "1183"               "for AFS Data Base location"               u16 subtype    String8 hostname                                                                                                                                                   } 
+    {19   1  0   X25        "1183"               "for X.25 PSDN address"                String8 psdn_addr                                                                                                                                                                     } 
+    {20   1  0   ISDN       "1183"               "for ISDN address"                     String8 isdn_addr  String8 sub_addr                                                                                                                                                   } 
+    {21   1  0   RT         "1183"               "for Route Through"                        u16 preference String8 intrm_host                                                                                                                                                 } 
+    {22   1  0   NSAP       "1706"               "for NSAP address, NSAP style A record" String8 data                                                                                                                                                                         } 
+    {23   1  0   NSAPPTR    "1706"               "for domain name pointer, NSAP style"  String8 ptrdname                                                                                                                                                                      } 
+    {24   1  0   SIG        "2065,2535,3755"     "for security signature"                   u16 type_covered    u8 algorithm       u8 labels         u32 ttl            u32 sig_expire     u32 time_signd     u16 key_ftprnt String8 signr_name String8 signature             } 
+    {25   1  0   KEY        "2065,2535,2930,3755" "for security key"                        u16 flags           u8 protocol        u8 algorithm  String8 pubkey                                                                                                               } 
+    {26   1  0   PX         "2163"               "X.400 mail mapping information"           u16 preference String8 map_822    String8 map_x400                                                                                                                                } 
+    {27   1  0   GPOS       "1712"               "Geographical Position"                String8 longitude  String8 latitude   String8 altitude                                                                                                                                } 
+    {28   0  0   AAAA       "3596"               "IPv6 Address"                            u128 addr                                                                                                                                                                          } 
+    {29   0  0   LOC        "1876"               "Location Information"                      u8 version         u8 size            u8 horiz_pre       u8 vert_pre       u32 latitude       u32 longitude      u32 altitude                                                    } 
+    {30   1  0   NXT        "2065,3755"          "Next Domain"                          String8 next_dname String8 type_bitmap                                                                                                                                                } 
+    {31   1  0   EID        ""                   "Endpoint Identifier"                  String8 endpoint_id                                                                                                                                                                   } 
+    {32   1  0   NIMLOC     ""                   "Nimrod Locator"                       String8 nimrod_loc                                                                                                                                                                    } 
     // NOTE: NB and NBSTAT conflict with
     //       NIMLOC and SRV respectively.
     //       These seem to be part of the NetBIOS standard.
@@ -126,86 +126,86 @@ DNS_TypeTable:// /           ________/          |                               
     //         It is not clear that these are in use,
     //         though if so their assignment does conflict
     //         with those above."
-    //{32   1  0   NB         "1002"               "NetBIOS general Name Service"             u16 nb_flags       u32 nb_address                                                                                                                                               },
-    //{33   1  0   NBSTAT     "1002"               "NetBIOS NODE STATUS"                       u8 num_names  String8 n_name_arr String8 statistics                                                                                                                            },
-    {33   0  0   SRV        "2782"               "Server Selection"                         u16 priority       u16 weight         u16 port       String8 target                                                                                                               },
+    //{32   1  0   NB         "1002"               "NetBIOS general Name Service"             u16 nb_flags       u32 nb_address                                                                                                                                               } 
+    //{33   1  0   NBSTAT     "1002"               "NetBIOS NODE STATUS"                       u8 num_names  String8 n_name_arr String8 statistics                                                                                                                            } 
+    {33   0  0   SRV        "2782"               "Server Selection"                         u16 priority       u16 weight         u16 port       String8 target                                                                                                               } 
     // NOTE: ATMA has so little documentation.
     //       This is my best guess based on
     //       the bind9 source code.
-    {34   1  0   ATMA       "1706"               "ATM Address"                          String8 mctx       String8 format     String8 atma           u16 atma_len                                                                                                             },
-    {35   0  0   NAPTR      "3403"               "Naming Authority Pointer"                 u16 order          u16 preference String8 flags      String8 service    String8 regexp     String8 replacement                                                                    },
-    {36   0  0   KX         "2230"               "Key Exchanger"                            u16 preference String8 exchanger                                                                                                                                                  },
-    {37   0  0   CERT       "4398"               "CERT"                                     u16 type           u16 key_tag         u8 algorithm  String8 certificate                                                                                                          },
-    {38   1  0   A6         "2874,3363,6563"     "A6"                                        u8 prefix_len String8 addr_suffx String8 prefix_name                                                                                                                             },
-    {39   0  0   DNAME      "6672"               "DNAME"                                String8 target                                                                                                                                                                        },
-    {40   1  0   SINK       ""                   "Kitchen Sink"                              u8 coding          u8 subcoding  String8 data                                                                                                                                    },
-    {41   0  0   OPT        "3225,6891"          "OPT"                                  String8 data                                                                                                                                                                          },
-    {42   1  0   APL        "3123"               "APL"                                      u16 addr_fam        u8 prefix      bool32 n               u8 afdlength   `union{u32 v4; u128 v6;}` afdpart                                                                        },
-    {43   0  0   DS         "4034"               "Delegation Signer"                        u16 key_tag         u8 algorithm       u8 digest_t   String8 digest                                                                                                               },
-    {44   0  0   SSHFP      "4255"               "SSH Key Fingerprint"                       u8 algorithm       u8 fp_type    String8 fingerprint                                                                                                                             },
-    {45   0  0   IPSECKEY   "4025"               "IPSECKEY"                                  u8 precedence      u8 gateway_type    u8 algorithm        `union{u32 v4; u128 v6; String8 dname;}` gateway   String8 public_key                                                  },
-    {46   0  0   RRSIG      "4034"               "RRSIG"                                    u16 type_covered    u8 algorithm       u8 labels         u32 orig_ttl       u32 expiration     u32 inception      u16 key_tag    String8 signr_name String8 signature             },
-    {47   0  0   NSEC       "4034"               "NSEC"                                 String8 nxt_domain String8 type_bitmap                                                                                                                                                },
-    {48   0  0   DNSKEY     "4034"               "DNSKEY"                                   u16 flags           u8 protocol        u8 algorithm  String8 public_key                                                                                                           },
-    {49   0  0   DHCID      "4701"               "DHCID"                                    u16 id_type_code    u8 digest_type_code              String8 digest                                                                                                               },
-    {50   0  0   NSEC3      "5155"               "NSEC3"                                     u8 hash            u8 flags          u16 iterations      u8 salt_len   String8 salt            u8 hash_len   String8 nxt_domain String8 type_bitmap                              },
-    {51   0  0   NSEC3PARAM "5155"               "NSEC3PARAM"                                u8 hash            u8 flags          u16 iterations      u8 salt_len   String8 salt                                                                                              },
-    {52   0  0   TLSA       "6698"               "TLSA"                                      u8 usage           u8 selector        u8 matching_t String8 certificate                                                                                                          },
-    {53   0  0   SMIMEA     "8162"               "S/MIME cert association"                   u8 usage           u8 selector        u8 matching_t String8 certificate                                                                                                          },
+    {34   1  0   ATMA       "1706"               "ATM Address"                          String8 mctx       String8 format     String8 atma           u16 atma_len                                                                                                             } 
+    {35   0  0   NAPTR      "3403"               "Naming Authority Pointer"                 u16 order          u16 preference String8 flags      String8 service    String8 regexp     String8 replacement                                                                    } 
+    {36   0  0   KX         "2230"               "Key Exchanger"                            u16 preference String8 exchanger                                                                                                                                                  } 
+    {37   0  0   CERT       "4398"               "CERT"                                     u16 type           u16 key_tag         u8 algorithm  String8 certificate                                                                                                          } 
+    {38   1  0   A6         "2874,3363,6563"     "A6"                                        u8 prefix_len String8 addr_suffx String8 prefix_name                                                                                                                             } 
+    {39   0  0   DNAME      "6672"               "DNAME"                                String8 target                                                                                                                                                                        } 
+    {40   1  0   SINK       ""                   "Kitchen Sink"                              u8 coding          u8 subcoding  String8 data                                                                                                                                    } 
+    {41   0  0   OPT        "3225,6891"          "OPT"                                  String8 data                                                                                                                                                                          } 
+    {42   1  0   APL        "3123"               "APL"                                      u16 addr_fam        u8 prefix      bool32 n               u8 afdlength   `union{u32 v4; u128 v6;}` afdpart                                                                        } 
+    {43   0  0   DS         "4034"               "Delegation Signer"                        u16 key_tag         u8 algorithm       u8 digest_t   String8 digest                                                                                                               } 
+    {44   0  0   SSHFP      "4255"               "SSH Key Fingerprint"                       u8 algorithm       u8 fp_type    String8 fingerprint                                                                                                                             } 
+    {45   0  0   IPSECKEY   "4025"               "IPSECKEY"                                  u8 precedence      u8 gateway_type    u8 algorithm        `union{u32 v4; u128 v6; String8 dname;}` gateway   String8 public_key                                                  } 
+    {46   0  0   RRSIG      "4034"               "RRSIG"                                    u16 type_covered    u8 algorithm       u8 labels         u32 orig_ttl       u32 expiration     u32 inception      u16 key_tag    String8 signr_name String8 signature             } 
+    {47   0  0   NSEC       "4034"               "NSEC"                                 String8 nxt_domain String8 type_bitmap                                                                                                                                                } 
+    {48   0  0   DNSKEY     "4034"               "DNSKEY"                                   u16 flags           u8 protocol        u8 algorithm  String8 public_key                                                                                                           } 
+    {49   0  0   DHCID      "4701"               "DHCID"                                    u16 id_type_code    u8 digest_type_code              String8 digest                                                                                                               } 
+    {50   0  0   NSEC3      "5155"               "NSEC3"                                     u8 hash            u8 flags          u16 iterations      u8 salt_len   String8 salt            u8 hash_len   String8 nxt_domain String8 type_bitmap                              } 
+    {51   0  0   NSEC3PARAM "5155"               "NSEC3PARAM"                                u8 hash            u8 flags          u16 iterations      u8 salt_len   String8 salt                                                                                              } 
+    {52   0  0   TLSA       "6698"               "TLSA"                                      u8 usage           u8 selector        u8 matching_t String8 certificate                                                                                                          } 
+    {53   0  0   SMIMEA     "8162"               "S/MIME cert association"                   u8 usage           u8 selector        u8 matching_t String8 certificate                                                                                                          } 
    //54         <unassigned>
-    {55   0  0   HIP        "8005"               "Host Identity Protocol"                    u8 hit_len         u8 pub_key_alg    u16 pub_key_len                   String8 hit        String8 pub_key    String8 rendezvous_servers                                          },
-    {56   1  0   NINFO      ""                   "NINFO"                                String8 zsdata                                                                                                                                                                        },
-    {57   1  0   RKEY       ""                   "RKEY"                                     u16 flags           u8 protocol        u8 algorithm  String8 pub_key                                                                                                              },
-    {58   1  0   TALINK     ""                   "Trust Anchor LINK"                    String8 prev_name  String8 next_name                                                                                                                                                  },
-    {59   0  0   CDS        "7344"               "Child DS"                                 u16 key_tag         u8 algorithm       u8 digest_t   String8 digest                                                                                                               },
-    {60   0  0   CDNSKEY    "7344"               "DNSKEY(s) the Child wants reflected in DS" u16 flags          u8 protocol        u8 algorithm  String8 pub_key                                                                                                              },
-    {61   0  0   OPENPGPKEY "7929"               "OpenPGP Key"                          String8 pub_key                                                                                                                                                                       },
-    {62   0  0   CSYNC      "7477"               "Child-To-Parent Synchronization"          u32 serial         u16 flags      String8 type_bitmap                                                                                                                             },
-    {63   0  0   ZONEMD     "8976"               "Message Digest Over Zone Data"            u32 serial          u8 scheme          u8 hash       String8 digest                                                                                                               },
-    {64   0  0   SVCB       "9460"               "General-purpose service binding"          u16 priority   String8 target     String8 pairs                                                                                                                                   },
-    {65   0  0   HTTPS      "9460"               "SVCB-compatible type for use with HTTP"   u16 priority   String8 target     String8 pairs                                                                                                                                   },
-    {66   0  0   DSYNC      "9859"               "Endpoint discovery for delegation synchronization"           u16 type            u8 scheme         u16 port       String8 target                                                                                            },
-    {67   0  0   HHIT       "9886"               "Hierarchical Host Identity Tag"          u128 prefix         u32 hid             u8 hssi       String8 orchid_hash                                                                                                          },
+    {55   0  0   HIP        "8005"               "Host Identity Protocol"                    u8 hit_len         u8 pub_key_alg    u16 pub_key_len                   String8 hit        String8 pub_key    String8 rendezvous_servers                                          } 
+    {56   1  0   NINFO      ""                   "NINFO"                                String8 zsdata                                                                                                                                                                        } 
+    {57   1  0   RKEY       ""                   "RKEY"                                     u16 flags           u8 protocol        u8 algorithm  String8 pub_key                                                                                                              } 
+    {58   1  0   TALINK     ""                   "Trust Anchor LINK"                    String8 prev_name  String8 next_name                                                                                                                                                  } 
+    {59   0  0   CDS        "7344"               "Child DS"                                 u16 key_tag         u8 algorithm       u8 digest_t   String8 digest                                                                                                               } 
+    {60   0  0   CDNSKEY    "7344"               "DNSKEY(s) the Child wants reflected in DS" u16 flags          u8 protocol        u8 algorithm  String8 pub_key                                                                                                              } 
+    {61   0  0   OPENPGPKEY "7929"               "OpenPGP Key"                          String8 pub_key                                                                                                                                                                       } 
+    {62   0  0   CSYNC      "7477"               "Child-To-Parent Synchronization"          u32 serial         u16 flags      String8 type_bitmap                                                                                                                             } 
+    {63   0  0   ZONEMD     "8976"               "Message Digest Over Zone Data"            u32 serial          u8 scheme          u8 hash       String8 digest                                                                                                               } 
+    {64   0  0   SVCB       "9460"               "General-purpose service binding"          u16 priority   String8 target     String8 pairs                                                                                                                                   } 
+    {65   0  0   HTTPS      "9460"               "SVCB-compatible type for use with HTTP"   u16 priority   String8 target     String8 pairs                                                                                                                                   } 
+    {66   0  0   DSYNC      "9859"               "Endpoint discovery for delegation synchronization"           u16 type            u8 scheme         u16 port       String8 target                                                                                            } 
+    {67   0  0   HHIT       "9886"               "Hierarchical Host Identity Tag"          u128 prefix         u32 hid             u8 hssi       String8 orchid_hash                                                                                                          } 
    // I seriously don't know what BRID even is. There is fuck poor documentation. NOT IMPLEMENTED.
-    {68   0  0   BRID       "9886"               "UAS Broadcast Remote Identification"  String8 UNKNOWN                                                                                                                                                                       },
+    {68   0  0   BRID       "9886"               "UAS Broadcast Remote Identification"  String8 UNKNOWN                                                                                                                                                                       } 
    //69         <unassigned>
    //98         <unassigned>
-    {99   1  0   SPF        "4408,7208"          ""                                     String8 text                                                                                                                                                                          },
-    {100  1  0   UINFO      ""                   ""                                     String8 uinfo                                                                                                                                                                         },
-    {101  1  0   UID        ""                   ""                                         u32 uid;                                                                                                                                                                          },
-    {102  1  0   GID        ""                   ""                                         u32 gid;                                                                                                                                                                          },
-    {103  1  0   UNSPEC     ""                   ""                                     String8 UNKNOWN                                                                                                                                                                       },
-    {104  0  0   NID        "6742"               ""                                         u16 preference     u64 node_id                                                                                                                                                    },
-    {105  0  0   L32        "6742"               ""                                         u16 preference     u32 locator_32                                                                                                                                                 },
-    {106  0  0   L64        "6742"               ""                                         u16 preference     u64 locator_64                                                                                                                                                 },
-    {107  0  0   LP         "6742"               ""                                         u16 preference String8 fqdn                                                                                                                                                       },
-    {108  0  0   EUI48      "7043"               "an EUI-48 address"                    String8 address                                                                                                                                                                       },
-    {109  0  0   EUI64      "7043"               "an EUI-64 address"                    String8 address                                                                                                                                                                       },
+    {99   1  0   SPF        "4408,7208"          ""                                     String8 text                                                                                                                                                                          } 
+    {100  1  0   UINFO      ""                   ""                                     String8 uinfo                                                                                                                                                                         } 
+    {101  1  0   UID        ""                   ""                                         u32 uid;                                                                                                                                                                          } 
+    {102  1  0   GID        ""                   ""                                         u32 gid;                                                                                                                                                                          } 
+    {103  1  0   UNSPEC     ""                   ""                                     String8 UNKNOWN                                                                                                                                                                       } 
+    {104  0  0   NID        "6742"               ""                                         u16 preference     u64 node_id                                                                                                                                                    } 
+    {105  0  0   L32        "6742"               ""                                         u16 preference     u32 locator_32                                                                                                                                                 } 
+    {106  0  0   L64        "6742"               ""                                         u16 preference     u64 locator_64                                                                                                                                                 } 
+    {107  0  0   LP         "6742"               ""                                         u16 preference String8 fqdn                                                                                                                                                       } 
+    {108  0  0   EUI48      "7043"               "an EUI-48 address"                    String8 address                                                                                                                                                                       } 
+    {109  0  0   EUI64      "7043"               "an EUI-64 address"                    String8 address                                                                                                                                                                       } 
    //110        <unassigned>
    //127        <unassigned>
-    {128  0  0   NXNAME     "9824"               "NXDOMAIN indicator for Compact Denial of Existence" String8 EMPTY                                                                                                                                                           },
+    {128  0  0   NXNAME     "9824"               "NXDOMAIN indicator for Compact Denial of Existence" String8 EMPTY                                                                                                                                                           } 
    //129        <unassigned>
    //248        <unassigned>
-    {249  0  0   TKEY       "2930"               "Transaction Key"                      String8 algorithm      u32 inception      u32 expiration     u16 mode           u16 error          u16 key_size   String8 key            u16 other_len  String8 other_data            },
-    {250  0  0   TSIG       "2845"               "Transaction Signature"                String8 algorithm      u64 time_signed    u16 fudge          u16 mac_size   String8 mac            u16 orig_id        u16 error          u16 other_len  String8 other_data            },
-    {251  0  1   IXFR       "1995,1996"          "incremental transfer"                 String8 EMPTY                                                                                                                                                                         },
-    {252  0  1   AXFR       "1035"               "transfer of an entire zone"           String8 EMPTY                                                                                                                                                                         },
-    {253  0  1   MAILB      "883,1035,2505"      "mailbox-related RRs (MB, MG, or MR)"  String8 EMPTY                                                                                                                                                                         },
-    {254  1  1   MAILA      "883,973,1035"       "mail agent RRs (OBSOLETE - see MX)"   String8 EMPTY                                                                                                                                                                         },
-    {255  0  1   ANY        "1035"               "A request for some or all records the server has available" String8 EMPTY                                                                                                                                                   },
-    {256  0  0   URI        "7553"               "URI"                                      u16 priority       u16 weight     String8 target                                                                                                                                  },
-    {257  0  0   CAA        "8659"               "Certification Authority Restriction"       u8 flag       String8 tag        String8 value                                                                                                                                   },
-    {258  0  0   AVC        ""                   "Application Visibility and Control"   String8 text                                                                                                                                                                          },
-    {259  1  0   DOA        ""                   "Digital Object Architecture"          String8 UNKNOWN                                                                                                                                                                       },
-    {260  0  0   AMTRELAY   "8777"               "Automatic Multicast Tunneling Relay"  String8 UNKOWN                                                                                                                                                                        },
-    {261  0  0   RESINFO    "9606"               "Resolver Information as Key/Value Pairs" String8 text                                                                                                                                                                       },
-    {262  0  0   WALLET     ""                   "Public wallet address"                String8 text                                                                                                                                                                          },
-    {263  0  0   CLA        ""                   "BP Convergence Layer Adapter"         String8 text                                                                                                                                                                          },
-    {264  0  0   IPN        ""                   "BP Node Number"                           u64 node                                                                                                                                                                          },
+    {249  0  0   TKEY       "2930"               "Transaction Key"                      String8 algorithm      u32 inception      u32 expiration     u16 mode           u16 error          u16 key_size   String8 key            u16 other_len  String8 other_data            } 
+    {250  0  0   TSIG       "2845"               "Transaction Signature"                String8 algorithm      u64 time_signed    u16 fudge          u16 mac_size   String8 mac            u16 orig_id        u16 error          u16 other_len  String8 other_data            } 
+    {251  0  1   IXFR       "1995,1996"          "incremental transfer"                 String8 EMPTY                                                                                                                                                                         } 
+    {252  0  1   AXFR       "1035"               "transfer of an entire zone"           String8 EMPTY                                                                                                                                                                         } 
+    {253  0  1   MAILB      "883,1035,2505"      "mailbox-related RRs (MB, MG, or MR)"  String8 EMPTY                                                                                                                                                                         } 
+    {254  1  1   MAILA      "883,973,1035"       "mail agent RRs (OBSOLETE - see MX)"   String8 EMPTY                                                                                                                                                                         } 
+    {255  0  1   ANY        "1035"               "A request for some or all records the server has available" String8 EMPTY                                                                                                                                                   } 
+    {256  0  0   URI        "7553"               "URI"                                      u16 priority       u16 weight     String8 target                                                                                                                                  } 
+    {257  0  0   CAA        "8659"               "Certification Authority Restriction"       u8 flag       String8 tag        String8 value                                                                                                                                   } 
+    {258  0  0   AVC        ""                   "Application Visibility and Control"   String8 text                                                                                                                                                                          } 
+    {259  1  0   DOA        ""                   "Digital Object Architecture"          String8 UNKNOWN                                                                                                                                                                       } 
+    {260  0  0   AMTRELAY   "8777"               "Automatic Multicast Tunneling Relay"  String8 UNKOWN                                                                                                                                                                        } 
+    {261  0  0   RESINFO    "9606"               "Resolver Information as Key/Value Pairs" String8 text                                                                                                                                                                       } 
+    {262  0  0   WALLET     ""                   "Public wallet address"                String8 text                                                                                                                                                                          } 
+    {263  0  0   CLA        ""                   "BP Convergence Layer Adapter"         String8 text                                                                                                                                                                          } 
+    {264  0  0   IPN        ""                   "BP Node Number"                           u64 node                                                                                                                                                                          } 
    //265        <unassigned>
    //32767      <unassigned>
-    {32768 0 0   TA         ""                   "DNSSEC Trust Authorities"                 u16 key_tag         u8 algorithm       u8 digest_t   String8 digest                                                                                                               },
-    {32769 1 0   DLV        "4431,8749"          "DNSSEC Lookaside Validation"              u16 key_tag         u8 algorithm       u8 digest_t   String8 digest                                                                                                               },
+    {32768 0 0   TA         ""                   "DNSSEC Trust Authorities"                 u16 key_tag         u8 algorithm       u8 digest_t   String8 digest                                                                                                               } 
+    {32769 1 0   DLV        "4431,8749"          "DNSSEC Lookaside Validation"              u16 key_tag         u8 algorithm       u8 digest_t   String8 digest                                                                                                               } 
    //32770      <unassigned>
    //65279      <unassigned>
    //65280      <private>
@@ -218,15 +218,26 @@ DNS_TypeTable:// /           ________/          |                               
     @expand(DNS_TypeTable a) `$(a.type .. =>12) = $(a.id)`,
 }
 
-@gen(types)
+@gen(enums) // little hack to get the NULL record to compile.
 {
+    `#undef NULL`
+}
+
+@gen
+{
+    `typedef union DNS_RData DNS_RData;`
+    `union DNS_RData {`
     @expand(DNS_TypeTable a)
     ```
-typedef struct DNS_RData_$(a.type) DNS_RData_$(a.type);
-struct DNS_RData_$(a.type)
+struct
 {$(a.c_type1 != "" -> '\n' .. a.c_type1 .. ' ' .. a.name1 .. ';')$(a.c_type2 != "" -> '\n' .. a.c_type2 .. ' ' .. a.name2 .. ';')$(a.c_type3 != "" -> '\n' .. a.c_type3 .. ' ' .. a.name3 .. ';')$(a.c_type4 != "" -> '\n' .. a.c_type4 .. ' ' .. a.name4 .. ';')$(a.c_type5 != "" -> '\n' .. a.c_type5 .. ' ' .. a.name5 .. ';')$(a.c_type6 != "" -> '\n' .. a.c_type6 .. ' ' .. a.name6 .. ';')$(a.c_type7 != "" -> '\n' .. a.c_type7 .. ' ' .. a.name7 .. ';')$(a.c_type8 != "" -> '\n' .. a.c_type8 .. ' ' .. a.name8 .. ';')$(a.c_type9 != "" -> '\n' .. a.c_type9 .. ' ' .. a.name9 .. ';')
-};
- ```
+} $(a.type);```
+    `};`
+}
+
+@gen(types)
+{
+    `#define NULL ((void*)0)`
 }
 
 @enum2string_switch(DNS_Type)
@@ -279,12 +290,12 @@ dns_string_from_type:
 @table(id obsolete opcode friendly_name rfc_csv)
 DNS_OpCodeTable:
 {
-    {0    0   Query   "Query"                     "1035"},
-    {1    1   IQuery  "Inverse Query"             "1035"},
-    {2    0   Status  "Status"                    "1035"},
-    {4    0   Notify  "Notify"                    "1996"},
-    {5    0   Update  "Update"                    "2136"},
-    {6    0   DSO     "DNS Stateful Operations"   "8490"},
+    {0    0   Query   "Query"                     "1035"} 
+    {1    1   IQuery  "Inverse Query"             "1035"} 
+    {2    0   Status  "Status"                    "1035"} 
+    {4    0   Notify  "Notify"                    "1996"} 
+    {5    0   Update  "Update"                    "2136"} 
+    {6    0   DSO     "DNS Stateful Operations"   "8490"} 
 }
 
 @enum DNS_OpCode:
@@ -301,26 +312,26 @@ dns_string_from_opcode:
 @table(id obsolete rcode friendly_name rfc_csv)
 DNS_RCodeTable:
 {
-    {0    0   NoError   "No Error"                                           "1035"     },
-    {1    0   FormErr   "Format Error"                                       "1035"     },
-    {2    0   ServFail  "Server Failure"                                     "1035"     },
-    {3    0   NXDomain  "Non-Existent Domain"                                "1035"     },
-    {4    0   NotImp    "Not Implemented"                                    "1035"     },
-    {5    0   Refused   "Query Refused"                                      "1035"     },
-    {6    0   YXDomain  "Name Exists when it should not"                     "2136,6673"},
-    {7    0   YXRRSet   "RR Set Exists when it should not"                   "2136"     },
-    {8    0   NXRRSet   "RR Set that should exist does not"                  "2136"     },
-    {9    0   NotAuth   "Server Not Authoritative for zone/Not Authorized"   "2136,8945"},
-    {10   0   NotZone   "Name not contained in zone"                         "2136"     },
-    {11   0   DSOTYPENI "DSO-TYPE Not Implemented"                           "8490"     },
-    {16   0   BADSIG    "Bad OPT Version/TSIG Signature Failure"             "8945"     },
-    {17   0   BADKEY    "Key not recognized"                                 "8945"     },
-    {18   0   BADTIME   "Signature out of time window"                       "8945"     },
-    {19   0   BADMODE   "Bad TKEY Mode"                                      "2930"     },
-    {20   0   BADNAME   "Duplicate key name"                                 "2930"     },
-    {21   0   BADALG    "Algorithm not supported"                            "2930"     },
-    {22   0   BADTRUNC  "Bad Truncation"                                     "8945"     },
-    {23   0   BADCOOKIE "Bad/missing Server Cookie"                          "7873"     },
+    {0    0   NoError   "No Error"                                           "1035"     } 
+    {1    0   FormErr   "Format Error"                                       "1035"     } 
+    {2    0   ServFail  "Server Failure"                                     "1035"     } 
+    {3    0   NXDomain  "Non-Existent Domain"                                "1035"     } 
+    {4    0   NotImp    "Not Implemented"                                    "1035"     } 
+    {5    0   Refused   "Query Refused"                                      "1035"     } 
+    {6    0   YXDomain  "Name Exists when it should not"                     "2136,6673"} 
+    {7    0   YXRRSet   "RR Set Exists when it should not"                   "2136"     } 
+    {8    0   NXRRSet   "RR Set that should exist does not"                  "2136"     } 
+    {9    0   NotAuth   "Server Not Authoritative for zone/Not Authorized"   "2136,8945"} 
+    {10   0   NotZone   "Name not contained in zone"                         "2136"     } 
+    {11   0   DSOTYPENI "DSO-TYPE Not Implemented"                           "8490"     } 
+    {16   0   BADSIG    "Bad OPT Version/TSIG Signature Failure"             "8945"     } 
+    {17   0   BADKEY    "Key not recognized"                                 "8945"     } 
+    {18   0   BADTIME   "Signature out of time window"                       "8945"     } 
+    {19   0   BADMODE   "Bad TKEY Mode"                                      "2930"     } 
+    {20   0   BADNAME   "Duplicate key name"                                 "2930"     } 
+    {21   0   BADALG    "Algorithm not supported"                            "2930"     } 
+    {22   0   BADTRUNC  "Bad Truncation"                                     "8945"     } 
+    {23   0   BADCOOKIE "Bad/missing Server Cookie"                          "7873"     } 
 }
 
 @enum DNS_RCode:
@@ -337,19 +348,19 @@ dns_string_from_rcode:
 @table(id dname addr4 addr6 operator)
 DNS_RootServerTable:
 {
-    {A "a.root-servers.net" "198.41.0.4"     "2001:503:ba3e::2:30" "Verisign, Inc."},
-    {B "b.root-servers.net" "170.247.170.2"  "2801:1b8:10::b"   "University of Southern California, Information Sciences Institutde"},
-    {C "c.root-servers.net" "192.33.4.12"    "2001:500:2::c"       "Cogent Communications"},
-    {D "d.root-servers.net" "199.7.91.13"    "2001:500:2d::d"      "University of Maryland"},
-    {E "e.root-servers.net" "192.203.230.10" "2001:500:a8::e"      "NASA (Ames Research Center)"},
-    {F "f.root-servers.net" "192.5.5.241"    "2001:500:2f::f"      "Internet Systems Consortium, Inc."},
-    {G "g.root-servers.net" "192.112.36.4"   "2001:500:12::d0d"    "US Department of Defense (NIC)"},
-    {H "h.root-servers.net" "198.97.190.53"  "2001:500:1::53"      "US Army (Research Lab)"},
-    {I "i.root-servers.net" "192.36.148.17"  "2001:7fe::53"        "Netnod"},
-    {J "j.root-servers.net" "192.58.128.30"  "2001:503:c27::2:30"  "Verisign, Inc."},
-    {K "k.root-servers.net" "193.0.14.129"   "2001:7fd::1"         "RIPE NCC"},
-    {L "l.root-servers.net" "199.7.83.42"    "2001:500:9f::42"     "ICANN"},
-    {M "m.root-servers.net" "202.12.27.33"   "2001:dc3::35"        "WIDE Project"},
+    {A "a.root-servers.net" "198.41.0.4"     "2001:503:ba3e::2:30" "Verisign, Inc."                                                     } 
+    {B "b.root-servers.net" "170.247.170.2"  "2801:1b8:10::b"      "University of Southern California, Information Sciences Institutde" } 
+    {C "c.root-servers.net" "192.33.4.12"    "2001:500:2::c"       "Cogent Communications"                                              }
+    {D "d.root-servers.net" "199.7.91.13"    "2001:500:2d::d"      "University of Maryland"                                             }
+    {E "e.root-servers.net" "192.203.230.10" "2001:500:a8::e"      "NASA (Ames Research Center)"                                        }
+    {F "f.root-servers.net" "192.5.5.241"    "2001:500:2f::f"      "Internet Systems Consortium, Inc."                                  } 
+    {G "g.root-servers.net" "192.112.36.4"   "2001:500:12::d0d"    "US Department of Defense (NIC)"                                     } 
+    {H "h.root-servers.net" "198.97.190.53"  "2001:500:1::53"      "US Army (Research Lab)"                                             } 
+    {I "i.root-servers.net" "192.36.148.17"  "2001:7fe::53"        "Netnod"                                                             } 
+    {J "j.root-servers.net" "192.58.128.30"  "2001:503:c27::2:30"  "Verisign, Inc."                                                     } 
+    {K "k.root-servers.net" "193.0.14.129"   "2001:7fd::1"         "RIPE NCC"                                                           } 
+    {L "l.root-servers.net" "199.7.83.42"    "2001:500:9f::42"     "ICANN"                                                              } 
+    {M "m.root-servers.net" "202.12.27.33"   "2001:dc3::35"        "WIDE Project"                                                       } 
 }
 
 @enum DNS_RootServer:

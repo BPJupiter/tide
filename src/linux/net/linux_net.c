@@ -188,7 +188,6 @@ internal NET_Client net_listener_accept(Arena *arena, NET_Listener listener)
                 // This is yuck and currently creates a dummy socket that we have to release.
                 // Might be worth duplicating the logic of net_client_alloc
                 // if this ends up being a lot of overhead.
-                NET_Client client = net_client_alloc(arena, listener.family, listener.protocol);
                 net_socket_release(client.socket);
                 client.socket = accept_socket;
                 lnx_sockaddr_storage_to_net_address(&client.address, &storage);
@@ -285,7 +284,7 @@ internal s64 net_client_send_raw(NET_Client *client, u32 size, void *data)
                 result = -1;
             }
             else if (n != size) {
-                perror("sendto");
+                // truncation branch
                 // @TODO: Error handling
                 //        this should only happen if the message is truncated,
                 //        which theoretically shouldn't happen.
@@ -304,35 +303,21 @@ internal s64 net_client_send_raw(NET_Client *client, u32 size, void *data)
 internal s64 net_client_recv_raw(NET_Client *client, u32 size, void *out)
 {
     s64 result = -1;
+    LNX_Entity *entity = (LNX_Entity *)PtrFromInt(client->socket.u64[0]);
 
     switch (client->protocol)
     {
         case NET_TransportProtocol_TCP: {
-            LNX_Entity *entity = (LNX_Entity *)PtrFromInt(client->socket.u64[0]);
-            u64 total = 0;
-            u64 remaining = size;
-            s64 n = 0;
-
-            while (total < size) {
-                n = recv(entity->socket, (u8 *)out + total, remaining, 0);
-                if (0 == n) {
-                    // peer closed the connection
-                    break;
-                }
-                else if (-1 == n) {
-                    perror("recv");
-                    result = -1;
-                    break;
-                }
-                total += n;
-                remaining -= n;
+            int n = recv(entity->socket, (u8 *)out, (int)size, 0);
+            if (0 == n) {
+                // peer closed the connection
             }
-            if (-1 != n) {
-                result = total;
+            else if (-1 == n) {
+                perror("recv");
             }
+            result = (s64)n;
         } break;
         case NET_TransportProtocol_UDP: {
-            LNX_Entity *entity = (LNX_Entity *)PtrFromInt(client->socket.u64[0]);
             struct sockaddr_storage from = {0};
             socklen_t fromsize = sizeof(from);
 
