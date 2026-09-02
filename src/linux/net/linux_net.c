@@ -173,6 +173,7 @@ internal NET_Client net_listener_accept(Arena *arena, NET_Listener listener)
 
     switch (listener.protocol)
     {
+        default:{}break;
         case NET_TransportProtocol_TCP: {
             {
                 LNX_Entity *listen_entity = (LNX_Entity *)PtrFromInt(listener.socket.u64[0]);

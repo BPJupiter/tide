@@ -167,7 +167,7 @@ internal bool32 dns_pack_msg(Ring *ring, DNS_Msg *msg)
     u16 id = host_to_net_u16(msg->header.id);
     result &= ring_try_write_struct(ring, &id);
 
-    u16 bits = (u16)msg->header.opcode << 11 | (u16)msg->header.rcode & 0xF;
+    u16 bits = (u16)msg->header.opcode << 11 | ((u16)msg->header.rcode & 0xF);
     if (msg->header.query_response)      bits |= _QR;
     if (msg->header.authoritative)       bits |= _AA;
     if (msg->header.truncated)           bits |= _TC;

@@ -90,6 +90,7 @@ internal DNS_Client dns_client_alloc(Arena *arena, NET_AddressFamily family, DNS
     NET_TransportProtocol ipproto = 0;
     switch (protocol)
     {
+        default:{}break;
         case DNS_TransportProtocol_TLS:
         case DNS_TransportProtocol_HTTPS:
         case DNS_TransportProtocol_TCP: {
@@ -190,6 +191,7 @@ internal DNS_Server dns_server_alloc(NET_AddressFamily family, DNS_TransportProt
     NET_TransportProtocol ipproto = 0;
     switch (protocol)
     {
+        default:{}break;
         case DNS_TransportProtocol_TLS:
         case DNS_TransportProtocol_HTTPS:
         case DNS_TransportProtocol_TCP: {

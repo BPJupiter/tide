@@ -182,7 +182,8 @@ internal bool32 net_str8_to_address(NET_Address *out, String8 string)
     NET_Address result = {0};
     Temp scratch = scratch_begin(0, 0);
 
-    bool32 ip_ok, port_ok = false;
+    bool32 ip_ok = false;
+    bool32 port_ok = false;
 
     if (string.size > 0) {
         String8_List parts1 = str8_split(scratch.arena, string, (u8 *)"[]", 2, StringSplitFlag_KeepEmpties);
@@ -221,4 +222,8 @@ internal bool32 net_str8_to_address(NET_Address *out, String8 string)
 
 internal String8 net_address_to_str8(Arena *arena, NET_Address address)
 {
+    String8 result = {0};
+    NOTIMPL_WARNING(net_address_to_str8);
+    // TODO
+    return result;
 }
