@@ -17,6 +17,7 @@ global bool32 supported_dns_types[1ULL << 16] = {
     [DNS_Type_NS]    = true,
     [DNS_Type_CNAME] = true,
     [DNS_Type_SOA]   = true,
+    [DNS_Type_PTR]   = true,
     [DNS_Type_AAAA]  = true,
 };
 

@@ -53,7 +53,8 @@ internal void bdns_test(void)
 
 internal void bdns_g01(bool32 no_vuln)
 {
-    /* glibc */
+    // glibc
+    // CVE-2023-4527
     /* we must send UDP response with the TC (truncated) flag set.
      * when the client retries over TCP, send a response larger than 2048 bytes. */
     
@@ -169,28 +170,50 @@ internal void bdns_g01(bool32 no_vuln)
 
 internal void bdns_g02(bool32 no_vuln)
 {
+    // glibc
+    // CVE-2026-4437
     printf("g02\n");
+    Temp scratch = scratch_begin(0, 0);
+
+    
+    
+    scratch_end(scratch);
 }
 
 internal void bdns_g03(bool32 no_vuln)
 {
+    // glibc
+    // CVE-2026-4438
     printf("g03\n");
+    Temp scratch = scratch_begin(0, 0);
+
+    scratch_end(scratch);
 }
 
 internal void bdns_c01(bool32 no_vuln)
 {
+    // c-ares
+    // CVE-2026-33630
     printf("c01\n");
+    Temp scratch = scratch_begin(0, 0);
+
+    scratch_end(scratch);
 }
 
 internal void bdns_c02(bool32 no_vuln)
 {
+    // c-ares
+    // CVE-2025-62408
     printf("c02\n");
+    Temp scratch = scratch_begin(0, 0);
+
+    scratch_end(scratch);
 }
 
 internal void bdns_d01(bool32 no_vuln)
 {
-    /* dnspython */
-    /* UDP only */
+    // dnspython
+    // CVE-2023-29483
     printf("d01 : 127.0.0.1:%hu\n", LISTENING_PORT);
     Temp scratch = scratch_begin(0, 0);
 
@@ -233,7 +256,12 @@ internal void bdns_d01(bool32 no_vuln)
 
 internal void bdns_go1(bool32 no_vuln)
 {
+    // golang
+    // CVE-2024-24788
     printf("go1\n");
+    Temp scratch = scratch_begin(0, 0);
+
+    scratch_end(scratch);
 }
 
 internal void bdns_help(void)

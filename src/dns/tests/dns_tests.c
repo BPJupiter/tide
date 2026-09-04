@@ -55,6 +55,7 @@ Test(stub_client_exchange_with_address)
     DNS_Type types[] = {
         DNS_Type_A,
         DNS_Type_AAAA,
+        DNS_Type_PTR,
     };
     for (u64 p = 0; p < ArrayCount(protocols); p += 1)
     {
@@ -72,6 +73,8 @@ Test(stub_client_exchange_with_address)
             DNS_Msg response = dns_client_exchange_with_address(scratch.arena, client, msg, address);
             
             T_Ok(msg.header.id == response.header.id);
+            fprintf(stderr, "%.*s\n", str8_varg(dns_string_from_type(type)));
+            print_msg_data(&response);
             
             for (u64 i = 0; i < response.header.answer_count; i++) {
                 T_Ok(response.answer[i].type == type);
