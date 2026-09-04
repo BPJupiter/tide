@@ -32,7 +32,7 @@ internal DNS_Msg dns_msg_alloc(Arena *arena, String8 domain, DNS_Type type)
     msg.header.recursion_desired = true;
     msg.header.question_count = 1;
     msg.question = push_array(arena, DNS_RR, 1);
-    msg.question[0].name = str8_to_fqdn(arena, domain);
+    msg.question[0].name = dns_fqdn_from_string(arena, domain);
     msg.question[0].class = DNS_Class_IN;
     msg.question[0].type = type;
     return msg;
@@ -127,8 +127,6 @@ internal DNS_Msg dns_client_exchange(Arena *arena, DNS_Client client, DNS_Msg ms
 
 internal DNS_Msg dns_client_exchange_with_address(Arena *arena, DNS_Client client, DNS_Msg msg, NET_Address address)
 {
-    // @Cleanup: make this not have 1 million dns_protocol checks.
-    //           probably dispatch instead.
     DNS_Msg result = {0};
     bool32 ok = true;
 
@@ -138,13 +136,10 @@ internal DNS_Msg dns_client_exchange_with_address(Arena *arena, DNS_Client clien
         case DNS_TransportProtocol_UDP: {
             {
                 client.dialer.address = address;
-                ok = dns_pack_msg(client.dialer.send_buffer, &msg);
-                if (!ok) goto end;
-                ok = net_client_send_from_ring(&client.dialer);
-                if (!ok) goto end;
-                ok = net_client_recv_to_ring(&client.dialer);
-                if (!ok) goto end;
-                ok = dns_unpack_msg(arena, client.dialer.recv_buffer, &result);
+                ok &= dns_pack_msg(client.dialer.send_buffer, &msg);
+                ok &= net_client_send_from_ring(&client.dialer);
+                ok &= net_client_recv_to_ring(&client.dialer);
+                ok &= dns_unpack_msg(arena, client.dialer.recv_buffer, &result);
             }
         } break;
         case DNS_TransportProtocol_TCP: {
@@ -152,26 +147,20 @@ internal DNS_Msg dns_client_exchange_with_address(Arena *arena, DNS_Client clien
                 net_client_connect(client.dialer, address);
                 u64 length64 = dns_msg_wire_length(&msg);
                 u16 length16 = host_to_net_u16(safe_cast_u16(safe_cast_u32(length64)));
-                ok = ring_try_write_struct(client.dialer.send_buffer, &length16);
-                if (!ok) goto end;
-                ok = dns_pack_msg(client.dialer.send_buffer, &msg);
-                if (!ok) goto end;
-                ok = net_client_send_from_ring(&client.dialer);
-                if (!ok) goto end;
-                ok = net_client_recv_to_ring(&client.dialer);
-                if (!ok) goto end;
+                ok &= ring_try_write_struct(client.dialer.send_buffer, &length16);
+                ok &= dns_pack_msg(client.dialer.send_buffer, &msg);
+                ok &= net_client_send_from_ring(&client.dialer);
+                ok &= net_client_recv_to_ring(&client.dialer);
                 u16 unpacklen = 0;
-                ok = ring_try_read_struct(client.dialer.recv_buffer, &unpacklen);
+                ok &= ring_try_read_struct(client.dialer.recv_buffer, &unpacklen);
                 unpacklen = net_to_host_u16(unpacklen);
-                if (!ok) goto end;
                 u16 unread = ring_peek_unread_quantity(client.dialer.recv_buffer);
-                ok = dns_unpack_msg(arena, client.dialer.recv_buffer, &result);
-                ok = (unpacklen == unread);
+                ok &= dns_unpack_msg(arena, client.dialer.recv_buffer, &result);
+                ok &= (unpacklen == unread);
             }
         } break;
     }
 
- end:;
     if (!ok)
     {
         MemoryZeroStruct(&result);
@@ -252,33 +241,33 @@ internal void dns_server_shutdown_and_release(DNS_Server *server)
 ////////////////////
 // Utility Functions
 
-internal String8 str8_to_fqdn(Arena *arena, String8 s)
+internal String8 dns_fqdn_from_string(Arena *arena, String8 s)
 {
-    if (!str8_is_fqdn(s)) {
+    if (!dns_string_is_fqdn(s)) {
         s = str8_cat(arena, s, str8_lit("."));
     }
     return str8_copy(arena, s);
 }
 
-internal bool32 str8_is_fqdn(String8 s)
+internal bool32 dns_string_is_fqdn(String8 s)
 {
     return str8_ends_with(s, str8_lit("."), 0);
 }
 
-internal String8 str8_to_canonical(Arena *arena, String8 s)
+internal String8 dns_canonical_from_string(Arena *arena, String8 s)
 {
     Temp scratch = scratch_begin(&arena, 1);
     s = lower_from_str8(scratch.arena, s);
-    String8 result = str8_to_fqdn(arena, s);
+    String8 result = dns_fqdn_from_string(arena, s);
     scratch_end(scratch);
     return result;
 }
 
-internal String8 str8_to_name_labels(Arena *arena, String8 s)
+internal String8 dns_name_labels_from_string(Arena *arena, String8 s)
 {
     Temp scratch = scratch_begin(&arena, 1);
 
-    s = str8_to_canonical(scratch.arena, s);
+    s = dns_canonical_from_string(scratch.arena, s);
 
     u64 out_cap = s.size + 1;
     u8 *out = push_array(arena, u8, out_cap);
@@ -324,7 +313,7 @@ internal String8 str8_to_name_labels(Arena *arena, String8 s)
     return result;
 }
 
-internal bool32 str8_is_name_labels(String8 s)
+internal bool32 dns_string_is_name_labels(String8 s)
 {
     bool32 result = true;
     const u64 msg_len = 256;
@@ -361,6 +350,31 @@ internal bool32 str8_is_name_labels(String8 s)
         }
     }
 
+    return result;
+}
+
+internal String8 dns_inverse_query_name_from_address(Arena *arena, NET_Address address)
+{
+    Temp scratch = scratch_begin(&arena, 1);
+    String8 result = {0};
+    
+    switch (address.family)
+    {
+        default:{}break;
+        case NET_AddressFamily_IPv4: {
+            {
+                u32 rev_ip = bswap_u32(address.ip.v4);
+                String8 ip_str = net_string_from_ipv4(scratch.arena, rev_ip);
+                result = str8_cat(arena, ip_str, s(".in-addr.arpa"));
+            }
+        } break;
+        case NET_AddressFamily_IPv6: {
+            {
+            }
+        } break;
+    }
+    
+    scratch_end(scratch);
     return result;
 }
 
@@ -462,7 +476,7 @@ internal bool32 dns_is_blocked_on_this_network(DNS_TransportProtocol protocol)
     for (u64 i = 0; i < DNS_RootServer_COUNT; i++) {
         DNS_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("www.example.org"), DNS_Type_A);
         NET_Address address;
-        (void)net_str8_to_address(&address, str8_cat(scratch.arena, dns_dname_of_root_server(i), str8_lit(":53")));
+        (void)net_address_from_string(&address, str8_cat(scratch.arena, dns_dname_of_root_server(i), str8_lit(":53")));
         bool32 ok = dns_pack_msg(udp_client.dialer.send_buffer, &msg);
         ok &= dns_pack_msg(tcp_client.dialer.send_buffer, &msg);
     }

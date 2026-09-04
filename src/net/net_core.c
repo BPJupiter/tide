@@ -1,5 +1,5 @@
 
-internal bool32 net_str8_to_ipv4(u32 *out, String8 string)
+internal bool32 net_ipv4_from_string(u32 *out, String8 string)
 {
     bool32 result = false;
     u32 address = 0;
@@ -46,7 +46,7 @@ internal bool32 net__ipv6_group_is_valid(String8 group)
     return (group.size >= 1 && group.size <= 4 && str8_is_integer(group, 16));
 }
 
-internal bool32 net_str8_to_ipv6(u128 *out, String8 string)
+internal bool32 net_ipv6_from_string(u128 *out, String8 string)
 {
     bool32 ok = true;
     u128 address = {0};
@@ -83,7 +83,7 @@ internal bool32 net_str8_to_ipv6(u128 *out, String8 string)
 
             // the final group of the address may be an embedded ipv4 literal
             String8_Node *last_node = has_dc ? right_groups.last : left_groups.last;
-            bool32 last_is_ipv4 = (last_node != 0) && net_str8_to_ipv4(0, last_node->string);
+            bool32 last_is_ipv4 = (last_node != 0) && net_ipv4_from_string(0, last_node->string);
             // NOTE: embedded ipv4 is two hextets but shows up as one node.
             u64 num_hextets = left_groups.node_count + right_groups.node_count + (last_is_ipv4 ? 1 : 0);
 
@@ -105,7 +105,7 @@ internal bool32 net_str8_to_ipv6(u128 *out, String8 string)
                             ok = false;
                         }
                         else {
-                            net_str8_to_ipv4(&address.u32[0], group);
+                            net_ipv4_from_string(&address.u32[0], group);
                             i += 2;
                         }
                     }
@@ -131,7 +131,7 @@ internal bool32 net_str8_to_ipv6(u128 *out, String8 string)
                             ok = false;
                         }
                         else {
-                            net_str8_to_ipv4(&address.u32[0], group);
+                            net_ipv4_from_string(&address.u32[0], group);
                             i += 2;
                         }
                     }
@@ -163,21 +163,21 @@ internal bool32 net_str8_to_ipv6(u128 *out, String8 string)
     return ok;
 }
 
-internal String8 net_ipv4_to_str8(Arena *arena, u32 ip)
+internal String8 net_string_from_ipv4(Arena *arena, u32 ip)
 {
     u8 *ptr = (u8 *)&ip;
     String8 result = str8f(arena, "%d.%d.%d.%d", ptr[3], ptr[2], ptr[1], ptr[0]);
     return result;
 }
 
-internal String8 net_ipv6_to_str8(Arena *arena, u128 ip)
+internal String8 net_string_from_ipv6(Arena *arena, u128 ip)
 {
     String8 result = str8f(arena, "%x:%x:%x:%x:%x:%x:%x:%x",
                            ip.u16[7], ip.u16[6], ip.u16[5], ip.u16[4], ip.u16[3], ip.u16[2], ip.u16[1], ip.u16[0]);
     return result;
 }
 
-internal bool32 net_str8_to_address(NET_Address *out, String8 string)
+internal bool32 net_address_from_string(NET_Address *out, String8 string)
 {
     NET_Address result = {0};
     Temp scratch = scratch_begin(0, 0);
@@ -189,26 +189,22 @@ internal bool32 net_str8_to_address(NET_Address *out, String8 string)
         String8_List parts1 = str8_split(scratch.arena, string, (u8 *)"[]", 2, StringSplitFlag_KeepEmpties);
         String8_List parts2 = str8_split(scratch.arena, parts1.last->string, (u8 *)":", 1, StringSplitFlag_KeepEmpties);
         if (parts1.node_count == 1 && parts2.node_count == 2) {
-            ip_ok = net_str8_to_ipv4(&result.ip.v4, parts2.first->string);
+            ip_ok = net_ipv4_from_string(&result.ip.v4, parts2.first->string);
             result.ip._padding[10] = 0xFF;
             result.ip._padding[11] = 0xFF;
             s64 port = s64_from_str8(parts2.last->string, 10);
             port_ok = (port >= 0 && port <= max_u16);
 
-            if (ip_ok && port_ok) {
-                result.family = NET_AddressFamily_IPv4;
-                result.port = (u16)port;
-            }
+            if (ip_ok)   {result.family = NET_AddressFamily_IPv4;}
+            if (port_ok) {result.port   = (u16)port;}
         }
         else if (parts1.node_count == 3 && parts2.node_count == 2) {
-            ip_ok = net_str8_to_ipv6(&result.ip.v6, parts1.first->next->string);
+            ip_ok = net_ipv6_from_string(&result.ip.v6, parts1.first->next->string);
             s64 port = s64_from_str8(parts2.last->string, 10);
             port_ok = (port >= 0 && port <= max_u16);
-        
-            if (ip_ok && port_ok) {
-                result.family = NET_AddressFamily_IPv6;
-                result.port = (u16)port;
-            }
+
+            if (ip_ok)   {result.family = NET_AddressFamily_IPv6;}
+            if (port_ok) {result.port   = (u16)port;}
         }
     }
 
@@ -220,10 +216,10 @@ internal bool32 net_str8_to_address(NET_Address *out, String8 string)
     return ip_ok && port_ok;
 }
 
-internal String8 net_address_to_str8(Arena *arena, NET_Address address)
+internal String8 net_string_from_address(Arena *arena, NET_Address address)
 {
     String8 result = {0};
-    NOTIMPL_WARNING(net_address_to_str8);
+    NOTIMPL_WARNING(net_string_from_address);
     // TODO
     return result;
 }

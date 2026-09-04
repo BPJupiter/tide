@@ -12,16 +12,16 @@ internal bool32 dns_pack_rdata(Ring *ring, DNS_RR *rr)
             result &= ring_try_write_struct(ring, &addr);
         } break;
         case DNS_Type_NS: {
-            String8 ns = str8_to_name_labels(scratch.arena, rr->rdata.NS.ns);
+            String8 ns = dns_name_labels_from_string(scratch.arena, rr->rdata.NS.ns);
             result &= ring_try_write(ring, ns.size, ns.str);
         } break;
         case DNS_Type_CNAME: {
-            String8 cname = str8_to_name_labels(scratch.arena, rr->rdata.CNAME.target);
+            String8 cname = dns_name_labels_from_string(scratch.arena, rr->rdata.CNAME.target);
             result &= ring_try_write(ring, cname.size, cname.str);
         } break;
         case DNS_Type_SOA: {
-            String8 mname = str8_to_name_labels(scratch.arena, rr->rdata.SOA.master_name);
-            String8 rname = str8_to_name_labels(scratch.arena, rr->rdata.SOA.responsible_name);
+            String8 mname = dns_name_labels_from_string(scratch.arena, rr->rdata.SOA.master_name);
+            String8 rname = dns_name_labels_from_string(scratch.arena, rr->rdata.SOA.responsible_name);
             u32 serial  = host_to_net_u32(rr->rdata.SOA.serial);
             u32 refresh = host_to_net_u32(rr->rdata.SOA.refresh);
             u32 retry   = host_to_net_u32(rr->rdata.SOA.retry);
@@ -34,6 +34,10 @@ internal bool32 dns_pack_rdata(Ring *ring, DNS_RR *rr)
             result &= ring_try_write_struct(ring, &retry);
             result &= ring_try_write_struct(ring, &expire);
             result &= ring_try_write_struct(ring, &minimum);
+        } break;
+        case DNS_Type_PTR: {
+            String8 ptrdname = dns_name_labels_from_string(scratch.arena, rr->rdata.PTR.ptrdname);
+            result &= ring_try_write(ring, ptrdname.size, ptrdname.str);
         } break;
         case DNS_Type_AAAA: {
             u128 addr = host_to_net_u128(rr->rdata.AAAA.addr);
@@ -69,7 +73,7 @@ internal bool32 dns_pack_question(Ring *ring, DNS_RR *rr)
     bool32 result = true;
     Temp scratch = scratch_begin(0, 0);
 
-    String8 name = str8_to_name_labels(scratch.arena, rr->name);
+    String8 name = dns_name_labels_from_string(scratch.arena, rr->name);
     u16 qtype = host_to_net_u16(rr->type);
     u16 qclass = host_to_net_u16(rr->class);
     
@@ -110,7 +114,7 @@ internal bool32 dns_pack_rr(Ring *ring, DNS_RR *rr)
     bool32 result = true;
     Temp scratch = scratch_begin(0, 0);
 
-    String8 name = str8_to_name_labels(scratch.arena, rr->name);
+    String8 name = dns_name_labels_from_string(scratch.arena, rr->name);
     u16 type =  host_to_net_u16(rr->type);
     u16 class = host_to_net_u16(rr->class);
     u32 ttl =   host_to_net_u32(rr->ttl);
@@ -329,6 +333,9 @@ internal bool32 dns_unpack_rdata(Arena *arena, Ring *ring, DNS_RR *rr, u16 rdlen
             rr->rdata.SOA.retry   = net_to_host_u32(retry);
             rr->rdata.SOA.expire  = net_to_host_u32(expire);
             rr->rdata.SOA.minimum = net_to_host_u32(minimum);
+        } break;
+        case DNS_Type_PTR: {
+            result &= dns_unpack_labels(arena, ring, &rr->rdata.PTR.ptrdname);
         } break;
         case DNS_Type_AAAA: {
             u128 addr;

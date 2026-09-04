@@ -5,6 +5,7 @@
 // Includes
 
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #include <ws2ipdef.h>
 #include <mswsock.h>
 #include <iphlpapi.h>

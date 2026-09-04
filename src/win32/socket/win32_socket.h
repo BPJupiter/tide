@@ -4,8 +4,8 @@
 #ifndef WIN32_SOCKET_H
 #define WIN32_SOCKET_H
 
-#include <ws2tcpip.h>
-#pragma comment(lib, "ws2_32")
+//#include <ws2tcpip.h>
+//#pragma comment(lib, "ws2_32")
 
 typedef struct W32_SOCK_Connection W32_SOCK_Connection;
 struct W32_SOCK_Connection

@@ -75,16 +75,16 @@ Test(str8_ipv4_strings)
  
     // Test invalid
     for (u64 i = 0; i < ArrayCount(invalid_seeds); i++) {
-        T_Ok(!net_str8_to_ipv4(0, invalid_seeds[i]));
+        T_Ok(!net_ipv4_from_string(0, invalid_seeds[i]));
     }
 
     // Test valid
     for (u64 i = 0; i < ArrayCount(valid_seeds); i++) {
         u32 ip = 0;
-        T_Ok(net_str8_to_ipv4(&ip, valid_seeds[i]));
+        T_Ok(net_ipv4_from_string(&ip, valid_seeds[i]));
         T_Ok(seed_to_u32[i] == ip);
 
-        String8 string = net_ipv4_to_str8(scratch.arena, seed_to_u32[i]);
+        String8 string = net_string_from_ipv4(scratch.arena, seed_to_u32[i]);
         T_Ok(str8_match(valid_seeds[i], string, 0));
     }
     scratch_end(scratch);
@@ -180,18 +180,18 @@ Test(str8_ipv6_strings)
 
     // Test invalid
     for (u64 i = 0; i < ArrayCount(invalid_seeds); i++) {
-        T_Ok(!net_str8_to_ipv6(0, invalid_seeds[i]));
+        T_Ok(!net_ipv6_from_string(0, invalid_seeds[i]));
     }
 
     // Test valid
     for (u64 i = 0; i < ArrayCount(valid_seeds); i++) {
         u128 ip = {0};
-        T_Ok(net_str8_to_ipv6(&ip, valid_seeds[i]));
+        T_Ok(net_ipv6_from_string(&ip, valid_seeds[i]));
         T_Ok(u128_match(ip, seed_to_u128[i]));
 
-        String8 string = net_ipv6_to_str8(scratch.arena, seed_to_u128[i]);
+        String8 string = net_string_from_ipv6(scratch.arena, seed_to_u128[i]);
         
-        T_Ok(net_str8_to_ipv6(&ip, string));
+        T_Ok(net_ipv6_from_string(&ip, string));
         T_Ok(u128_match(ip, seed_to_u128[i]));
     }
 
@@ -234,7 +234,7 @@ Test(str8_to_address)
 
     for (u64 i = 0; i < ArrayCount(valid_seeds); i++) {
         NET_Address result = {0};
-        T_Ok(net_str8_to_address(&result, valid_seeds[i]));
+        T_Ok(net_address_from_string(&result, valid_seeds[i]));
         T_Ok(MemoryMatchStruct(&result, &seed_to_struct[i]));
     }
 
@@ -289,7 +289,7 @@ Test(str8_to_address)
     };
 
     for (u64 i = 0; i < ArrayCount(invalid_seeds); i++) {
-        T_Ok(!net_str8_to_address(0, invalid_seeds[i]));
+        T_Ok(!net_address_from_string(0, invalid_seeds[i]));
     }
     scratch_end(scratch);
 }
@@ -317,7 +317,7 @@ Test(connect_to_server)
                                    "\r\n");
 
         NET_Address target;
-        T_Ok(net_str8_to_address(&target, str8_lit("8.8.8.8:443")));
+        T_Ok(net_address_from_string(&target, str8_lit("8.8.8.8:443")));
         NET_Client conn = net_client_alloc(scratch.arena,
                                            target.family,
                                            NET_TransportProtocol_TCP);

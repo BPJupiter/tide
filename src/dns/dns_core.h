@@ -151,11 +151,13 @@ internal void       dns_server_shutdown_and_release(DNS_Server *server); // TODO
 ///////////////////////
 // Utility Functions
 
-internal String8 str8_to_fqdn(Arena *arena, String8 s);
-internal bool32  str8_is_fqdn(String8 s);
-internal String8 str8_to_canonical(Arena *arena, String8 s);
-internal String8 str8_to_name_labels(Arena *arena, String8 s);
-internal bool32  str8_is_name_labels(String8 s);
+internal String8 dns_fqdn_from_string(Arena *arena, String8 s);
+internal bool32  dns_string_is_fqdn(String8 s);
+internal String8 dns_canonical_from_string(Arena *arena, String8 s);
+internal String8 dns_name_labels_from_string(Arena *arena, String8 s);
+internal bool32  dns_string_is_name_labels(String8 s);
+
+internal String8 dns_inverse_query_name_from_address(Arena *arena, NET_Address address);
 
 //////////////////
 // Wire Lengths

@@ -90,12 +90,12 @@ struct NET_Client {
 ///////////////////////////////
 // String <-> Binary Formats
 
-internal bool32  net_str8_to_ipv4(u32 *out, String8 s);
-internal bool32  net_str8_to_ipv6(u128 *out, String8 s);
-internal String8 net_ipv4_to_str8(Arena *arena, u32 ip);
-internal String8 net_ipv6_to_str8(Arena *arena, u128 ip);
-internal bool32  net_str8_to_address(NET_Address *out, String8 s);
-internal String8 net_address_to_str8(Arena *arena, NET_Address address);
+internal bool32  net_ipv4_from_string(u32 *out, String8 s);
+internal bool32  net_ipv6_from_string(u128 *out, String8 s);
+internal String8 net_string_from_ipv4(Arena *arena, u32 ip);
+internal String8 net_string_from_ipv6(Arena *arena, u128 ip);
+internal bool32  net_address_from_string(NET_Address *out, String8 s);
+internal String8 net_string_from_address(Arena *arena, NET_Address address);
 
 /////////////////////////////////////
 // @per_os_impl NETworking Primitives

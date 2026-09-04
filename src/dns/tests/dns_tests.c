@@ -5,7 +5,7 @@ Test(get_local_dns)
 
     String8_List local_dns_addresses = dns_get_local_nameservers(scratch.arena);
     for (String8_Node *n = local_dns_addresses.first; n != 0; n = n->next) {
-        T_Ok(net_str8_to_ipv4(0, n->string) || net_str8_to_ipv6(0, n->string));
+        T_Ok(net_ipv4_from_string(0, n->string) || net_ipv6_from_string(0, n->string));
         //printf("%.*s\n", str8_varg(n->string));
     }
 
@@ -22,8 +22,11 @@ internal void print_msg_data(DNS_Msg *msg)
     for (u64 i = 0; i < msg->header.answer_count; i++) {
         switch (msg->answer[i].type) {
             case DNS_Type_A: {   
-                String8 ip = net_ipv4_to_str8(scratch.arena, msg->answer[i].rdata.A.addr);
+                String8 ip = net_string_from_ipv4(scratch.arena, msg->answer[i].rdata.A.addr);
                 printf("%.*s\n", str8_varg(ip));
+            } break;
+            case DNS_Type_PTR: {
+                printf("%.*s\n", str8_varg(msg->answer[i].rdata.PTR.ptrdname));
             } break;
         }
     }
@@ -52,29 +55,34 @@ Test(stub_client_exchange_with_address)
         DNS_TransportProtocol_UDP,
         DNS_TransportProtocol_TCP,
     };
-    DNS_Type types[] = {
-        DNS_Type_A,
-        DNS_Type_AAAA,
-        DNS_Type_PTR,
+    struct
+    {   DNS_Type type;
+        String8 name;
+    } queries[] = {
+        {DNS_Type_A,    s("www.example.org")},
+        {DNS_Type_AAAA, s("www.example.org")},
+        {DNS_Type_PTR,  s("4.4.8.8.in-addr.arpa")},
     };
     for (u64 p = 0; p < ArrayCount(protocols); p += 1)
     {
-        for (u64 t = 0; t < ArrayCount(types); t += 1)
+        for (u64 q = 0; q < ArrayCount(queries); q += 1)
         {
             Temp scratch = scratch_begin(0, 0);
-            DNS_Type type = types[t];
-            DNS_TransportProtocol protocol = protocols[p];
             
-            DNS_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("www.example.org"), type);
+            DNS_TransportProtocol protocol = protocols[p];
+            DNS_Type type = queries[q].type;
+            String8 name = queries[q].name;
+
+            DNS_Msg msg = dns_msg_alloc(scratch.arena, name, type);
             DNS_Client client = dns_client_alloc(scratch.arena, NET_AddressFamily_IPv4, protocol);
             NET_Address address = {0};
-            (void)net_str8_to_address(&address, str8_lit("8.8.8.8:53"));
+            (void)net_address_from_string(&address, str8_lit("8.8.8.8:53"));
             
             DNS_Msg response = dns_client_exchange_with_address(scratch.arena, client, msg, address);
             
             T_Ok(msg.header.id == response.header.id);
-            fprintf(stderr, "%.*s\n", str8_varg(dns_string_from_type(type)));
-            print_msg_data(&response);
+            T_Ok(response.header.rcode == DNS_RCode_NoError);
+            T_Ok(response.header.answer_count >= 1);
             
             for (u64 i = 0; i < response.header.answer_count; i++) {
                 T_Ok(response.answer[i].type == type);
@@ -106,7 +114,7 @@ Test(stub_client_exchange_with_address_nxdomain)
             DNS_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("iasldjkosajdf"), type);
             DNS_Client client = dns_client_alloc(scratch.arena, NET_AddressFamily_IPv4, protocol);
             NET_Address address = {0};
-            (void)net_str8_to_address(&address, str8_lit("8.8.8.8:53"));
+            (void)net_address_from_string(&address, str8_lit("8.8.8.8:53"));
             
             DNS_Msg response = dns_client_exchange_with_address(scratch.arena, client, msg, address);
             
@@ -135,7 +143,7 @@ Test(iterative_lookup)
     DNS_Client client = dns_client_alloc(scratch.arena, NET_AddressFamily_IPv4, DNS_TransportProtocol_UDP);
 
     NET_Address address = {0};
-    (void)net_str8_to_address(&address,
+    (void)net_address_from_string(&address,
                               str8_cat(scratch.arena, dns_ipv4_string_of_root_server(DNS_RootServer_A), s(":53")));
 
     DNS_Msg response = dns_client_exchange_with_address(scratch.arena, client, msg, address);
@@ -187,7 +195,7 @@ Test(server)
         DNS_Client client = dns_client_alloc(scratch.arena, NET_AddressFamily_IPv4, ts[idx].network);
         NET_Address address = {0};
         String8 target = str8_cat(scratch.arena, str8_lit("127.0.0.1"), str8f(scratch.arena, ":%hu", port));
-        (void)net_str8_to_address(&address, target);
+        (void)net_address_from_string(&address, target);
         DNS_Msg response = dns_client_exchange_with_address(scratch.arena, client, msg, address);
     }
     

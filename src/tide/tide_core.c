@@ -512,7 +512,7 @@ internal void ti_window_frame(void)
 
     /////////////////////////////////////
     // @window_frame_part compute window's frame
-    //
+    //
     {
         Access *access = access_open();
 
