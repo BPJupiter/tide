@@ -395,6 +395,9 @@ internal u64 dns_rdata_wire_length(DNS_RR *rr)
         case DNS_Type_CNAME: {
             l += rr->rdata.CNAME.target.size + 1;
         } break;
+        case DNS_Type_PTR: {
+            l += rr->rdata.PTR.ptrdname.size + 1;
+        } break;
         case DNS_Type_AAAA: {
             l += sizeof(rr->rdata.AAAA.addr);
         } break;

