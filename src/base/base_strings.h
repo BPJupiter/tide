@@ -282,7 +282,7 @@ internal String8_List numeric_str8_list_from_data(Arena *arena, u32 radix, Strin
 
 internal String8_Array str8_array_zero     (void);
 internal String8_Array str8_array_from_list(Arena *arena, String8_List *list);
-internal String8_Array str8_array_reserve  (Arena *arena, u64 count);
+internal String8_Array str8_array_reverse  (Arena *arena, u64 count);
 internal String8_Array str8_array_copy     (Arena *arena, String8_Array array);
 
 ////////////////////////////////

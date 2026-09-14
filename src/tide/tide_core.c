@@ -509,46 +509,111 @@ internal void ti_window_frame(void)
     //
     {}
 
-    /////////////////////////////////////
-    // @window_frame_part compute window's frame
+    /////////////////////////////
+    // @window_frame_part compute window's theme
     //
     {
         Access *access = access_open();
 
-        typedef struct TI_Color_Def TI_Color_Def;
-        struct TI_Color_Def
+        // try to find theme settings from the projects, then the user.
+        CFG_Node_Ptr_List colors_cfgs = {0};
+        CFG_Node *theme_parents[] = {
+            cfg_node_child_from_string(cfg_node_root(), str8_lit("project")),
+            cfg_node_child_from_string(cfg_node_root(), str8_lit("user")),
+        };
+        CFG_Node *theme_cfgs[] = {
+            &cfg_nil_node,
+            &cfg_nil_node,
+        };
+        for EachIndex(idx, ArrayCount(theme_parents))
         {
-            char *tags[2];
-            u32   tag_count;
-            u32   srgba;
+            CFG_Node *parent_cfg = theme_parents[idx];
+            if (theme_cfgs[idx] == &cfg_nil_node)
+            {
+                CFG_Node *possible_theme_cfg = cfg_node_child_from_string(parent_cfg, str8_lit("theme"));
+                if (possible_theme_cfg != &cfg_nil_node)
+                {
+                    theme_cfgs[idx] = possible_theme_cfg;
+                }
+            }
+            for (CFG_Node *child = parent_cfg->first; child != &cfg_nil_node; child = child->next)
+            {
+                if (str8_match(child->string, str8_lit("theme_color"), 0))
+                {
+                    cfg_node_ptr_list_push_front(scratch.arena, &colors_cfgs, child);
+                }
+            }
+        }
+
+        // chose which theme cfg to use
+        CFG_Node *theme_cfg = theme_cfgs[1];
+
+        // map the theme config to the associated tree (right now just a preset)
+        MD_Node *theme_tree = ti_state->theme_preset_trees[TI_ThemePreset_DefaultDark];
+
+        //build tasks for color applications - each task comprises of a metadesk
+        // tree, describing the color patterns
+        typedef struct Theme_Task Theme_Task;
+        struct Theme_Task
+        {
+            Theme_Task *next;
+            MD_Node *tree;
         };
-        TI_Color_Def defs[] = {
-            { {"background"},           1, 0x14161AFF }, // window clear color - near-black
-            { {"border"},                1, 0x4A4E58FF }, // window border / box borders - mid gray
-            { {"drop_shadow"},           1, 0x000000AA }, // shadow under floating/hot boxes
-            { {"text"},                  1, 0xF2F2F2FF }, // default text - near-white
-            { {"text", "weak"},          2, 0x9AA0AAFF }, // de-emphasized text/icons
-            { {"hover"},                 1, 0x3C82F6FF }, // hot/hover highlight - blue
-            { {"focus", "overlay"},      2, 0x3C82F633 }, // focus fill overlay - translucent blue
-            { {"focus", "border"},       2, 0x3C82F6FF }, // focus outline - solid blue
-            { {"bad", "text"},           2, 0xFF5C5CFF }, // error state text/border - red
-            { {"match", "background"},   2, 0xF6C64555 }, // fuzzy-match highlight - amber
+        Theme_Task start_task = {0, theme_tree};
+        Theme_Task *first_task = &start_task;
+        Theme_Task *last_task = first_task;
+        {
+            for (CFG_Node_Ptr_Node *n = colors_cfgs.first; n != 0; n = n->next)
+            {
+                Theme_Task *t = push_array(scratch.arena, Theme_Task, 1);
+                SLLQueuePushFront(first_task,  last_task, t);
+                t->tree = md_tree_from_string(scratch.arena, cfg_string_from_tree(scratch.arena, ti_state->cfg_schema_table, str8_zero(), n->v));
+            }
+        }
+
+        // apply theme tasks, build each color pattern for this window's
+        // structured theme
+        typedef struct Theme_Pattern_Node Theme_Pattern_Node;
+        struct Theme_Pattern_Node
+        {
+            Theme_Pattern_Node *next;
+            UI_Theme_Pattern pattern;
         };
-        
+        Theme_Pattern_Node *first_pattern = 0;
+        Theme_Pattern_Node *last_pattern = 0;
+        u64 pattern_count = 0;
+        for (Theme_Task *t = first_task; t != 0; t = t->next)
+        {
+            MD_Node *tree_root = t->tree;
+            for (MD_Node *n = tree_root; !md_node_is_nil(n); n = md_node_rec_depth_first_pre(n, tree_root).next)
+            {
+                if (str8_match(n->string, str8_lit("theme_color"), 0))
+                {
+                    MD_Node *tags_child = md_child_from_string(n, str8_lit("tags"), 0);
+                    MD_Node *value_child = md_child_from_string(n, str8_lit("value"), 0);
+                    u8 split_char = ' ';
+                    String8_List tags = str8_split(scratch.arena, tags_child->first->string, &split_char, 1, 0);
+                    u32 color_u32 = u32_from_str8(str8_skip(value_child->first->string, 2), 16);
+                    Vec4f32 color_linear = linear_from_srgba(rgba_from_u32(color_u32));
+                    Theme_Pattern_Node *node = push_array(scratch.arena, Theme_Pattern_Node, 1);
+                    node->pattern.tags = str8_array_from_list(ti_frame_arena(), &tags);
+                    node->pattern.linear = color_linear;
+                    SLLQueuePush(first_pattern, last_pattern, node);
+                    pattern_count += 1;
+                }
+            }
+        }
+
         // convert to final pattern array
         ws->theme = push_array(ti_frame_arena(), UI_Theme, 1);
-        ws->theme->patterns = push_array(ti_frame_arena(), UI_Theme_Pattern, ArrayCount(defs));
-        ws->theme->patterns_count = ArrayCount(defs);
-        for (u64 i = 0; i < ArrayCount(defs); i += 1)
+        ws->theme->patterns_count = pattern_count;
+        ws->theme->patterns = push_array(ti_frame_arena(), UI_Theme_Pattern, ws->theme->patterns_count);
         {
-            TI_Color_Def *def = &defs[i];
-            String8 *tag_strs = push_array(ti_frame_arena(), String8, def->tag_count);
-            for (u32 t = 0; t < def->tag_count; t += 1)
+            u64 idx = 0;
+            for (Theme_Pattern_Node *n = first_pattern; n != 0; n = n->next, idx += 1)
             {
-                tag_strs[t] = str8_cstring(def->tags[t]);
+                ws->theme->patterns[idx] = n->pattern;
             }
-            ws->theme->patterns[i].tags  = (String8_Array){tag_strs, def->tag_count};
-            ws->theme->patterns[i].linear = linear_from_srgba(rgba_from_u32(def->srgba));
         }
 
         access_close(access);
@@ -972,11 +1037,14 @@ internal void ti_window_frame(void)
                     UI_CornerRadius(ui_top_font_size()*1.f)
                     UI_VisualMargin(ui_top_font_size()*0.5f)
                 {
+                    
                 }
 
                 // right column
                 UI_WidthFill UI_Row
                 {
+                    ui_spacer(ui_pct(1, 0));
+                    
                     // close dropdown
                     UI_Key close_ctx_menu_key = ui_key_from_stringf(ui_key_zero(), "###close_ctx_menu");
                     UI_CtxMenu(close_ctx_menu_key) UI_TagF("implicit")
@@ -1714,7 +1782,7 @@ NO_OPTIMIZE_END
 internal f32 ti_font_size(void)
 {
     // TODO make this real
-    return 16.f;
+    return 10.f;
 }
 
 internal FNT_Tag ti_font_from_slot(TI_FontSlot slot)
@@ -1878,6 +1946,26 @@ internal void ti_init(Cmd_Line *cmdline)
     }
     ti_state->cmd_output_arena = arena_alloc();
     ti_state->top_regs = &ti_state->base_regs;
+
+    // set up schemas
+    {
+        ti_state->cfg_schema_table = push_array(ti_state->arena, CFG_Schema_Table, 1);
+        ti_state->cfg_schema_table->slots_count = 4096;
+        ti_state->cfg_schema_table->slots = push_array(ti_state->arena, CFG_Schema_Node *, ti_state->cfg_schema_table->slots_count);
+        for EachElement(idx, ti_name_schema_info_table)
+        {
+            MD_Node *schema = md_tree_from_string(ti_state->arena, ti_name_schema_info_table[idx].schema)->first;
+            cfg_schema_table_insert(ti_state->arena, ti_state->cfg_schema_table, ti_name_schema_info_table[idx].name, schema);
+        }
+    }
+
+    // set up theme presets
+    {
+        for EachEnumVal(TI_ThemePreset, p)
+        {
+            ti_state->theme_preset_trees[p] = md_tree_from_string(ti_state->arena, ti_theme_preset_cfg_string_table[p])->first;
+        }
+    }
 
     // set up top-level config entity trees & tables
     {
@@ -2120,6 +2208,13 @@ internal void ti_frame(void)
     // megin measuring actual per-frame work
     u64 begin_time_us = now_time_us();
 
+    ///////////////////////
+    // build key map from config
+    ProfScope("build key map from config")
+    {
+        ti_state->key_map = cfg_key_map_from_cfg(ti_frame_arena());
+    }
+
     ////////////////////
     // consume events
     ProfScope("consume events")
@@ -2186,6 +2281,13 @@ internal void ti_frame(void)
                 CFG_Node *cfg = &cfg_nil_node;
                 switch (kind)
                 {
+                    case TI_CmdKind_RunCommand: {
+                        {
+                            TI_Cmd_Kind_Info *info = ti_cmd_kind_info_from_string(cmd->regs->cmd_name);
+
+                            TI_RegsScope(.cmd_name = str8_zero()) ti_push_cmd(cmd->regs->cmd_name, ti_regs());
+                        }
+                    } break;
                     case TI_CmdKind_Exit: {
                         {
                             ti_state->quit = true;

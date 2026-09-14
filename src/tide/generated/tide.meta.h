@@ -10,6 +10,7 @@ typedef enum TI_RegSlot
 {
 TI_RegSlot_Null,
 TI_RegSlot_Window,
+TI_RegSlot_CmdName,
 TI_RegSlot_WMEvent,
 TI_RegSlot_COUNT,
 } TI_RegSlot;
@@ -18,6 +19,7 @@ typedef enum TI_CmdKind
 {
 TI_CmdKind_Null,
 TI_CmdKind_Exit,
+TI_CmdKind_RunCommand,
 TI_CmdKind_WMEvent,
 TI_CmdKind_OpenWindow,
 TI_CmdKind_CloseWindow,
@@ -104,10 +106,25 @@ TI_IconKind_Duplicate,
 TI_IconKind_COUNT,
 } TI_IconKind;
 
+typedef enum TI_ThemePreset
+{
+TI_ThemePreset_DefaultDark,
+TI_ThemePreset_COUNT,
+} TI_ThemePreset;
+
+typedef struct TI_Name_Schema_Info TI_Name_Schema_Info;
+struct TI_Name_Schema_Info
+{
+String8 name;
+bool32 is_view;
+String8 schema;
+};
+
 typedef struct TI_Regs TI_Regs;
 struct TI_Regs
 {
 CFG_ID window;
+String8 cmd_name;
 WM_Event * wm_event;
 };
 
@@ -121,12 +138,17 @@ TI_CmdKindFlags flags;
 
 #define ti_regs_lit_init_top \
 .window = ti_regs()->window,\
+.cmd_name = ti_regs()->cmd_name,\
 .wm_event = ti_regs()->wm_event,\
 
 C_LINKAGE_BEGIN
-extern String8 ti_reg_slot_code_name_table[3];
-extern Rng1u64 ti_reg_slot_range_table[3];
+extern TI_Name_Schema_Info ti_name_schema_info_table[27];
+extern String8 ti_reg_slot_code_name_table[4];
+extern Rng1u64 ti_reg_slot_range_table[4];
 extern String8 ti_icon_kind_text_table[75];
+extern String8 ti_theme_preset_display_string_table[1];
+extern String8 ti_theme_preset_code_string_table[1];
+extern String8 ti_theme_preset_cfg_string_table[1];
 read_only global u8 ti_icon_font_bytes__data[] =
 {
 0x00,0x01,0x00,0x00,0x00,0x0f,0x00,0x80,0x00,0x03,0x00,0x70,0x47,0x53,0x55,0x42,0x20,0x8b,0x25,0x7a,0x00,0x00,0x00,0xfc,0x00,0x00,0x00,0x54,0x4f,0x53,0x2f,0x32,0x56,0x43,0x62,0x25,0x00,0x00,0x01,0x50,0x00,0x00,0x00,0x60,0x63,0x6d,0x61,0x70,0xa3,0x60,0xa4,0x23,0x00,0x00,0x01,0xb0,0x00,0x00,0x06,0x12,0x63,0x76,0x74,0x20,

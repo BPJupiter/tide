@@ -132,6 +132,9 @@ struct TI_State {
     f32 scrolling_animation_rate;
     f32 tooltip_animation_rate;
 
+    // default theme table
+    MD_Node *theme_preset_trees[TI_ThemePreset_COUNT];
+
     // log
     Log *log;
     String8 log_path;
@@ -148,6 +151,9 @@ struct TI_State {
     f32 frame_dt;
     Access *frame_access;
     String8 last_window_title;
+
+    // key map (constructed from-scratch each frame)
+    CFG_Key_Map *key_map;
 
     // slot -> font tag map (constructed from-scratch each frame)
     FNT_Tag font_slot_table[TI_FontSlot_COUNT];
@@ -168,6 +174,7 @@ struct TI_State {
 
     // cfg state
     CFG_State *cfg;
+    CFG_Schema_Table *cfg_schema_table;
 
     // window state cache
     u64 window_state_slots_count;
@@ -178,6 +185,12 @@ struct TI_State {
     TI_Window_State *last_window_state;
     CFG_ID window_state_last_accessed_id;
     TI_Window_State *window_state_last_accessed;
+
+    // bind change
+    Arena *bind_change_arena;
+    bool32 bind_change_active;
+    CFG_ID bind_change_binding_id;
+    String8 bind_change_cmd_name;
 };
 
 //////////////
@@ -196,7 +209,7 @@ global TI_State *ti_state = 0;
 
 // Dev flags
 global bool32 DEV_draw_diag_line_test = false;
-global bool32 DEV_draw_3D_test        = true;
+global bool32 DEV_draw_3D_test        = false;
 global bool32 DEV_button_test         = false;
 global bool32 DEV_draw_ui_text_pos    = false;
 global bool32 DEV_draw_ui_focus_debug = false;

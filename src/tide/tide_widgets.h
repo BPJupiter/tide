@@ -21,5 +21,12 @@ internal void ti_cmd_list_menu_buttons(u64 count, String8 *cmd_names, u32 *fastp
 internal UI_Signal ti_icon_button(TI_IconKind kind, Fuzzy_Match_Range_List *matches, String8 string);
 internal UI_Signal ti_icon_buttonf(TI_IconKind kind, Fuzzy_Match_Range_List *matches, char *fmt, ...);
 
+////////////////////////
+// UI Widgets: Fancy Labels
+
+internal DR_FStr_List ti_fstrs_from_rich_string(Arena *arena,  String8 string);
+internal UI_Signal ti_label(String8 string);
+internal UI_Signal ti_error_label(String8 string);
+
 
 #endif // TIDE_WIDGETS_H
