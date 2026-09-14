@@ -270,7 +270,6 @@ internal f32 ti_setting_f32_from_name(String8 name)
     }
     return result;
 }
-
 */
 
 internal CFG_Node *ti_immediate_cfg_from_key(String8 string)
@@ -428,7 +427,7 @@ internal TI_Window_State *ti_window_state_from_cfg(CFG_Node *cfg)
         {
             String8 title = ti_push_window_title(scratch.arena);
             ws->os = wm_window_open(r2f32p(pos.x, pos.y, pos.x + size.x, pos.y + size.y),
-                                    // WM_WindowFlag_CustomBorder
+                                    WM_WindowFlag_CustomBorder|
                                     (!has_pos * WM_WindowFlag_UseDefaultPosition), title);
         }
         ws->r = r_window_equip(ws->os);
@@ -790,7 +789,257 @@ internal void ti_window_frame(void)
         ///////////////////
         // @window_ui_part top bar
         //
-        {}
+        ProfScope("build top bar")
+        {
+            wm_window_clear_custom_border_data(ws->os);
+            wm_window_push_custom_edges(ws->os, window_edge_px);
+            wm_window_push_custom_title_bar(ws->os, dim_2f32(top_bar_rect).y);
+            ui_set_next_flags(UI_BoxFlag_DefaultFocusNav|UI_BoxFlag_DisableFocusOverlay|UI_BoxFlag_DrawDropShadow);
+            UI_Focus((ws->menu_bar_focused && window_is_focused && !ui_any_ctx_menu_is_open()) ? UI_FocusKind_On : UI_FocusKind_Null)
+                UI_TagF("menu_bar")
+                UI_Pane(top_bar_rect, str8_lit("###top_bar"))
+                UI_WidthFill UI_Row
+                UI_Focus(UI_FocusKind_Null)
+            {
+                UI_Key menu_bar_group_key = ui_key_from_string(ui_key_zero(), str8_lit("###top_bar_group"));
+                MemoryZeroArray(ui_top_parent()->parent->corner_radii);
+
+                // left column
+                {
+                    ui_set_next_flags(UI_BoxFlag_Clip|UI_BoxFlag_ViewScrollX|UI_BoxFlag_ViewClamp);
+                    UI_WidthFill UI_NamedRow(str8_lit("###menu_bar"))
+                    {
+                        // icon
+                        UI_Padding(ui_em(0.5f, 1.f))
+                        {
+                            UI_PrefWidth(ui_px(dim_2f32(top_bar_rect).y - ui_top_font_size()*0.8f, 1.f))
+                                UI_Column
+                                UI_Padding(ui_em(0.4f, 1.f))
+                                UI_HeightFill
+                            {
+                                R_Handle texture = ti_state->icon_texture;
+                                Vec2s32 texture_dim = r_size_from_tex2d(texture);
+                                ui_image(texture, R_Tex2DSampleKind_Linear, r2f32p(0, 0, texture_dim.x, texture_dim.y), v4f32(1, 1, 1, 1), 0, str8_lit(""));
+                            }
+                        }
+
+                        // menu items
+                        
+                        if (dim_2f32(top_bar_rect).x > ui_top_font_size()*60)
+                        {
+                            ui_set_next_flags(UI_BoxFlag_DrawBackground);
+                            UI_PrefWidth(ui_children_sum(1)) UI_Row UI_PrefWidth(ui_text_dim(20, 1)) UI_GroupKey(menu_bar_group_key)
+                            {
+                                // file menu
+                                UI_Key file_menu_key = ui_key_from_string(ui_key_zero(), str8_lit("_file_menu_key_"));
+                                UI_CtxMenu(file_menu_key) UI_PrefWidth(ui_em(50.f, 1.f)) UI_TagF("implicit")
+                                {
+                                    String8 cmds[] = {
+                                        ti_cmd_kind_info_table[TI_CmdKind_Exit].string,
+                                    };
+                                    u32 codepoints[] = {
+                                        'x',
+                                    };
+                                    StaticAssert(ArrayCount(codepoints) == ArrayCount(cmds), menu_button_check);
+                                    ti_cmd_list_menu_buttons(ArrayCount(cmds), cmds, codepoints);
+                                }
+                                
+                                // window menu
+                                UI_Key window_menu_key = ui_key_from_string(ui_key_zero(), str8_lit("_window_menu_key_"));
+                                UI_CtxMenu(window_menu_key) UI_PrefWidth(ui_em(50.f, 1.f)) UI_TagF("implicit")
+                                {
+                                    String8 cmds[] = {
+                                        ti_cmd_kind_info_table[TI_CmdKind_OpenWindow].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_CloseWindow].string,
+                                    };
+                                    u32 codepoints[] = {
+                                        'w',
+                                        'c',
+                                    };
+                                    StaticAssert(ArrayCount(codepoints) == ArrayCount(cmds), menu_button_check);
+                                    ti_cmd_list_menu_buttons(ArrayCount(cmds), cmds, codepoints);
+                                }
+                                
+                                // panel menu
+                                
+                                // view menu
+                                
+                                // help menu
+                                
+                                // buttons
+                                UI_TextAlignment(UI_TextAlign_Center) UI_HeightFill
+                                {
+                                    // set up table
+                                    struct
+                                    {
+                                        String8 name;
+                                        u32 codepoint;
+                                        WM_Key key;
+                                        UI_Key menu_key;
+                                    } items[] = {
+                                        {str8_lit("File"),       'f', WM_Key_F, file_menu_key},
+                                        {str8_lit("Window"),     'w', WM_Key_W, window_menu_key},
+                                    };
+                                    
+                                    // determine if one of the menus is already open
+                                    bool32 menu_open = false;
+                                    u64 open_menu_idx = 0;
+                                    for (u64 idx = 0; idx < ArrayCount(items); idx += 1)
+                                    {
+                                        if (ui_ctx_menu_is_open(items[idx].menu_key))
+                                        {
+                                            menu_open = true;
+                                            open_menu_idx = idx;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    // navigate between menus
+                                    u64 open_menu_idx_prime = open_menu_idx;
+                                    if (menu_open && ws->menu_bar_focused && window_is_focused)
+                                    {
+                                        for (UI_Event *evt = 0; ui_next_event(&evt);)
+                                        {
+                                            bool32 taken = false;
+                                            if (evt->delta_2s32.x > 0)
+                                            {
+                                                taken = true;
+                                                open_menu_idx_prime += 1;
+                                                open_menu_idx_prime = open_menu_idx_prime%ArrayCount(items);
+                                            }
+                                            if (evt->delta_2s32.x < 0)
+                                            {
+                                                taken = true;
+                                                open_menu_idx_prime = open_menu_idx_prime > 0 ? open_menu_idx_prime - 1 : (ArrayCount(items) - 1);
+                                            }
+                                            if (taken)
+                                            {
+                                                ui_eat_event(evt);
+                                            }
+                                        }
+                                    }
+                                    
+                                    // make ui
+                                    UI_TagF("implicit")
+                                        UI_VisualMarginX(ui_top_font_size()*0.45f)
+                                        UI_VisualMarginY(ui_top_font_size()*0.5f)
+                                        UI_CornerRadius(ui_top_font_size()*0.5f)
+                                        for (u64 idx = 0; idx < ArrayCount(items); idx += 1)
+                                    {
+                                        ui_set_next_fastpath_codepoint(items[idx].codepoint);
+                                        if ((ws->menu_bar_key_held || ws->menu_bar_focused) && !ui_any_ctx_menu_is_open())
+                                        {
+                                            ui_set_next_flags(UI_BoxFlag_DrawTextFastpathCodepoint);
+                                        }
+                                        UI_TagF(!ui_ctx_menu_is_open(items[idx].menu_key) ? "weak" : "")
+                                        {
+                                            UI_Signal sig = ti_menu_bar_button(items[idx].name);
+                                            wm_window_push_custom_title_bar_client_area(ws->os, sig.box->rect);
+                                            if (menu_open)
+                                            {
+                                                if ((ui_hovering(sig) && !ui_ctx_menu_is_open(items[idx].menu_key))
+                                                    || (open_menu_idx_prime == idx && open_menu_idx_prime != open_menu_idx))
+                                                {
+                                                    ui_ctx_menu_open(items[idx].menu_key, sig.box->key, v2f32(0, sig.box->rect.y1 - sig.box->rect.y0));
+                                                }
+                                            }
+                                            else if (ui_pressed(sig))
+                                            {
+                                                if (ui_ctx_menu_is_open(items[idx].menu_key))
+                                                {
+                                                    ui_ctx_menu_close();
+                                                }
+                                                else
+                                                {
+                                                    ui_ctx_menu_open(items[idx].menu_key, sig.box->key, v2f32(0, sig.box->rect.y1 - sig.box->rect.y0));
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // center column
+                if (dim_2f32(top_bar_rect).x > ui_top_font_size()*60)
+                    UI_PrefWidth(ui_children_sum(1.f)) UI_Row
+                    UI_PrefWidth(ui_px(dim_2f32(top_bar_rect).y, 1))
+                    TI_Font(TI_FontSlot_Icons)
+                    UI_FontSize(ui_top_font_size()*0.85f)
+                    UI_TagF("implicit")
+                    UI_CornerRadius(ui_top_font_size()*1.f)
+                    UI_VisualMargin(ui_top_font_size()*0.5f)
+                {
+                }
+
+                // right column
+                UI_WidthFill UI_Row
+                {
+                    // close dropdown
+                    UI_Key close_ctx_menu_key = ui_key_from_stringf(ui_key_zero(), "###close_ctx_menu");
+                    UI_CtxMenu(close_ctx_menu_key) UI_TagF("implicit")
+                    {
+                        if (ui_clicked(ti_icon_buttonf(TI_IconKind_Window, 0, "Close Window")))
+                        {
+                            ti_cmd(TI_CmdKind_CloseWindow);
+                        }
+                        if (ui_clicked(ti_icon_buttonf(TI_IconKind_X, 0, "Exit")))
+                        {
+                            ti_cmd(TI_CmdKind_Exit);
+                        }
+                    }
+
+                    // min/max/close buttons
+                    UI_TagF("implicit")
+                        UI_TagF("weak")
+                        UI_VisualMargin(ui_top_font_size()*0.5f)
+                        UI_CornerRadius(ui_top_font_size()*0.9f)
+                    {
+                        UI_Signal min_sig = {0};
+                        UI_Signal max_sig = {0};
+                        UI_Signal cls_sig = {0};
+                        Vec2f32 bar_dim = dim_2f32(top_bar_rect);
+                        f32 button_dim = floor_f32(bar_dim.y);
+                        UI_PrefWidth(ui_px(button_dim, 1.f))
+                            UI_FontSize(ui_top_font_size()*0.75f)
+                        {
+                            min_sig = ti_icon_buttonf(TI_IconKind_WindowMinimize, 0, "##minimize");
+                            max_sig = ti_icon_buttonf(wm_window_is_maximized(ws->os) ? TI_IconKind_WindowRestore : TI_IconKind_Window, 0, "##maximize");
+                        }
+                        UI_PrefWidth(ui_px(button_dim, 1.f))
+                            UI_FontSize(ui_top_font_size()*0.85f)
+                        {
+                            cls_sig = ti_icon_buttonf(TI_IconKind_X, 0, "##close");
+                        }
+                        if (ui_clicked(min_sig))
+                        {
+                            wm_window_set_minimized(ws->os, 1);
+                        }
+                        if (ui_clicked(max_sig))
+                        {
+                            wm_window_set_maximized(ws->os, !wm_window_is_maximized(ws->os));
+                        }
+                        if (ui_clicked(cls_sig))
+                        {
+                            if (ws->order_next != &ti_nil_window_state ||
+                                ws->order_prev != &ti_nil_window_state)
+                            {
+                                ui_ctx_menu_open(close_ctx_menu_key, cls_sig.box->key, v2f32(0, dim_2f32(cls_sig.box->rect).y));
+                            }
+                            else
+                            {
+                                ti_cmd(TI_CmdKind_Exit);
+                            }
+                        }
+                        wm_window_push_custom_title_bar_client_area(ws->os, min_sig.box->rect);
+                        wm_window_push_custom_title_bar_client_area(ws->os, max_sig.box->rect);
+                        wm_window_push_custom_title_bar_client_area(ws->os, pad_2f32(cls_sig.box->rect, 2.f));
+                    }
+                }
+            }
+        }
 
         ///////////////////////
         // @window_ui_part bottom bar
@@ -1461,11 +1710,25 @@ NO_OPTIMIZE_END
 
 // colors
 
-//fonts
+// fonts
 internal f32 ti_font_size(void)
 {
     // TODO make this real
     return 16.f;
+}
+
+internal FNT_Tag ti_font_from_slot(TI_FontSlot slot)
+{
+    FNT_Tag tag = ti_state->font_slot_table[slot];
+    return tag;
+}
+
+internal FNT_RasterFlags ti_raster_flags_from_slot(TI_FontSlot slot)
+{
+    CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+    TI_Window_State *ws = ti_window_state_from_cfg(window);
+    FNT_RasterFlags flags = ws->font_slot_raster_flags[slot];
+    return flags;
 }
 
 //////////////////////////////
@@ -1650,6 +1913,101 @@ internal void ti_init(Cmd_Line *cmdline)
             cfg_node_newf(ti_state->cfg, size, "%f", window_dim.x);
             cfg_node_newf(ti_state->cfg, size, "%f", window_dim.y);
         }
+    }
+
+    // unpack icon image data
+    {
+        Temp scratch = scratch_begin(0, 0);
+        String8 data = ti_icon_file_bytes;
+        u8 *ptr = data.str;
+        u8 *opl = ptr+data.size;
+
+        // read header
+#pragma pack(push, 1)
+        typedef struct ICO_Header ICO_Header;
+        struct ICO_Header
+        {
+            u16 reserved_padding; // must be 0
+            u16 image_type; // if 1 -> ICO, if 2 -> CUR
+            u16 num_images;
+        };
+        typedef struct ICO_Entry ICO_Entry;
+        struct ICO_Entry
+        {
+            u8 image_width_px;
+            u8 image_height_px;
+            u8 num_colors;
+            u8 reserved_padding; // should be 0
+            union
+            {
+                u16 ico_color_planes; // in ICO
+                u16 cur_hotspot_x_px; // in CUR
+            };
+            union
+            {
+                u16 ico_bits_per_pixel; // in ICO
+                u16 cur_hotspot_y_px; // in CUR
+            };
+            u32 image_data_size;
+            u32 image_data_off;
+        };
+#pragma pack(pop)
+        ICO_Header hdr = {0};
+        if (ptr+sizeof(hdr) < opl)
+        {
+            MemoryCopy(&hdr, ptr, sizeof(hdr));
+            ptr += sizeof(hdr);
+        }
+
+        // read image entries
+        u64 entries_count = hdr.num_images;
+        ICO_Entry *entries = push_array(scratch.arena, ICO_Entry, hdr.num_images);
+        {
+            u64 bytes_to_read = sizeof(ICO_Entry)*entries_count;
+            bytes_to_read = Min(bytes_to_read, opl-ptr);
+            MemoryCopy(entries, ptr, bytes_to_read);
+            ptr += bytes_to_read;
+        }
+
+        // find largest image
+        ICO_Entry *best_entry = 0;
+        u64 best_entry_area = 0;
+        for (u64 idx = 0; idx < entries_count; idx += 1)
+        {
+            ICO_Entry *entry = &entries[idx];
+            u64 width = entry->image_width_px;
+            if (width == 0) { width = 256; }
+            u64 height = entry->image_height_px;
+            if (height == 0) { height = 256; }
+            u64 entry_area = width*height;
+            if (entry_area > best_entry_area)
+            {
+                best_entry = entry;
+                best_entry_area = entry_area;
+            }
+        }
+
+        // deserialize raw image data from best entry's offset
+        u8 *image_data = 0;
+        Vec2s32 image_dim = {0};
+        if (best_entry != 0)
+        {
+            u8 *file_data_ptr = data.str + best_entry->image_data_off;
+            u64 file_data_size = best_entry->image_data_size;
+            int width = 0;
+            int height = 0;
+            int components = 0;
+            image_data = stbi_load_from_memory(file_data_ptr, file_data_size, &width, &height, &components, 4);
+            image_dim.x = width;
+            image_dim.y = height;
+        }
+
+        // upload to GPU texture
+        ti_state->icon_texture = r_tex2d_alloc(R_ResourceKind_Static, image_dim, R_Tex2DFormat_RGBA8, image_data);
+
+        // release
+        stbi_image_free(image_data);
+        scratch_end(scratch);
     }
 
     // set up world map
@@ -1931,6 +2289,44 @@ internal void ti_frame(void)
         {
             break;
         }
+    }
+
+    ///////////////////////
+    // get fonts from the config
+    //
+    ProfScope("get fonts from the config")
+    {
+        /*
+        bool32 use_alternative_font_for_ui = ti_setting_bool32_from_name(s("use_alternative_font_for_ui"));
+        if (use_alternative_font_for_ui)
+        {
+            String8 main_font_name = ti_setting_from_name(s("main_font"));
+            String8 code_font_name = ti_setting_from_name(s("code_font"));
+            ti_state->font_slot_table[TI_FontSlot_Main]  = fnt_tag_from_path(main_font_name);
+            ti_state->font_slot_table[TI_FontSlot_Code]  = fnt_tag_from_path(code_font_name);
+            if (fnt_tag_match(ti_state->font_slot_table[TI_FontSlot_Main], fnt_tag_zero()))
+            {
+                ti_state->font_slot_table[TI_FontSlot_Main] = fnt_tag_from_static_data_string(&ti_default_main_font_bytes);
+            }
+        }
+        else
+        {
+            String8 font_name = ti_setting_from_name(s("font"));
+            ti_state->font_slot_table[TI_FontSlot_Code] = fnt_tag_from_path(font_name);
+            ti_state->font_slot_table[TI_FontSlot_Main] = ti_state->font_slot_table[TI_FontSlot_Code];
+            if (fnt_tag_match(ti_state->font_slot_table[TI_FontSlot_Main], fnt_tag_zero()))
+            {
+                ti_state->font_slot_table[TI_FontSlot_Main] = fnt_tag_from_static_data_string(&ti_default_code_font_bytes);
+            }
+        }
+        if (fnt_tag_match(ti_state->font_slot_table[TI_FontSlot_Code], fnt_tag_zero()))
+        {
+            ti_state->font_slot_table[TI_FontSlot_Code] = fnt_tag_from_static_data_string(&ti_default_code_font_bytes);
+        }
+        */
+        ti_state->font_slot_table[TI_FontSlot_Main]  = fnt_tag_from_static_data_string(&ti_default_main_font_bytes);
+        ti_state->font_slot_table[TI_FontSlot_Code]  = fnt_tag_from_static_data_string(&ti_default_code_font_bytes);
+        ti_state->font_slot_table[TI_FontSlot_Icons] = fnt_tag_from_static_data_string(&ti_icon_font_bytes);
     }
 
     //////////////////////////

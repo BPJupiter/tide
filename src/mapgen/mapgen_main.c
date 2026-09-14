@@ -45,12 +45,9 @@ internal void entry_point(Cmd_Line *cmdline)
         map_state->map_rect.x1 = map_shp_read_le_f64(base, &off); 
         map_state->map_rect.y1 = map_shp_read_le_f64(base, &off);
         off += 4*sizeof(f64); // min/max z, min/max m
-        fprintf(stderr,
-                "dimensions of map are %.2f,%.2f and %.2f,%.2f\n",
-                map_state->map_rect.x0, map_state->map_rect.y0,
-                map_state->map_rect.x1, map_state->map_rect.y1);
         fprintf(stderr, "map consists of %.*s features\n", str8_varg(map_shp_string_from_shape_kind(kind)));
-
+        u64 total_points_count = 0;
+        u64 total_parts_count = 0;
         for (; off + 8 < map_world_shp_bytes.size ;)
         {
             u32 record_number = (u32)map_shp_read_be_s32(base, &off);
@@ -80,9 +77,8 @@ internal void entry_point(Cmd_Line *cmdline)
                         feature->v.indices.v = push_array(map_arena, u32, feature->v.indices.count);
                         feature->v.vertices.count = map_shp_read_le_u32(base, &off);
                         feature->v.vertices.v = push_array(map_arena, f64, 2*feature->v.vertices.count);
-                        printf("This feature has %llu vertices and %llu parts\n",
-                               feature->v.vertices.count,
-                               feature->v.indices.count);
+                        total_points_count += feature->v.vertices.count;
+                        total_parts_count += feature->v.indices.count;
                         for (u64 idx = 0; idx < feature->v.indices.count; idx += 1)
                         {
                             feature->v.indices.v[idx] = map_shp_read_le_u32(base, &off);
@@ -98,6 +94,8 @@ internal void entry_point(Cmd_Line *cmdline)
 
             off = next_record_off;
         }
+
+        printf(".shp file has %llu points with %llu parts in total.\n", total_points_count, total_parts_count);
 
         for (MAP_Feature_Node *n = map_state->features.first; n != 0; n = n->next)
         {
@@ -125,6 +123,8 @@ internal void entry_point(Cmd_Line *cmdline)
             fbte_earcut_free(data);
         }
 
+        printf("earcut generated %llu vertices and %llu indices.\n", map_state->vertex_data.count, map_state->index_data.count);
+
         map_state->vertex_data.v = push_array(map_arena, f64, 2*map_state->vertex_data.count);
         map_state->index_data.v  = push_array(map_arena, u32, map_state->index_data.count);
         u64 vertex_data_off = 0;
@@ -143,7 +143,26 @@ internal void entry_point(Cmd_Line *cmdline)
         }
 
         FILE *v = fopen("../data/generated/map_vertices.vb", "wb");
-        fwrite(map_state->vertex_data.v, sizeof(f64), vertex_data_off, v);
+        for (u64 vidx = 0; vidx < vertex_data_off; vidx += 2)
+        {
+            f32 scale = 0.0000001;
+            f32 x = map_state->vertex_data.v[vidx] * scale;
+            f32 y = map_state->vertex_data.v[vidx + 1] * scale;
+            f32 z = 0.f;
+            f32 nor = 1.f;
+            f32 col = 1.f;
+            fwrite(&x, sizeof(f32), 1, v); // pos.x
+            fwrite(&y, sizeof(f32), 1, v); // pos.y
+            fwrite(&z, sizeof(f32), 1, v); // pos.z
+            fwrite(&nor, sizeof(f32), 1, v); // nor.x
+            fwrite(&nor, sizeof(f32), 1, v); // nor.y
+            fwrite(&nor, sizeof(f32), 1, v); // nor.z
+            fwrite(&z, sizeof(f32), 1, v); // tex.u
+            fwrite(&nor, sizeof(f32), 1, v); // tex.v
+            fwrite(&col, sizeof(f32), 1, v); // col.r
+            fwrite(&col, sizeof(f32), 1, v); // col.g
+            fwrite(&col, sizeof(f32), 1, v); // col.b
+        }
         fclose(v);
         FILE *i = fopen("../data/generated/map_indices.ib", "wb");
         fwrite(map_state->index_data.v, sizeof(u32), index_data_off, i);

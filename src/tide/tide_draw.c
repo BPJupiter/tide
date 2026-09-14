@@ -1,4 +1,4 @@
-
+#define FISH 1
 //////////////////
 // Line Drawing
 
@@ -77,13 +77,17 @@ internal UI_BOX_CUSTOM_DRAW(ti_geo3d_box_draw)
             draw_data->index_buffer,
             R_GeoTopologyKind_Triangles,
             R_GeoVertexFlag_TexCoord|R_GeoVertexFlag_Normals|R_GeoVertexFlag_RGB,
+#if FISH
             draw_data->texture,
+#else
+            r_handle_zero(),
+#endif // FISH
             mat_4x4f32(1.f));
 }
 
 internal void ti_test_view_ui_cube(Rng2f32 rect)
 {
-#if 0
+#if 0 // cube
 f32 vertex_data[] =
     { // pos.x, pos.y, pos.z, nor.x, nor.y, nor.z, tex.u, tex.v, col.r,   col.g,   col.b, ...
         -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,  0.973f,  0.480f,  0.002f,
@@ -270,8 +274,9 @@ f32 vertex_data[] =
       136, 137, 138, 138, 139, 136, 140, 141, 142, 142, 143, 140, 144, 145, 146, 146, 147, 144, 148, 149, 150, 150, 151, 148,
       152, 153, 154, 154, 155, 152, 156, 157, 158, 158, 159, 156, 160, 161, 162, 162, 163, 160, 164, 165, 166, 166, 167, 164,
     };
-#else
-
+#endif // cube
+#if 1 // fish
+    
 f32 vertex_data[] =
 {
   0.000001f, 4.500162f, 0.644817f, 1.000000f, -0.000002f, 0.000001f, 0.931472f, 0.419506f, 1.000000f, 1.000000f, 1.000000f,
@@ -1565,13 +1570,24 @@ u32 index_data[] =
   911, 912, 910, 911, 910, 909, 913, 905, 908, 913, 908, 914,
   915, 909, 905, 915, 905, 913, 916, 911, 909, 916, 909, 915,
 };
+#endif // fish
 
+#if 0
+    f32 *vertex_data = (f32 *)ti_map_vertex_bytes.str;
+    u64 vertex_data_size = ti_map_vertex_bytes.size / sizeof(f32);
+    u32 *index_data  = (u32 *)ti_map_index_bytes.str;
+    u64 index_data_size = ti_map_index_bytes.size / sizeof(u32);
+#elif FISH
+    u64 vertex_data_size = sizeof(vertex_data);
+    u64 index_data_size = sizeof(index_data);
 #endif
+    
+ 
     String8 vtx = {0};
-    vtx.size = sizeof(vertex_data);
+    vtx.size = vertex_data_size;
     vtx.str = (u8 *)vertex_data;
     String8 idx = {0};
-    idx.size = sizeof(index_data);
+    idx.size = index_data_size;
     idx.str = (u8 *)index_data;
 
     local_persist bool32 initialized = false;
@@ -1586,6 +1602,7 @@ u32 index_data[] =
     {
         vertex_buffer = r_buffer_alloc(R_ResourceKind_Static, vtx.size, vtx.str);
         index_buffer  = r_buffer_alloc(R_ResourceKind_Static, idx.size, idx.str);
+#if FISH
         {
             u8 *image_data = 0;
             Vec2s32 image_dim = {0};
@@ -1598,6 +1615,7 @@ u32 index_data[] =
             texture = r_tex2d_alloc(R_ResourceKind_Static, image_dim, R_Tex2DFormat_RGBA8, image_data);
             stbi_image_free(image_data);
         }
+#endif // FISH
         initialized = true;
     }
 
@@ -1618,9 +1636,12 @@ u32 index_data[] =
     }
 
     // build
-    if (!r_handle_match(index_buffer, r_handle_zero())&&
-        !r_handle_match(vertex_buffer, r_handle_zero()) &&
-        !r_handle_match(texture, r_handle_zero()))
+    if (!r_handle_match(index_buffer, r_handle_zero())
+        && !r_handle_match(vertex_buffer, r_handle_zero())
+#if FISH
+        && !r_handle_match(texture, r_handle_zero())
+#endif // FISH
+        )
     {
         Vec2f32 dim = dim_2f32(rect);
         UI_Box *box = &ui_nil_box;

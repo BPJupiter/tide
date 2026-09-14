@@ -50,6 +50,17 @@ struct TI_Regs_Node {
     TI_Regs v;
 };
 
+//////////////////////////////////
+// Structured Theme Types, Parsed From Config
+
+typedef enum TI_FontSlot
+{
+    TI_FontSlot_Main,
+    TI_FontSlot_Code,
+    TI_FontSlot_Icons,
+    TI_FontSlot_COUNT,
+} TI_FontSlot;
+
 /////////////////////
 // Per-Window State
 
@@ -74,6 +85,15 @@ struct TI_Window_State {
 
     // theme (recomputed each frame)
     UI_Theme *theme;
+
+    // font raster flags (recomputed each frame)
+    FNT_RasterFlags font_slot_raster_flags[TI_FontSlot_COUNT];
+
+    // menu bar state
+    bool32 menu_bar_focused;
+    bool32 menu_bar_focused_on_press;
+    bool32 menu_bar_key_held;
+    bool32 menu_bar_focus_press_started;
 
     // error state
     u8 error_buffer[512];
@@ -129,6 +149,9 @@ struct TI_State {
     Access *frame_access;
     String8 last_window_title;
 
+    // slot -> font tag map (constructed from-scratch each frame)
+    FNT_Tag font_slot_table[TI_FontSlot_COUNT];
+
     // Registers stack
     TI_Regs_Node base_regs;
     TI_Regs_Node *top_regs;
@@ -139,6 +162,9 @@ struct TI_State {
     u64 cmds_gen;
     Arena *cmd_output_arena;
     String8_List cmd_outputs;
+
+    // icon texture
+    R_Handle icon_texture;
 
     // cfg state
     CFG_State *cfg;
@@ -233,6 +259,9 @@ internal void ti_window_frame(void);
 
 // fonts
 internal f32 ti_font_size(void);
+internal FNT_Tag ti_font_from_slot(TI_FontSlot slot);
+internal FNT_RasterFlags ti_raster_flags_from_slot(TI_FontSlot slot);
+
 
 ////////////////////////////
 // Continuous Frame Requests

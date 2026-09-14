@@ -4,10 +4,13 @@
 
 @embed_file ti_icon_font_bytes:              "../data/icons.ttf"
 @embed_file ti_default_main_font_bytes:      "../data/Inconsolata-Regular.ttf"
+@embed_file ti_default_code_font_bytes:      "../data/JetBrainsMono-Regular.ttf"
 @embed_file ti_icon_file_bytes:              "../data/logo.ico"
-@embed_file ti_cable_geo_json_bytes:         "../data/telegeography/cable-geo.json"
-@embed_file ti_landing_point_geo_json_bytes: "../data/telegeography/landing-point-geo.json"
+//@embed_file ti_cable_geo_json_bytes:         "../data/telegeography/cable-geo.json"
+//@embed_file ti_landing_point_geo_json_bytes: "../data/telegeography/landing-point-geo.json"
 @embed_file ti_test_fish_texture_bytes:      "../data/test/Fish.png"
+//@embed_file ti_map_vertex_bytes:        "../data/generated/map_vertices.vb"
+//@embed_file ti_map_index_bytes:         "../data/generated/map_indices.ib"
 
 //////////////////////////
 // Registers Type Table
