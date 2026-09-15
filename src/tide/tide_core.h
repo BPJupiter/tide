@@ -19,6 +19,33 @@ enum {
 #include "generated/tide.meta.h"
 
 ///////////////////
+// Vocabulary Map
+
+typedef struct TI_Vocab_Info_Map_Node TI_Vocab_Info_Map_Node;
+struct TI_Vocab_Info_Map_Node
+{
+    TI_Vocab_Info_Map_Node *single_next;
+    TI_Vocab_Info_Map_Node *plural_next;
+    TI_Vocab_Info v;
+};
+
+typedef struct TI_Vocab_Info_Map_Slot TI_Vocab_Info_Map_Slot;
+struct TI_Vocab_Info_Map_Slot
+{
+    TI_Vocab_Info_Map_Node *first;
+    TI_Vocab_Info_Map_Node *last;
+};
+
+typedef struct TI_Vocab_Info_Map TI_Vocab_Info_Map;
+struct TI_Vocab_Info_Map
+{
+    u64 single_slots_count;
+    TI_Vocab_Info_Map_Slot *single_slots;
+    u64 plural_slots_count;
+    TI_Vocab_Info_Map_Slot *plural_slots;
+};
+
+///////////////////
 // Command Types
 
 typedef struct TI_Cmd TI_Cmd;
@@ -81,6 +108,7 @@ struct TI_Window_State {
     R_Handle r;
     UI_State *ui;
     f32 last_dpi;
+    bool32 window_layout_reset;
     Rng2f32 last_window_rect;
 
     // theme (recomputed each frame)
@@ -134,6 +162,9 @@ struct TI_State {
 
     // default theme table
     MD_Node *theme_preset_trees[TI_ThemePreset_COUNT];
+
+    // vocab table
+    TI_Vocab_Info_Map vocab_info_map;
 
     // log
     Log *log;
@@ -195,6 +226,8 @@ struct TI_State {
 
 //////////////
 // Globals
+
+read_only global TI_Vocab_Info ti_nil_vocab_info = {0};
 
 read_only global TI_Cmd_Kind_Info ti_nil_cmd_kind_info = {0};
 
@@ -274,6 +307,17 @@ internal void ti_window_frame(void);
 internal f32 ti_font_size(void);
 internal FNT_Tag ti_font_from_slot(TI_FontSlot slot);
 internal FNT_RasterFlags ti_raster_flags_from_slot(TI_FontSlot slot);
+
+////////////////////
+// Vocab Info Lookups
+
+internal TI_Vocab_Info *ti_vocab_info_from_code_name(String8 code_name);
+internal TI_Vocab_Info *ti_vocab_info_from_code_name_plural(String8 code_name_plural);
+#define ti_plural_from_code_name(code_name) (ti_vocab_info_from_code_name(code_name)->code_name_plural)
+#define ti_display_from_code_name(code_name) (ti_vocab_info_from_code_name(code_name)->display_name)
+#define ti_display_plural_from_code_name(code_name) (ti_vocab_info_from_code_name(code_name)->display_name_plural)
+#define ti_icon_kind_from_code_name(code_name) (ti_vocab_info_from_code_name(code_name)->icon_kind)
+#define ti_singular_from_code_name_plural(code_name_plural) (ti_vocab_info_from_code_name_plural(code_name_plural)->code_name)
 
 
 ////////////////////////////

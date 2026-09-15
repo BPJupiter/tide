@@ -97,7 +97,7 @@ internal void ti_cmd_binding_buttons(String8 name, String8 filter, u64 limit, TI
                 {
                     if(!str8_match(n2->v->name, n->v->name, 0))
                     {
-                        String8 display_name = s("test");//ti_display_from_code_name(n2->v->name);
+                        String8 display_name = ti_display_from_code_name(n2->v->name);
                         ui_labelf("%S", display_name);
                     }
                 }
@@ -191,7 +191,7 @@ internal UI_Signal ti_cmd_spec_button(String8 name)
                                             "###cmd_%p", info);
     UI_Parent(box) UI_HeightFill UI_Padding(ui_em(1.f, 1.f))
     {
-        TI_IconKind canonical_icon = TI_IconKind_Null;//ti_icon_kind_from_code_name(name);
+        TI_IconKind canonical_icon = ti_icon_kind_from_code_name(name);
         if (canonical_icon != TI_IconKind_Null)
         {
             TI_Font(TI_FontSlot_Icons)
@@ -206,8 +206,7 @@ internal UI_Signal ti_cmd_spec_button(String8 name)
         {
             UI_Flags(UI_BoxFlag_DrawTextFastpathCodepoint)
                 UI_FastpathCodepoint(box->fastpath_codepoint)
-                ui_label(s("test"));
-                //ui_label(ti_display_from_code_name(name));
+                ui_label(ti_display_from_code_name(name));
             ui_spacer(ui_pct(1, 0));
             ui_set_next_flags(UI_BoxFlag_Clickable);
             ui_set_next_group_key(ui_key_zero());

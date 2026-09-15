@@ -1799,6 +1799,51 @@ internal FNT_RasterFlags ti_raster_flags_from_slot(TI_FontSlot slot)
     return flags;
 }
 
+////////////////////
+// Vocab Info Lookups
+
+internal TI_Vocab_Info *ti_vocab_info_from_code_name(String8 code_name)
+{
+    TI_Vocab_Info *result = &ti_nil_vocab_info;
+    if (code_name.size != 0)
+    {
+        u64 hash = u64_hash_from_str8(code_name);
+        u64 slot_idx = hash%ti_state->vocab_info_map.single_slots_count;
+        for (TI_Vocab_Info_Map_Node *n = ti_state->vocab_info_map.single_slots[slot_idx].first;
+             n != 0;
+             n = n->single_next)
+        {
+            if (str8_match(n->v.code_name, code_name, 0))
+            {
+                result = &n->v;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+internal TI_Vocab_Info *ti_vocab_info_from_code_name_plural(String8 code_name_plural)
+{
+    TI_Vocab_Info *result = &ti_nil_vocab_info;
+    if (code_name_plural.size != 0)
+    {
+        u64 hash = u64_hash_from_str8(code_name_plural);
+        u64 slot_idx = hash%ti_state->vocab_info_map.plural_slots_count;
+        for (TI_Vocab_Info_Map_Node *n = ti_state->vocab_info_map.plural_slots[slot_idx].first;
+             n != 0;
+             n = n->plural_next)
+        {
+            if (str8_match(n->v.code_name_plural, code_name_plural, 0))
+            {
+                result = &n->v;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
 //////////////////////////////
 // Continuous Frame Requests
 
@@ -1967,6 +2012,35 @@ internal void ti_init(Cmd_Line *cmdline)
         }
     }
 
+    // set up vocab info map
+    {
+        ti_state->vocab_info_map.single_slots_count = 1024;
+        ti_state->vocab_info_map.single_slots = push_array(ti_state->arena, TI_Vocab_Info_Map_Slot, ti_state->vocab_info_map.single_slots_count);
+        ti_state->vocab_info_map.plural_slots_count = 1024;
+        ti_state->vocab_info_map.plural_slots = push_array(ti_state->arena, TI_Vocab_Info_Map_Slot, ti_state->vocab_info_map.plural_slots_count);
+        for EachElement(idx, ti_vocab_info_table)
+        {
+            TI_Vocab_Info_Map_Node *n = push_array(ti_state->arena, TI_Vocab_Info_Map_Node, 1);
+            MemoryCopyStruct(&n->v, &ti_vocab_info_table[idx]);
+            u64 single_hash = u64_hash_from_str8(n->v.code_name);
+            u64 plural_hash = u64_hash_from_str8(n->v.code_name_plural);
+            u64 single_slot_idx = single_hash%ti_state->vocab_info_map.single_slots_count;
+            u64 plural_slot_idx = plural_hash%ti_state->vocab_info_map.plural_slots_count;
+            if (n->v.code_name.size != 0)
+            {
+                SLLQueuePush_N(ti_state->vocab_info_map.single_slots[single_slot_idx].first,
+                               ti_state->vocab_info_map.single_slots[single_slot_idx].last,
+                               n, single_next);
+            }
+            if (n->v.code_name_plural.size != 0)
+            {
+                SLLQueuePush_N(ti_state->vocab_info_map.plural_slots[plural_slot_idx].first,
+                               ti_state->vocab_info_map.plural_slots[plural_slot_idx].last,
+                               n, plural_next);
+            }
+        }
+    }
+
     // set up top-level config entity trees & tables
     {
         ti_state->cfg = cfg_state_alloc();
@@ -2086,6 +2160,10 @@ internal void ti_init(Cmd_Line *cmdline)
             int height = 0;
             int components = 0;
             image_data = stbi_load_from_memory(file_data_ptr, file_data_size, &width, &height, &components, 4);
+            if (image_data == 0)
+            {
+                sh_message(1, s("ICO Failed to Load"), str8f(scratch.arena, "%s", stbi_failure_reason()));
+            }
             image_dim.x = width;
             image_dim.y = height;
         }

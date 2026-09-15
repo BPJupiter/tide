@@ -12,6 +12,33 @@
 //@embed_file ti_map_vertex_bytes:        "../data/generated/map_vertices.vb"
 //@embed_file ti_map_index_bytes:         "../data/generated/map_indices.ib"
 
+//////////////
+// Vocabulary Map
+
+@table(code_name         code_name_plural          display_name          display_name_plural         icon_kind)
+TI_VocabTable:
+// NOTE: the _ character is used as a fastpath for default rules. when
+// pluralizing, you just append an `s` and so on.
+{
+    {window              _                         "Window"              _                           Window                                                  }
+    {geo3d               ""                        "Geometry (3D)"       ""                          Cube                                                    }
+}
+
+@struct TI_Vocab_Info:
+{
+    `String8 code_name`;
+    `String8 code_name_plural`;
+    `String8 display_name`;
+    `String8 display_name_plural`;
+    `TI_IconKind icon_kind`;
+}
+
+@data(TI_Vocab_Info) ti_vocab_info_table:
+{
+    @expand(TI_VocabTable a)              `{str8_lit_comp("$(a.code_name)"), str8_lit_comp("$(a.code_name_plural == _ -> a.code_name .. 's')$(a.code_name_plural != _ -> a.code_name_plural)"), str8_lit_comp("$(a.display_name)"), str8_lit_comp("$(a.display_name_plural == _ -> a.display_name .. 's')$(a.display_name_plural != _ -> a.display_name_plural)"), TI_IconKind_$(a.icon_kind)}`;
+    @expand(TI_CmdTable a)                `{str8_lit_comp("$(a.string)"), str8_lit_comp(""), str8_lit_comp("$(a.display_name)"), str8_lit_comp(""), TI_IconKind_$(a.canonical_icon)}`;
+}
+
 /////////////
 // Schemas
 

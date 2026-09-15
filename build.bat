@@ -116,6 +116,11 @@ if "%release%"=="1"   set compile=%compile_release%
 if not exist build mkdir build
 if not exist local mkdir local
 
+:: --- Produce Logo Icon File -------------------------------------------------
+pushd build
+%rc% /nologo /fo logo.res ..\data\logo.rc || exit /b 1
+popd
+
 :: --- Get Current Git Commit Id ----------------------------------------------
 for /f %%i in ('call git describe --always --dirty')   do set compile=%compile% -DBUILD_GIT_HASH=\"%%i\"
 for /f %%i in ('call git rev-parse HEAD')              do set compile=%compile% -DBUILD_GIT_HASH_FULL=\"%%i\"
@@ -144,7 +149,7 @@ popd
 :: --- Build Everything (@build_targets) --------------------------------------
 pushd build
 if "%torment%"=="1"           set didbuild=1 && %compile% ..\src\torment\torment_main.c                 %compile_link% %out%torment.exe || exit /b 1
-if "%tide%"=="1"              set didbuild=1 && %compile% ..\src\tide\tide_main.c                       %compile_link% %out%tide.exe || exit /b 1
+if "%tide%"=="1"              set didbuild=1 && %compile% ..\src\tide\tide_main.c                       %compile_link% %link_icon% %out%tide.exe || exit /b 1
 if "%critters%"=="1"          set didbuild=1 && %compile% ..\src\scratch\critters.c                     %compile_link% %out%critters.exe || exit /b 1
 if "%borked_dns_server%"=="1" set didbuild=1 && %compile% ..\src\scratch\borked_dns_server.c            %compile_link% %out%borked_dns_server.exe || exit /b 1
 popd
