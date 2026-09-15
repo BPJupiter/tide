@@ -1,3 +1,5 @@
+// Copyright (c) Epic Games Tools
+// Licensed under the MIT license (https://opensource.org/license/mit/)
 
 internal void u64_list_push_node(u64_List *list, u64_Node *n)
 {

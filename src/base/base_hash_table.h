@@ -1,3 +1,5 @@
+// Copyright (c) Epic Games Tools
+// Licensed under the MIT license (https://opensource.org/license/mit/)
 
 #ifndef BASE_HASH_TABLE_H
 #define BASE_HASH_TABLE_H

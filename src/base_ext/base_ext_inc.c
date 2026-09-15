@@ -1,3 +1,5 @@
+// Copyright (c) Epic Games Tools
+// Licensed under the MIT license (https://opensource.org/license/mit/)
 
 #include "base_ext_core.c"
 #include "base_ext_arena.c"

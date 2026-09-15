@@ -1,3 +1,5 @@
+// Copyright (c) Epic Games Tools
+// Licensed under the MIT license (https://opensource.org/license/mit/)
 
 // command line
 global String8 g_stdout_file_name = str8_lit_comp("torment.out");

@@ -1,3 +1,6 @@
+// Copyright (c) Frances Telfar
+// Licensed under the PolyForm Noncommercial License (https://polyformproject.org/licenses/noncommercial/1.0.0)
+
 Test(str8_ipv4_strings)
 {
     Temp scratch = scratch_begin(0, 0);

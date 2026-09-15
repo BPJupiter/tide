@@ -1,3 +1,5 @@
+// Copyright (c) Epic Games Tools
+// Licensed under the MIT license (https://opensource.org/license/mit/)
 
 #include "third_party/martins_bitscan/bitscan.h"
 

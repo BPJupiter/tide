@@ -1,3 +1,5 @@
+// Copyright (c) Epic Games Tools
+// Licensed under the MIT license (https://opensource.org/license/mit/)
 
 internal void bucket_list_concat_in_place(Bucket_List *list, Bucket_List *to_concat)
 {

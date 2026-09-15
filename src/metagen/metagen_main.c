@@ -1,6 +1,10 @@
 // Copyright (c) Epic Games Tools
 // Licensed under the MIT license (https://opensource.org/license/mit/)
 
+// Copyright (c) Frances Telfar
+// Licensed under the PolyForm Noncommercial License (https://polyformproject.org/licenses/noncommercial/1.0.0)
+
+
 ///////////////////
 // Build Options
 
@@ -543,6 +547,8 @@ internal void entry_point(Cmd_Line *cmdline)
             FILE *h = fopen((char *)h_path.str, "w");
             fprintf(h, "// Copyright (c) Epic Games Tools\n");
             fprintf(h, "// Licensed under the MIT license (https://opensource.org/license/mit/)\n\n");
+            fprintf(h, "// Copyright (c) Frances Telfar\n");
+            fprintf(h, "// Licensed under the PolyForm Noncommercial License (https://polyformproject.org/licenses/noncommercial/1.0.0)\n\n");
             if(layer->h_header.first == 0)
             {
               fprintf(h, "//- GENERATED CODE\n\n");

@@ -1,3 +1,5 @@
+// Copyright (c) Epic Games Tools
+// Licensed under the MIT license (https://opensource.org/license/mit/)
 
 #ifndef BASE_EXT_INC_H
 #define BASE_EXT_INC_H

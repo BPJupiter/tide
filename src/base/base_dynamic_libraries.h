@@ -1,3 +1,5 @@
+// Copyright (c) Epic Games Tools
+// Licensed under the MIT license (https://opensource.org/license/mit/)
 
 #ifndef BASE_DYNAMIC_LIBRARIES_H
 #define BASE_DYNAMIC_LIBRARIES_H

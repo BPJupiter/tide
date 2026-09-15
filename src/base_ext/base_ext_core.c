@@ -1,3 +1,5 @@
+// Copyright (c) Epic Games Tools
+// Licensed under the MIT license (https://opensource.org/license/mit/)
 
 internal int u16_compar(const void *raw_a, const void *raw_b)
 {

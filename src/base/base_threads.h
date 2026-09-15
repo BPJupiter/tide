@@ -1,3 +1,6 @@
+// Copyright (c) Epic Games Tools
+// Licensed under the MIT license (https://opensource.org/license/mit/)
+
 #ifndef BASE_THREADS_H
 #define BASE_THREADS_H
 

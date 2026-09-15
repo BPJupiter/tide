@@ -1,3 +1,10 @@
+// Copyright (c) Epic Games Tools
+// Licensed under the MIT license (https://opensource.org/license/mit/)
+
+// Copyright (c) Frances Telfar
+// Licensed under the PolyForm Noncommercial License (https://polyformproject.org/licenses/noncommercial/1.0.0)
+
+
 // Scalar Math Ops
 
 internal f32 mix_1f32(f32 a, f32 b, f32 t)
