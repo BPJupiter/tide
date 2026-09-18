@@ -10,6 +10,35 @@ typedef enum TI_RegSlot
 {
 TI_RegSlot_Null,
 TI_RegSlot_Window,
+TI_RegSlot_Panel,
+TI_RegSlot_Tab,
+TI_RegSlot_View,
+TI_RegSlot_PrevTab,
+TI_RegSlot_DstPanel,
+TI_RegSlot_Cfg,
+TI_RegSlot_CfgList,
+TI_RegSlot_FilePath,
+TI_RegSlot_Expr,
+TI_RegSlot_UIKey,
+TI_RegSlot_SrcUIKey,
+TI_RegSlot_OffPx,
+TI_RegSlot_RegSlot,
+TI_RegSlot_CtxExpr,
+TI_RegSlot_PID,
+TI_RegSlot_ForceConfirm,
+TI_RegSlot_ForceFocus,
+TI_RegSlot_NoRichTooltip,
+TI_RegSlot_DoImplicitRoot,
+TI_RegSlot_DoLister,
+TI_RegSlot_DoBigRows,
+TI_RegSlot_AllWindows,
+TI_RegSlot_NonGraphical,
+TI_RegSlot_PreferNewTab,
+TI_RegSlot_ActivateWithSingleClick,
+TI_RegSlot_SmallSize,
+TI_RegSlot_CreateNew,
+TI_RegSlot_Dir2,
+TI_RegSlot_String,
 TI_RegSlot_CmdName,
 TI_RegSlot_WMEvent,
 TI_RegSlot_COUNT,
@@ -21,9 +50,57 @@ TI_CmdKind_Null,
 TI_CmdKind_Exit,
 TI_CmdKind_RunCommand,
 TI_CmdKind_WMEvent,
+TI_CmdKind_IncWindowFontSize,
+TI_CmdKind_DecWindowFontSize,
+TI_CmdKind_IncViewFontSize,
+TI_CmdKind_DecViewFontSize,
 TI_CmdKind_OpenWindow,
+TI_CmdKind_WindowSettings,
 TI_CmdKind_CloseWindow,
+TI_CmdKind_ToggleFullscreen,
+TI_CmdKind_BringToFont,
+TI_CmdKind_ResetToDefaultPanels,
+TI_CmdKind_NewPanelLeft,
+TI_CmdKind_NewPanelUp,
+TI_CmdKind_NewPanelRight,
+TI_CmdKind_NewPanelDown,
+TI_CmdKind_SplitPanel,
+TI_CmdKind_NextPanel,
+TI_CmdKind_PrevPanel,
+TI_CmdKind_FocusPanel,
+TI_CmdKind_FocusPanelRight,
+TI_CmdKind_FocusPanelLeft,
+TI_CmdKind_FocusPanelUp,
+TI_CmdKind_FocusPanelDown,
+TI_CmdKind_ClosePanel,
+TI_CmdKind_FocusTab,
+TI_CmdKind_NextTab,
+TI_CmdKind_PrevTab,
+TI_CmdKind_MoveTabRight,
+TI_CmdKind_MoveTabLeft,
+TI_CmdKind_OpenTab,
+TI_CmdKind_BuildTab,
+TI_CmdKind_DuplicateTab,
+TI_CmdKind_CopyTabFullPath,
+TI_CmdKind_CloseTab,
+TI_CmdKind_MoveView,
+TI_CmdKind_TabBarTop,
+TI_CmdKind_TabBarBottom,
+TI_CmdKind_TabSettings,
+TI_CmdKind_NewUser,
+TI_CmdKind_NewProject,
+TI_CmdKind_OpenUser,
+TI_CmdKind_OpenProject,
+TI_CmdKind_PushQuery,
+TI_CmdKind_CompleteQuery,
+TI_CmdKind_CancelQuery,
+TI_CmdKind_CancelAllQueries,
+TI_CmdKind_UpdateQuery,
+TI_CmdKind_OpenOutput,
+TI_CmdKind_OpenText,
+TI_CmdKind_OpenGeo3D,
 TI_CmdKind_COUNT,
+TI_CmdKind_FirstTabFastPathCmd = TI_CmdKind_OpenGeo3D,
 } TI_CmdKind;
 
 typedef enum TI_IconKind
@@ -134,8 +211,45 @@ typedef struct TI_Regs TI_Regs;
 struct TI_Regs
 {
 CFG_ID window;
+CFG_ID panel;
+CFG_ID tab;
+CFG_ID view;
+CFG_ID prev_tab;
+CFG_ID dst_panel;
+CFG_ID cfg;
+CFG_ID_List cfg_list;
+String8 file_path;
+String8 expr;
+UI_Key ui_key;
+UI_Key src_ui_key;
+Vec2f32 off_px;
+TI_RegSlot reg_slot;
+String8 ctx_expr;
+u32 pid;
+bool32 force_confirm;
+bool32 force_focus;
+bool32 no_rich_tooltip;
+bool32 do_implicit_root;
+bool32 do_lister;
+bool32 do_big_rows;
+bool32 all_windows;
+bool32 non_graphical;
+bool32 prefer_new_tab;
+bool32 activate_with_single_click;
+bool32 small_size;
+bool32 create_new;
+Dir2 dir2;
+String8 string;
 String8 cmd_name;
 WM_Event * wm_event;
+};
+
+typedef struct TI_Query TI_Query;
+struct TI_Query
+{
+TI_QueryFlags flags;
+TI_RegSlot slot;
+String8 expr;
 };
 
 typedef struct TI_Cmd_Kind_Info TI_Cmd_Kind_Info;
@@ -143,19 +257,59 @@ struct TI_Cmd_Kind_Info
 {
 String8 string;
 String8 description;
+String8 search_tags;
+String8 filter_tags;
 TI_CmdKindFlags flags;
+TI_Query query;
 };
+
+#define TI_FixedTabXList \
+Y(output, text, "query:output")\
+Y(text, text, "")\
+Y(geo3d, geo3d, "")\
+Z(getting_started)\
 
 #define ti_regs_lit_init_top \
 .window = ti_regs()->window,\
+.panel = ti_regs()->panel,\
+.tab = ti_regs()->tab,\
+.view = ti_regs()->view,\
+.prev_tab = ti_regs()->prev_tab,\
+.dst_panel = ti_regs()->dst_panel,\
+.cfg = ti_regs()->cfg,\
+.cfg_list = ti_regs()->cfg_list,\
+.file_path = ti_regs()->file_path,\
+.expr = ti_regs()->expr,\
+.ui_key = ti_regs()->ui_key,\
+.src_ui_key = ti_regs()->src_ui_key,\
+.off_px = ti_regs()->off_px,\
+.reg_slot = ti_regs()->reg_slot,\
+.ctx_expr = ti_regs()->ctx_expr,\
+.pid = ti_regs()->pid,\
+.force_confirm = ti_regs()->force_confirm,\
+.force_focus = ti_regs()->force_focus,\
+.no_rich_tooltip = ti_regs()->no_rich_tooltip,\
+.do_implicit_root = ti_regs()->do_implicit_root,\
+.do_lister = ti_regs()->do_lister,\
+.do_big_rows = ti_regs()->do_big_rows,\
+.all_windows = ti_regs()->all_windows,\
+.non_graphical = ti_regs()->non_graphical,\
+.prefer_new_tab = ti_regs()->prefer_new_tab,\
+.activate_with_single_click = ti_regs()->activate_with_single_click,\
+.small_size = ti_regs()->small_size,\
+.create_new = ti_regs()->create_new,\
+.dir2 = ti_regs()->dir2,\
+.string = ti_regs()->string,\
 .cmd_name = ti_regs()->cmd_name,\
 .wm_event = ti_regs()->wm_event,\
 
 C_LINKAGE_BEGIN
-extern TI_Vocab_Info ti_vocab_info_table[7];
+extern String8 ti_tab_fast_path_view_name_table[3];
+extern String8 ti_tab_fast_path_query_name_table[3];
+extern TI_Vocab_Info ti_vocab_info_table[63];
 extern TI_Name_Schema_Info ti_name_schema_info_table[27];
-extern String8 ti_reg_slot_code_name_table[4];
-extern Rng1u64 ti_reg_slot_range_table[4];
+extern String8 ti_reg_slot_code_name_table[33];
+extern Rng1u64 ti_reg_slot_range_table[33];
 extern String8 ti_icon_kind_text_table[75];
 extern String8 ti_theme_preset_display_string_table[1];
 extern String8 ti_theme_preset_code_string_table[1];

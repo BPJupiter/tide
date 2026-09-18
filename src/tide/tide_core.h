@@ -4,21 +4,121 @@
 #ifndef TIDE_CORE_H
 #define TIDE_CORE_H
 
-/////////////////
-// Cable State
+///////////////////
+// View UI Hook Types
+
+#define TI_VIEW_UI_FUNCTION_SIG(name) void name(Rng2f32 rect)
+#define TI_VIEW_UI_FUNCTION_NAME(name) ti_view_ui__##name
+#define TI_VIEW_UI_FUNCTION_DEF(name) internal TI_VIEW_UI_FUNCTION_SIG(TI_VIEW_UI_FUNCTION_NAME(name))
+typedef TI_VIEW_UI_FUNCTION_SIG(TI_View_UI_Function_Type);
+
+typedef struct TI_View_UI_Rule TI_View_UI_Rule;
+struct TI_View_UI_Rule
+{
+    String8 name;
+    TI_View_UI_Function_Type *ui;
+};
+
+typedef struct TI_View_UI_Rule_Node TI_View_UI_Rule_Node;
+struct TI_View_UI_Rule_Node
+{
+    TI_View_UI_Rule_Node *next;
+    TI_View_UI_Rule v;
+};
+
+typedef struct TI_View_UI_Rule_Slot TI_View_UI_Rule_Slot;
+struct TI_View_UI_Rule_Slot
+{
+    TI_View_UI_Rule_Node *next;
+    TI_View_UI_Rule_Node *last;
+};
+
+typedef struct TI_View_UI_Rule_Map TI_View_UI_Rule_Map;
+struct TI_View_UI_Rule_Map
+{
+    TI_View_UI_Rule_Slot *slots;
+    u64 slots_count;
+};
 
 ////////////////////////
 // Command Kind Types
+
+typedef u32 TI_QueryFlags;
+enum {
+    TI_QueryFlag_AllowFiles     = (1 << 0),
+    TI_QueryFlag_AllowFolders   = (1 << 1),
+    TI_QueryFlag_CodeInput      = (1 << 2),
+    TI_QueryFlag_KeepOldInput   = (1 << 3),
+    TI_QueryFlag_SelectOldInput = (1 << 4),
+    TI_QueryFlag_Floating       = (1 << 5),
+    TI_QueryFlag_Required       = (1 << 6),
+};
 
 typedef u32 TI_CmdKindFlags;
 enum {
     TI_CmdKindFlag_ListInUI            = (1 << 0),
 };
-    
+
 ///////////////////
 // Generated Code
 
 #include "generated/tide.meta.h"
+
+////////////////
+// View State Types
+
+typedef struct TI_Arena_Ext TI_Arena_Ext;
+struct TI_Arena_Ext
+{
+    TI_Arena_Ext *next;
+    Arena *arena;
+};
+
+typedef struct TI_View_State TI_View_State;
+struct TI_View_State
+{
+    // hash links & key
+    TI_View_State *hash_next;
+    TI_View_State *hash_prev;
+    CFG_ID cfg_id;
+
+    // touch info
+    u64 last_frame_index_touched;
+    u64 last_frame_index_built;
+
+    // loading indicator info
+    f32 loading_t;
+    f32 loading_t_target;
+    u64 loading_progress_v;
+    u64 loading_progress_v_target;
+
+    // scroll position
+    UI_Scroll_Pt2 scroll_pos;
+
+    // view-lifetime allocation & user data extensions
+    Arena *arena;
+    u64 arena_reset_pos;
+    TI_Arena_Ext *first_arena_ext;
+    TI_Arena_Ext *last_arena_ext;
+    void *user_data;
+
+    // query state
+    bool32 query_is_open;
+    u64 query_cursor;
+    u64 query_mark;
+    u8 query_buffer[Kilobytes(1)];
+    u64 query_string_size;
+
+    // contents are focused (disables query focus)
+    bool32 contents_are_focused;
+};
+
+typedef struct TI_View_State_Slot TI_View_State_Slot;
+struct TI_View_State_Slot
+{
+    TI_View_State *first;
+    TI_View_State *last;
+};
 
 ///////////////////
 // Vocabulary Map
@@ -93,6 +193,14 @@ typedef enum TI_FontSlot
 /////////////////////
 // Per-Window State
 
+typedef struct TI_Query_View TI_Query_View;
+struct TI_Query_View
+{
+    TI_Query_View *next;
+    TI_Regs *regs;
+    u64 q_arena_pos;
+};
+
 typedef struct TI_Window_State TI_Window_State;
 struct TI_Window_State {
     // links & metadata
@@ -125,6 +233,11 @@ struct TI_Window_State {
     bool32 menu_bar_key_held;
     bool32 menu_bar_focus_press_started;
 
+    // query stack state
+    Arena *query_arena;
+    CFG_ID query_last_bottom_view_id;
+    TI_Query_View *query_top;
+
     // error state
     u8 error_buffer[512];
     u64 error_string_size;
@@ -152,6 +265,14 @@ struct TI_State {
     Arena *arena;
     bool32 quit;
     s32 frame_depth;
+
+    // config bucket paths
+    Arena *user_path_arena;
+    String8 user_path;
+    Arena *project_path_arena;
+    String8 project_path;
+    Arena *theme_path_arena;
+    String8 theme_path;
 
     // animation rates
     f32 catchall_animation_rate;
@@ -191,6 +312,9 @@ struct TI_State {
     // slot -> font tag map (constructed from-scratch each frame)
     FNT_Tag font_slot_table[TI_FontSlot_COUNT];
 
+    // name -> view ui map (constructed from-scratch each frame)
+    TI_View_UI_Rule_Map *view_ui_rule_map;
+
     // Registers stack
     TI_Regs_Node base_regs;
     TI_Regs_Node *top_regs;
@@ -219,6 +343,13 @@ struct TI_State {
     CFG_ID window_state_last_accessed_id;
     TI_Window_State *window_state_last_accessed;
 
+    // view state cache
+    u64 view_state_slots_count;
+    TI_View_State_Slot *view_state_slots;
+    TI_View_State *free_view_state;
+    CFG_ID view_state_last_accessed_id;
+    TI_View_State *view_state_last_accessed;
+
     // bind change
     Arena *bind_change_arena;
     bool32 bind_change_active;
@@ -233,6 +364,17 @@ read_only global TI_Vocab_Info ti_nil_vocab_info = {0};
 
 read_only global TI_Cmd_Kind_Info ti_nil_cmd_kind_info = {0};
 
+TI_VIEW_UI_FUNCTION_DEF(null);
+read_only global TI_View_UI_Rule ti_nil_view_ui_rule = {
+    {0},
+    TI_VIEW_UI_FUNCTION_NAME(null),
+};
+
+read_only global TI_View_State ti_nil_view_state = {
+    &ti_nil_view_state,
+    &ti_nil_view_state,
+};
+
 read_only global TI_Window_State ti_nil_window_state = {
     &ti_nil_window_state,
     &ti_nil_window_state,
@@ -243,9 +385,9 @@ read_only global TI_Window_State ti_nil_window_state = {
 global TI_State *ti_state = 0;
 
 // Dev flags
+global bool32 DEV_simulate_lag        = false;
 global bool32 DEV_draw_diag_line_test = false;
 global bool32 DEV_draw_3D_test        = false;
-global bool32 DEV_button_test         = false;
 global bool32 DEV_draw_ui_text_pos    = false;
 global bool32 DEV_draw_ui_focus_debug = false;
 global bool32 DEV_draw_ui_box_heatmap = false;
@@ -261,35 +403,82 @@ internal TI_Regs *ti_regs_copy(Arena *arena, TI_Regs *src);
 
 internal void ti_cmd_list_push_new(Arena *arena, TI_Cmd_List *cmds, String8 name, TI_Regs *regs);
 
+/////////////////////
+// View UI Rule Functions
+
+internal TI_View_UI_Rule_Map *ti_view_ui_rule_map_make(Arena *arena, u64 slots_count);
+internal void ti_view_ui_rule_map_insert(Arena *arena, TI_View_UI_Rule_Map *map, String8 string, TI_View_UI_Function_Type *ui);
+
+internal TI_View_UI_Rule *ti_view_ui_rule_from_string(String8 string);
+
 ////////////////////
 // Config Functions
 
+internal bool32 ti_cfg_is_project_filtered(CFG_Node *cfg);
+
+internal Vec4f32 ti_hsva_from_cfg(CFG_Node *cfg);
+internal Vec4f32 ti_color_from_cfg(CFG_Node *cfg);
+
+internal bool32 ti_disabled_from_cfg(CFG_Node *cfg);
+internal String8 ti_name_from_cfg(CFG_Node *cfg);
+internal String8 ti_label_from_cfg(CFG_Node *cfg);
+internal String8 ti_expr_from_cfg(CFG_Node *cfg);
+internal String8 ti_path_from_cfg(CFG_Node *cfg);
+
+internal String8 ti_default_setting_from_names(String8 schema_name, String8 setting_name);
+internal String8 ti_setting_from_name(String8 name);
+internal bool32 ti_setting_bool32_from_name(String8 name);
+internal u64 ti_setting_u64_from_name(String8 name);
+internal f32 ti_setting_f32_from_name(String8 name);
+
+internal CFG_Node *ti_immediate_cfg_from_key(String8 string);
+internal CFG_Node *ti_immediate_cfg_from_keyf(char *fmt, ...);
+
+
+////////////////////////
+// Evaluation Visualization
+//
+
+// eval <-> file path
+internal String8 ti_file_path_from_eval_string(Arena *arena, String8 string);
+
+
+/////////////////
+// View Functions
+
 /*
-internal bool32 bp_cfg_is_project_filtered(CFG_Node *cfg);
+internal CFG_Node *ti_view_from_string(CFG_Node *parent, String8 string);
 */
+internal TI_View_State *ti_view_state_from_cfg(CFG_Node *cfg);
+internal void ti_view_ui(Rng2f32 rect);
 
-internal Vec4f32 bp_hsva_from_cfg(CFG_Node *cfg);
-internal Vec4f32 bp_color_from_cfg(CFG_Node *cfg);
+/////////////////
+// View Building API
 
-/*
-internal bool32 bp_disabled_from_cfg(CFG_Node *cfg);
-*/
-internal String8 bp_name_from_cfg(CFG_Node *cfg);
-internal String8 bp_label_from_cfg(CFG_Node *cfg);
-internal String8 bp_path_from_cfg(CFG_Node *cfg);
+// view info extraction
+internal Arena *ti_view_arena(void);
+internal UI_Scroll_Pt2 ti_view_scroll_pos(void);
+internal String8 ti_view_query_cmd(void);
+internal String8 ti_view_query_input(void);
+internal String8 ti_view_setting_from_name(String8 string);
+internal bool32 ti_view_setting_bool32_from_name(String8 string);
+internal u64 ti_view_setting_u64_from_name(String8 string);
+internal f32 ti_view_setting_f32_from_name(String8 string);
+internal u64 ti_view_setting_addr_from_name(String8 string);
 
-/*
-internal String8 bp_default_setting_from_names(String8 schema_name, String8 setting_name);
+// pushing/attaching view resources
+internal void *ti_view_state_by_size(u64 size);
+#define ti_view_state(T) (T *)ti_view_state_by_size(sizeof(T))
+internal Arena *ti_push_view_arena(void);
 
-
-internal String8 bp_setting_from_name(String8 name);
-internal bool32 bp_setting_bool32_from_name(String8 name);
-internal u64 bp_setting_u64_from_name(String8 name);
-internal f32 bp_setting_f32_from_name(String8 name);
-*/
-
-internal CFG_Node *bp_immediate_cfg_from_key(String8 string);
-internal CFG_Node *bp_immediate_cfg_from_keyf(char *fmt, ...);
+// storing view-attached state
+internal void ti_store_view_loading_info(bool32 is_loading, u64 progress_u64, u64 progress_u64_target);
+internal void ti_store_view_scroll_pos(UI_Scroll_Pt2 pos);
+internal void ti_store_view_param(String8 key, String8 value);
+internal void ti_store_view_paramf(String8 key, char *fmt, ...);
+#define ti_store_view_param_f32(key, f32) ti_store_view_paramf((key), "%ff", (f32))
+#define ti_store_view_param_s64(key, s64) ti_store_view_paramf((key), "%I64d", (s64))
+#define ti_store_view_param_u64(key, u64) ti_store_view_paramf((key), "0x%I64x", (u64))
 
 ///////////////////
 // Window Functions

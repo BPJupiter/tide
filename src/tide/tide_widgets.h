@@ -9,6 +9,16 @@
 
 #define TI_Font(slot) UI_Font(ti_font_from_slot(slot)) UI_TextRasterFlags(ti_raster_flags_from_slot((slot)))
 
+//////////////////////
+// UI Widgets: Fancy Title Strings
+
+internal DR_FStr_List ti_title_fstrs_from_cfg(Arena *arena, CFG_Node *cfg, bool32 include_extras);
+
+////////////////////
+// UI Widgets: Loading Overlay
+
+internal void ti_loading_overlay(Rng2f32 rect, f32 loading_t, u64 progress_v, u64 progress_v_target);
+
 ///////////////////////
 // UI Widgets: Fancy Buttons
 

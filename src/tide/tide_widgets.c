@@ -1,6 +1,89 @@
 // Copyright (c) Frances Telfar
 // Licensed under the PolyForm Noncommercial License (https://polyformproject.org/licenses/noncommercial/1.0.0)
 
+//////////////////////
+// UI Widgets: Fancy Title Strings
+
+internal DR_FStr_List ti_title_fstrs_from_cfg(Arena *arena, CFG_Node *cfg, bool32 include_extras)
+{
+    DR_FStr_List result = {0};
+    {
+        Temp scratch = scratch_begin(&arena, 1);
+
+        
+        scratch_end(scratch);
+    }
+    return result;
+}
+
+////////////////////
+// UI Widgets: Loading Overlay
+
+internal void ti_loading_overlay(Rng2f32 rect, f32 loading_t, u64 progress_v, u64 progress_v_target)
+{
+    if (loading_t >= 0.001f) UI_Focus(UI_FocusKind_Off)
+    {
+        // set up dimensions
+        f32 edge_padding = 30.f;
+        f32 width = ui_top_font_size() * 10;
+        f32 height = ui_top_font_size() * 1.f;
+        f32 min_thickness = ui_top_font_size()/2;
+        f32 trail = ui_top_font_size() * 4;
+        f32 t = pow_f32(sin_f32((f32)ti_state->time_in_seconds / 1.8f), 2.f);
+        f64 v = 1.f - abs_f32(0.5f - t);
+
+        // build indicator
+        UI_CornerRadius(height/3.f) UI_Transparency(1 - loading_t)
+        {
+            // rects
+            Rng2f32 indicator_region_rect =
+                r2f32p((rect.x0 + rect.x1)/2 - width/2  - rect.x0,
+                       (rect.y0 + rect.y1)/2 - height/2 - rect.y0,
+                       (rect.x0 + rect.x1)/2 - width/2  - rect.x0,
+                       (rect.y0 + rect.y1)/2 - height/2 - rect.y0);
+            Rng2f32 indicator_rect =
+                r2f32p(indicator_region_rect.x0 + width*t - min_thickness/2 - trail*v,
+                       indicator_region_rect.y0,
+                       indicator_region_rect.x0 + width*t + min_thickness/2 - trail*v,
+                       indicator_region_rect.y1);
+            indicator_rect.x0 = Clamp(indicator_region_rect.x0, indicator_rect.x0, indicator_region_rect.x1);
+            indicator_rect.x1 = Clamp(indicator_region_rect.x0, indicator_rect.x1, indicator_region_rect.x1);
+            indicator_rect = pad_2f32(indicator_rect, -1.f);
+
+            // does the view have loading *progress* info? -> draw extra progress layer
+            if (progress_v != progress_v_target) UI_TagF("drop_site")
+            {
+                f64 pct_done_f64 = ((f64)progress_v/(f64)progress_v_target);
+                f32 pct_done = (f32)pct_done_f64;
+                Rng2f32 pct_rect = r2f32p(indicator_region_rect.x0,
+                                          indicator_region_rect.y0,
+                                          indicator_region_rect.x0 + (indicator_region_rect.x1 - indicator_region_rect.x0)*pct_done,
+                                          indicator_region_rect.y1);
+                UI_Rect(pct_rect)
+                    ui_build_box_from_key(UI_BoxFlag_DrawBackground|UI_BoxFlag_Floating, ui_key_zero());
+            }
+
+            // fill
+            UI_TagF("pop") UI_Rect(indicator_rect)
+                ui_build_box_from_key(UI_BoxFlag_DrawBackground|UI_BoxFlag_Floating, ui_key_zero());
+
+            // animated bar
+            UI_Rect(indicator_region_rect)
+            {
+                UI_Box *box = ui_build_box_from_stringf(UI_BoxFlag_DrawBackground|UI_BoxFlag_DrawBorder|UI_BoxFlag_Floating|UI_BoxFlag_Clickable, "bg_system_status");
+                UI_Signal sig = ui_signal_from_box(box);
+            }
+        }
+
+        // build background
+        UI_WidthFill UI_HeightFill UI_Transparency(1-loading_t) UI_BlurSize(10.f*loading_t)
+        {
+            ui_set_next_blur_size(10.f*loading_t);
+            ui_build_box_from_key(UI_BoxFlag_DrawBackground|UI_BoxFlag_DrawBackgroundBlur|UI_BoxFlag_Floating, ui_key_zero());
+        }
+    }
+}
+
 ///////////////////////
 // UI Widgets: Fancy Buttons
 

@@ -14,6 +14,38 @@
 //@embed_file ti_map_vertex_bytes:        "../data/generated/map_vertices.vb"
 //@embed_file ti_map_index_bytes:         "../data/generated/map_indices.ib"
 
+@table(name   display_name    name_lower    view    query    icon)
+TI_ViewTabFastPathTable:
+{
+    {Output   "Output"        output        text    "query:output"    List           }
+    {Text     "Text"          text          text    ""                FileOutline    }
+    {Geo3D    "Geometry (3D)" geo3d         geo3d   ""                Cube           }
+}
+
+@table(name   display_name   name_lower   icon)
+TI_FixedTabTable:
+{
+    {GettingStarted  "Getting Started"  getting_started   QuestionMark }
+}
+
+@gen
+{
+    `#define TI_FixedTabXList \\`;
+    @expand(TI_ViewTabFastPathTable a) `Y($(a.name_lower), $(a.view), "$(a.query)")\\`;
+    @expand(TI_FixedTabTable a) `Z($(a.name_lower))\\`;
+    ``;
+}
+
+@data(String8) ti_tab_fast_path_view_name_table:
+{
+    @expand(TI_ViewTabFastPathTable a) `str8_lit_comp("$(a.view)")`,
+}
+
+@data(String8) ti_tab_fast_path_query_name_table:
+{
+    @expand(TI_ViewTabFastPathTable a) `str8_lit_comp("$(a.query)")`,
+}
+
 //////////////
 // Vocabulary Map
 
@@ -22,7 +54,16 @@ TI_VocabTable:
 // NOTE: the _ character is used as a fastpath for default rules. when
 // pluralizing, you just append an `s` and so on.
 {
+    {view                _                         "View"                _                           Binoculars                                              }
+    {color               _                         "Color"               _                           Palette                                                 }
+    {theme_color         _                         "Theme Color"         _                           Palette                                                 }
     {window              _                         "Window"              _                           Window                                                  }
+    {panel               _                         "Panel"               _                           Null                                                    }
+    {tab                 _                         "Tab"                 _                           Null                                                    }
+    {expr                _                         "Expression"          _                           Null                                                    }
+    {expression          _                         "Expression"          _                           Null                                                    }
+    {getting_started     ""                        "Getting Started"     ""                          QuestionMark                                            }
+    {text                ""                        "Text"                ""                          FileOutline                                             }
     {geo3d               ""                        "Geometry (3D)"       ""                          Cube                                                    }
 }
 
@@ -39,6 +80,7 @@ TI_VocabTable:
 {
     @expand(TI_VocabTable a)              `{str8_lit_comp("$(a.code_name)"), str8_lit_comp("$(a.code_name_plural == _ -> a.code_name .. 's')$(a.code_name_plural != _ -> a.code_name_plural)"), str8_lit_comp("$(a.display_name)"), str8_lit_comp("$(a.display_name_plural == _ -> a.display_name .. 's')$(a.display_name_plural != _ -> a.display_name_plural)"), TI_IconKind_$(a.icon_kind)}`;
     @expand(TI_CmdTable a)                `{str8_lit_comp("$(a.string)"), str8_lit_comp(""), str8_lit_comp("$(a.display_name)"), str8_lit_comp(""), TI_IconKind_$(a.canonical_icon)}`;
+    @expand(TI_ViewTabFastPathTable a)    `{str8_lit_comp("$(a.name_lower)"), str8_lit_comp(""), str8_lit_comp("$(a.display_name)"), str8_lit_comp(""), TI_IconKind_$(a.icon)}`;
 }
 
 /////////////
@@ -369,9 +411,47 @@ TI_VocabTable:
 @table(c_type  name_lower  name)
 TI_RegTable:
 {
-    {CFG_ID        window          Window            }
-    {String8       cmd_name        CmdName           }
-    {`WM_Event *`  wm_event        WMEvent           }
+    // cfgs
+    {CFG_ID        window                      Window                    }
+    {CFG_ID        panel                       Panel                     }
+    {CFG_ID        tab                         Tab                       }
+    {CFG_ID        view                        View                      }
+    {CFG_ID        prev_tab                    PrevTab                   }
+    {CFG_ID        dst_panel                   DstPanel                  }
+    {CFG_ID        cfg                         Cfg                       }
+    {CFG_ID_List   cfg_list                    CfgList                   }
+
+    // code / address location info
+    {String8       file_path                   FilePath                  }
+
+    // evaluation
+    {String8       expr                        Expr                      }
+
+    // ui context
+    {UI_Key        ui_key                      UIKey                     }
+    {UI_Key        src_ui_key                  SrcUIKey                  }
+    {Vec2f32       off_px                      OffPx                     }
+    {TI_RegSlot    reg_slot                    RegSlot                   }
+    {String8       ctx_expr                    CtxExpr                   }
+
+    // general parameters
+    {u32           pid                         PID                       }
+    {bool32        force_confirm               ForceConfirm              }
+    {bool32        force_focus                 ForceFocus                }
+    {bool32        no_rich_tooltip             NoRichTooltip             }
+    {bool32        do_implicit_root            DoImplicitRoot            }
+    {bool32        do_lister                   DoLister                  }
+    {bool32        do_big_rows                 DoBigRows                 }
+    {bool32        all_windows                 AllWindows                }
+    {bool32        non_graphical               NonGraphical              }
+    {bool32        prefer_new_tab              PreferNewTab              }
+    {bool32        activate_with_single_click  ActivateWithSingleClick   }
+    {bool32        small_size                  SmallSize                 }
+    {bool32        create_new                  CreateNew                 }
+    {Dir2          dir2                        Dir2                      }
+    {String8       string                      String                    }
+    {String8       cmd_name                    CmdName                   }
+    {`WM_Event *`  wm_event                    WMEvent                   }
 }
 
 @enum TI_RegSlot:
@@ -408,46 +488,159 @@ TI_RegTable:
 ///////////////
 // Command Table
 
-@table(name                    ui_vis                      canonical_icon                 string                      display_name                     desc)
-//    /                        |                           |                              |                           |                                |
-//   /                         |                           |                              |                           |                                |
-TI_CmdTable:
-{
+@table(name                      foo ui_vis   foo_docs_vis   q_expr        q_slot     q_allow_files q_allow_folders q_keep_oi q_select_oi q_is_code q_floating q_required    canonical_icon        string         display_name     desc                                                                                                        search_tags                      filter_tags)
+//    /                          |   |        |              |             \___                                    _____________________________________________________/    /   _________________/              /                /                                                                                                            |                                |
+//   /                           |   |        |              |                 \                                  /                          _______________________________/   /             __________________/                /                                                                                                             |                                | 
+TI_CmdTable:    //               |   |        |              |                  |                                |                          /                     _____________/             /                                  /                                                                                                              |                                |
+{//                              |   |        |              |                  |                                |                         |                     /                          |                                  /                                                                                                               |                                |      
     // exiting
-    {Exit                       1                           X                              "exit"                      "Exit"                           "Exits the TIDE program."                              }
+    {Exit                         0   1        1              ""                 Null        0  0  0  0  0  0  0                            X                     "exit"                      "Exit"                           "Exits the TIDE program."                                                                                        "quit,close,abort"               ""        }
 
     // command fast-path
-    {RunCommand                 0                           Null                           "run_command"               "Run Command"                    "Runs a command from the command palette."             }
-    
-    //os event passthrough
-    {WMEvent                    0                           Null                           "wm_event"                  "OS Event"                       ""                                                     }
+    {RunCommand                   0   0        0              "query:commands"   CmdName     0  0  0  0  0  1  1                            Null                  "run_command"               "Run Command"                    "Runs a command from the command palette."                                                                       "help,cmd"                       ""        }
+
+    // os event passthrough
+    {WMEvent                      0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "wm_event"                  "OS Event"                       ""                                                                                                               ""                               ""        }
+
+    // font sizes
+    {IncWindowFontSize            0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "inc_window_font_size"      "Increase Window Font Size"      "Increases the window's font size by one point."                                                                 ""                               ""        }
+    {DecWindowFontSize            0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "dec_window_font_size"      "Decrease Window Font Size"      "Decreases the window's font size by one point."                                                                 ""                               ""        }
+    {IncViewFontSize              0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "inc_view_font_size"        "Increase View Font Size"        "Increases the view's font size by one point."                                                                   ""                               ""        }
+    {DecViewFontSize              0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "dec_view_font_size"        "Decrease View Font Size"        "Decreases the view's font size by one point."                                                                   ""                               ""        }
 
     // windows
-    {OpenWindow                 1                           Window                         "open_window"               "Open New Window"                "Opens a new window."                                  }
-    {CloseWindow                1                           Window                         "close_window"              "Close Window"                   "Closes an opened window."                             }
-    
+    {OpenWindow                   0   1        1              ""                 Null        0  0  0  0  0  0  0                            Window                "open_window"               "Open New Window"                "Opens a new window."                                                                                            ""                               ""        }
+    {WindowSettings               0   1        1              ""                 Null        0  0  0  0  0  0  0                            Gear                  "window_settings"           "Window Settings"                "Opens settings for a window."                                                                                   ""                               ""        }
+    {CloseWindow                  0   1        1              ""                 Null        0  0  0  0  0  0  0                            Window                "close_window"              "Close Window"                   "Closes an opened window."                                                                                       ""                               ""        }
+    {ToggleFullscreen             0   1        1              ""                 Null        0  0  0  0  0  0  0                            Window                "toggle_fullscreen"         "Toggle Fullscreen"              "Toggles fullscreen view on the active window."                                                                  ""                               ""        }
+    {BringToFont                  0   0        1              ""                 Null        0  0  0  0  0  0  0                            Window                "bring_to_front"            "Bring To Font"                  "Brings all windows to the front, and focuses the monst recently focused window"                                 "top"                            ""        }
+
+    // panel splitting
+    {ResetToDefaultPanels         0   1        1              ""                 Null        0  0  0  0  0  0  0                            Window                "reset_to_default_panels"   "Reset To Default Panel Layout"  "Resets the window to the default panel layout."                                                                 ""                               ""        }
+    {NewPanelLeft                 0   1        1              ""                 Null        0  0  0  0  0  0  0                            XSplit                "new_panel_left"            "Split Panel Left"               "Creates a new panel to the left of the active panel."                                                           ""                               ""        }
+    {NewPanelUp                   0   1        1              ""                 Null        0  0  0  0  0  0  0                            YSplit                "new_panel_up"              "Split Panel Up"                 "Creates a new panel at the top of the active panel."                                                            ""                               ""        }
+    {NewPanelRight                0   1        1              ""                 Null        0  0  0  0  0  0  0                            XSplit                "new_panel_right"           "Split Panel Right"              "Creates a new panel to the right of the active panel."                                                          ""                               ""        }
+    {NewPanelDown                 0   1        1              ""                 Null        0  0  0  0  0  0  0                            YSplit                "new_panel_down"            "Split Panel Down"               "Creates a new panel at the bottom of the active panel."                                                         ""                               ""        }
+    {SplitPanel                   0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "split_panel"               "Split Panel"                    "Creates a new panel in a given direction, and moves a tab to it, if specified"                                  ""                               ""        }
+
+    // focused panel changing
+    {NextPanel                    0   1        1              ""                 Null        0  0  0  0  0  0  0                            RightArrow            "next_panel"                "Focus Next Panel"               "Cycles the active panel forward."                                                                               ""                               ""        }
+    {PrevPanel                    0   1        1              ""                 Null        0  0  0  0  0  0  0                            LeftArrow             "prev_panel"                "Focus Previous Panel"           "Cyclces the active panel backwards."                                                                            ""                               ""        }
+    {FocusPanel                   0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "focus_panel"               "Focus Panel"                    "Focuses a new panel."                                                                                           ""                               ""        }
+    {FocusPanelRight              0   1        1              ""                 Null        0  0  0  0  0  0  0                            RightArrow            "focus_panel_right"         "Focus Panel Right"              "Focuses a panel rightward of the currently focused panel."                                                      ""                               ""        }
+    {FocusPanelLeft               0   1        1              ""                 Null        0  0  0  0  0  0  0                            LeftArrow             "focus_panel_left"          "Focus Panel Left"               "Focuses a panel leftward of the currently focused panel."                                                       ""                               ""        }
+    {FocusPanelUp                 0   1        1              ""                 Null        0  0  0  0  0  0  0                            UpArrow               "focus_panel_up"            "Focus Panel Up"                 "Focuses a panel upward of the currently focused panel."                                                         ""                               ""        }
+    {FocusPanelDown               0   1        1              ""                 Null        0  0  0  0  0  0  0                            DownArrow             "focus_panel_down"          "Focus Panel Down"               "Focuses a panel downward of the currently focused panel."                                                       ""                               ""        }
+
+    // panel removal
+    {ClosePanel                   0   1        1              ""                 Null        0  0  0  0  0  0  0                            ClosePanel            "close_panel"               "Close Panel"                    "Closes the currently active panel."                                                                             ""                               ""        }
+ 
+    // panel tab
+    {FocusTab                     0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "focus_tab"                 "Focus Tab"                      "Focuses the passed tab within its containing panel."                                                            ""                               ""        }
+    {NextTab                      0   1        1              ""                 Null        0  0  0  0  0  0  0                            RightArrow            "next_tab"                  "Focus Next Tab"                 "Focuses the next tab on the active panel."                                                                      ""                               ""        }
+    {PrevTab                      0   1        1              ""                 Null        0  0  0  0  0  0  0                            LeftArrow             "prev_tab"                  "Focus Previous Tab"             "Focuses the previous tab on the active panel."                                                                  ""                               ""        }
+    {MoveTabRight                 0   1        1              ""                 Null        0  0  0  0  0  0  0                            RightArrow            "move_tab_right"            "Move Tab Right"                 "Moves the selected tab right one slot."                                                                         ""                               ""        }
+    {MoveTabLeft                  0   1        1              ""                 Null        0  0  0  0  0  0  0                            LeftArrow             "move_tab_left"             "Move Tab Left"                  "Moves the selected tab left one slot."                                                                          ""                               ""        }
+    {OpenTab                      0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "open_tab"                  "Open New Tab"                   "Opens a new tab."                                                                                               ""                               ""        }
+    {BuildTab                     0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "build_tab"                 "Build Tab"                      "Opens a new tab with the parameterized view specification."                                                     ""                               ""        }
+    {DuplicateTab                 0   1        1              ""                 Tab         0  0  0  0  0  0  0                            Duplicate             "duplicate_tab"             "Duplicate Tab"                  "Duplicates a tab."                                                                                              ""                               ""        }
+    {CopyTabFullPath              0   0        0              ""                 Tab         0  0  0  0  0  0  0                            Clipboard             "copy_tab_full_path"        "Copy Full Path"                 "Copies the full path of the file being viewed by this tab."                                                     ""                               ""        }
+    {CloseTab                     0   1        1              ""                 Tab         0  0  0  0  0  0  0                            X                     "close_tab"                 "Close Tab"                      "Closes the currently opened tab."                                                                               ""                               ""        }
+    {MoveView                     0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_view"                 "Move View"                      "Moves a view to a new panel."                                                                                   ""                               ""        }
+    {TabBarTop                    0   1        1              ""                 Null        0  0  0  0  0  0  0                            UpArrow               "tab_bar_top"               "Anchor Tab Bar To Top"          "Anchors a panel's tab bar to the top of the panel."                                                             ""                               ""        }
+    {TabBarBottom                 0   1        1              ""                 Null        0  0  0  0  0  0  0                            DownArrow             "tab_bar_bottom"            "Anchor Tab Bar To Bottom"       "Anchors a panel's tab bar to the bottom of the panel."                                                          ""                               ""        }
+    {TabSettings                  0   1        1              ""                 Null        0  0  0  0  0  0  0                            Gear                  "tab_settings"              "Selected Tab Settings"          "Opens settings for a tab."                                                                                      ""                               ""        }
+
+    // setting config paths
+    {NewUser                      0   1        1              ""                 Null        1  0  0  0  0  1  0                            Add                   "new_user"                  "New User"                       "Creates a new user file, and sets the current user path as that file's path"                                    "new,user,project,layout"        ""        }
+    {NewProject                   0   1        1              ""                 Null        1  0  0  0  0  1  0                            Add                   "new_project"               "New Project"                    "Creates a new project file, and sets the current project path as that file's path."                             "new,user,project,layout"        ""        }
+    {OpenUser                     0   1        1              ""                 FilePath    1  0  0  0  0  1  1                            Person                "open_user"                 "Open User"                      "Opens a user file path, immediately loading it, and begins autosaving to it."                                   "load,user,project,layout"       ""        }
+    {OpenProject                  0   1        1              ""                 FilePath    1  0  0  0  0  1  1                            Briefcase             "open_project"              "Open Project"                   "Opens a project file path, immediately loading it, and begins autosaving to it."                                "project,project,session"        ""        }
+
+    // query stack
+    {PushQuery                    0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "push_query"                "Push Query"                     "Opens a new temporary query interface."                                                                          ""                              ""        }
+    {CompleteQuery                0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "complete_query"            "Complete Query"                 "Completes and closes a query."                                                                                   ""                              ""        }
+    {CancelQuery                  0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "cancel_query"              "Cancel Query"                   "Closes a query."                                                                                                 ""                              ""        }
+    {CancelAllQueries             0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "cancel_all_queries"        "Cancel All Queries"             "Closes all queries."                                                                                             ""                              ""        }
+    {UpdateQuery                  0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "update_query"              "Update Query"                   "Updates a query input."                                                                                          ""                              ""        }
 }
 
 @enum TI_CmdKind:
 {
     `Null`,
     @expand(TI_CmdTable a) `$(a.name)`,
+    @expand(TI_ViewTabFastPathTable a) `Open$(a.name)`,
     COUNT,
+
+    `FirstTabFastPathCmd = TI_CmdKind_OpenGeo3D`,
+}
+
+@struct TI_Query:
+{
+    `TI_QueryFlags flags`;
+    `TI_RegSlot slot`;
+    `String8 expr`;
 }
 
 @struct TI_Cmd_Kind_Info:
 {
     `String8 string`;
     `String8 description`;
+    `String8 search_tags`;
+    `String8 filter_tags`;
     `TI_CmdKindFlags flags`;
+    `TI_Query query`;
 }
 
 @data(TI_Cmd_Kind_Info) @c_file ti_cmd_kind_info_table:
 {
     `{0}`,
     @expand(TI_CmdTable a)
-        ```{ str8_lit_comp("$(a.string)"), str8_lit_comp("$(a.desc)"), TI_CmdKindFlag_ListInUI*$(a.ui_vis)}```;
-        
+        ```{ str8_lit_comp("$(a.string)"), str8_lit_comp("$(a.desc)"), str8_lit_comp("$(a.search_tags)"), str8_lit_comp("$(a.filter_tags)"),  TI_CmdKindFlag_ListInUI*$(a.ui_vis), {(TI_QueryFlag_AllowFiles*$(a.q_allow_files))|(TI_QueryFlag_AllowFolders*$(a.q_allow_folders))|(TI_QueryFlag_CodeInput*$(a.q_is_code))|(TI_QueryFlag_KeepOldInput*$(a.q_keep_oi))|(TI_QueryFlag_SelectOldInput*$(a.q_select_oi))|(TI_QueryFlag_Floating*$(a.q_floating))|(TI_QueryFlag_Required*$(a.q_required)), TI_RegSlot_$(a.q_slot), str8_lit_comp("$(a.q_expr)")}}```;
+    @expand(TI_ViewTabFastPathTable a)
+        ```{ str8_lit_comp("$(a.name_lower)"), str8_lit_comp("Opens a $(a.display_name) tab."), {0}, str8_lit_comp("{tab_commands}"), TI_CmdKindFlag_ListInUI}```;
+}
+
+/////////////
+// Default Bindings
+
+@table(name                          key         ctrl      shift      alt)
+TI_DefaultBindingTable:
+{
+    // font sizes
+    { "inc_window_font_size"                             Equal     0        0         alt        }
+    { "dec_window_font_size"                             Minus     0        0         alt        }
+
+    // windows
+    { "toggle_fullscreen"                                Return    ctrl     0         0          }
+
+    // panel splitting
+    { "new_panel_right"                                  P         ctrl     0         0          }
+    { "new_panel_down"                                   Minus     ctrl     0         0          }
+
+    // focused panel changing
+    { "next_panel"                                       Comma     ctrl     0         0          }
+    { "prev_panel"                                       Comma     ctrl     shift     0          }
+    { "focus_panel_right"                                Right     ctrl     0         alt        }
+    { "focus_panel_left"                                 Left      ctrl     0         alt        }
+    { "focus_panel_up"                                   Up        ctrl     0         alt        }
+    { "focus_panel_down"                                 Down      ctrl     0         alt        }
+
+    // panel removal
+    { "close_panel"                                      P         ctrl     shift     alt        }
+
+    // panel tab
+    { "next_tab"                                         PageDown  ctrl     0         0          }
+    { "prev_tab"                                         PageUp    ctrl     0         0          }
+    { "next_tab"                                         Tab       ctrl     0         0          }
+    { "prev_tab"                                         Tab       ctrl     shift     0          }
+    { "move_tab_right"                                   PageDown  ctrl     shift     0          }
+    { "move_tab_left"                                    PageUp    ctrl     shift     0          }
+    { "close_tab"                                        W         ctrl     0         0          }
+    { "tab_bar_top"                                      Up        ctrl     shift     alt        }
+    { "tab_bar_bottom"                                   Down      ctrl     shift     alt        }
+    { "open_tab"                                         T         ctrl     0         0          }
+    { "tab_settings"                                     T         ctrl     0         alt        }
 }
 
 //////////
