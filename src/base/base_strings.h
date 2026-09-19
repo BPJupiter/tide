@@ -337,9 +337,9 @@ internal String8 path_absolute_dst_from_relative_dst_src(Arena *arena, String8 d
 ////////////////////////////////
 //~ rjf: Path Normalization
 
-internal String8_List path_normalised_list_from_string(Arena *arena, String8 path, PathStyle *style_out);
-internal String8      path_normalised_from_string(Arena *arena, String8 path);
-internal bool32       path_match_normalised(String8 left, String8 right);
+internal String8_List path_normalized_list_from_string(Arena *arena, String8 path, PathStyle *style_out);
+internal String8      path_normalized_from_string(Arena *arena, String8 path);
+internal bool32       path_match_normalized(String8 left, String8 right);
 
 ////////////////////////////////
 //~ rjf: Misc. Path Helpers

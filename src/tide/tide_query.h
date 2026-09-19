@@ -20,5 +20,7 @@ struct TI_Query_Item_List
 };
 
 internal TI_Query_Item_List ti_query_items_from_string(Arena *arena, String8 string, String8 filter);
+internal bool32 ti_query_item_is_cmd(TI_Query_Item *item);
+internal bool32 ti_query_item_complete(String8 cmd_name, TI_Query_Item *item);
 
 #endif // TIDE_QUERY_H

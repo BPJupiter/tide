@@ -1,6 +1,15 @@
 #ifndef TIDE_VIEWS_H
 #define TIDE_VIEWS_H
 
+///////////
+// Watch View Types
+typedef struct TI_Lister_View_State TI_Lister_View_State;
+struct TI_Lister_View_State
+{
+    u64 cursor;
+    u64 filter_hash;
+};
+
 ////////////////
 // View Hooks
 

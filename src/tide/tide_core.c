@@ -16,15 +16,12 @@ internal void ti_regs_copy_contents(Arena *arena, TI_Regs *dst, TI_Regs *src)
     dst->cfg_list    = cfg_id_list_copy(arena, &src->cfg_list);
     dst->file_path   = push_str8_copy(arena, src->file_path);
     dst->string      = push_str8_copy(arena, src->string);
+    dst->expr        = push_str8_copy(arena, src->expr);
     dst->cmd_name    = push_str8_copy(arena, src->cmd_name);
     if(dst->cfg_list.count == 0 && dst->cfg != 0)
     {
         cfg_id_list_push(arena, &dst->cfg_list, dst->cfg);
     }
-    /*
-    dst->lines       = d_line_list_copy(arena, &src->lines);
-    dst->expr        = push_str8_copy(arena, src->expr);
-    */
 }
 
 internal TI_Regs *
@@ -47,6 +44,93 @@ internal void ti_cmd_list_push_new(Arena *arena, TI_Cmd_List *cmds, String8 name
     cmds->count += 1;
 }
 
+/////////////////////
+// View UI Rule Functions
+
+internal TI_View_UI_Rule_Map *ti_view_ui_rule_map_make(Arena *arena, u64 slots_count)
+{
+    TI_View_UI_Rule_Map *map = push_array(arena, TI_View_UI_Rule_Map, 1);
+    map->slots_count = slots_count;
+    map->slots = push_array(arena, TI_View_UI_Rule_Slot, map->slots_count);
+    return map;
+}
+
+internal void ti_view_ui_rule_map_insert(Arena *arena, TI_View_UI_Rule_Map *map, String8 string, TI_View_UI_Function_Type *ui)
+{
+    u64 hash = u64_hash_from_str8(string);
+    u64 slot_idx = hash%map->slots_count;
+    TI_View_UI_Rule_Node *n = push_array(arena, TI_View_UI_Rule_Node, 1);
+    n->v.name = push_str8_copy(arena, string);
+    n->v.ui = ui;
+    SLLQueuePush(map->slots[slot_idx].first, map->slots[slot_idx].last, n);
+}
+
+internal TI_View_UI_Rule *ti_view_ui_rule_from_string(String8 string)
+{
+    TI_View_UI_Rule *rule = &ti_nil_view_ui_rule;
+    {
+        TI_View_UI_Rule_Map *map = ti_state->view_ui_rule_map;
+        u64 hash = u64_hash_from_str8(string);
+        u64 slot_idx = hash%map->slots_count;
+        for (TI_View_UI_Rule_Node *n = map->slots[slot_idx].first; n != 0; n = n->next)
+        {
+            if(str8_match(n->v.name, string, 0))
+            {
+                rule = &n->v;
+                break;
+            }
+        }
+    }
+    return rule;
+}
+
+////////////////////////
+// Global Cross-Window UI Interaction State Functions
+
+internal bool32 ti_drag_is_active(void)
+{
+    return ((ti_state->drag_drop_state == TI_DragDropState_Dragging) ||
+            (ti_state->drag_drop_state == TI_DragDropState_Dropping));
+}
+
+internal void ti_drag_begin(TI_RegSlot slot)
+{
+    if(!ti_drag_is_active())
+    {
+        arena_clear(ti_state->drag_drop_arena);
+        ti_state->drag_drop_regs = ti_regs_copy(ti_state->drag_drop_arena, ti_regs());
+        ti_state->drag_drop_regs_slot = slot;
+        ti_state->drag_drop_state = TI_DragDropState_Dragging;
+    }
+}
+
+internal bool32 ti_drag_drop(void)
+{
+    bool32 result = 0;
+    if(ti_state->drag_drop_state == TI_DragDropState_Dropping)
+    {
+        result = 1;
+        ti_state->drag_drop_state = TI_DragDropState_Null;
+    }
+    return result;
+}
+
+internal void ti_drag_kill(void)
+{
+    ti_state->drag_drop_state = TI_DragDropState_Null;
+}
+
+internal void ti_set_hover_regs(TI_RegSlot slot)
+{
+    ti_state->next_hover_regs = ti_regs_copy(ti_frame_arena(), ti_regs());
+    ti_state->next_hover_regs_slot = slot;
+}
+
+internal TI_Regs *ti_get_hover_regs(void)
+{
+    return ti_state->hover_regs;
+}
+
 //////////////////////
 // Config Functions
 
@@ -55,7 +139,7 @@ internal bool32 ti_cfg_is_project_filtered(CFG_Node *cfg)
     CFG_Node *project = cfg_node_child_from_string(cfg, str8_lit("project"));
     bool32 result = (project != &cfg_nil_node &&
                      project->first->string.size != 0 &&
-                     !path_match_normalised(ti_state->project_path, project->first->string));
+                     !path_match_normalized(ti_state->project_path, project->first->string));
     return result;
 }
 
@@ -74,8 +158,7 @@ internal Vec4f32 ti_hsva_from_cfg(CFG_Node *cfg)
     return hsva;
 }
 
-internal Vec4f32
-ti_color_from_cfg(CFG_Node *cfg)
+internal Vec4f32 ti_color_from_cfg(CFG_Node *cfg)
 {
     Vec4f32 hsva = ti_hsva_from_cfg(cfg);
     Vec4f32 rgba = linear_from_srgba(rgba_from_hsva(hsva));
@@ -430,7 +513,510 @@ internal TI_View_State *ti_view_state_from_cfg(CFG_Node *cfg)
 
 internal void ti_view_ui(Rng2f32 rect)
 {
-    // TODO
+    ProfBeginFunction();
+    CFG_Node *view = cfg_node_from_id(ti_regs()->view);
+    TI_View_State *vs = ti_view_state_from_cfg(view);
+    String8 view_name = view->string;
+    String8 expr_string = ti_expr_from_cfg(view);
+    bool32 view_is_floating = false;
+    for (CFG_Node *p = view->parent; p != &cfg_nil_node; p = p->parent)
+    {
+        if (str8_match(p->string, str8_lit("immediate"), 0))
+        {
+            view_is_floating = true;
+            break;
+        }
+    }
+
+    // query extension
+    CFG_Node *query_root = cfg_node_child_from_string(view, str8_lit("query"));
+    CFG_Node *input_root = cfg_node_child_from_string(query_root, str8_lit("input"));
+    CFG_Node *cmd_root   = cfg_node_child_from_string(query_root, str8_lit("cmd"));
+    String8 current_input = input_root->first->string;
+    bool32 search_row_is_open = (vs->query_is_open);
+    f32 search_row_open_t = ui_anim(ui_key_from_stringf(ui_key_zero(), "search_row_open_%p", view),
+                                    (f32)!!search_row_is_open,
+                                    .initial = (f32)!!search_row_is_open,
+                                    .epsilon = 0.01f,
+                                    .rate    = ti_state->menu_animation_rate);
+    if (search_row_open_t > 0.001f)
+    {
+        String8 cmd_name = cmd_root->first->string;
+        TI_IconKind icon = ti_icon_kind_from_code_name(cmd_name);
+        TI_Cmd_Kind_Info *cmd_kind_info = ti_cmd_kind_info_from_string(cmd_name);
+
+        // store cfg's string into view's
+        vs->query_string_size = Min(sizeof(vs->query_buffer), current_input.size);
+        MemoryCopy(vs->query_buffer, current_input.str, vs->query_string_size);
+
+        // determine dimensions
+        f32 search_row_height_target = ui_top_px_height();
+        f32 search_row_height = search_row_open_t*search_row_height_target;
+        search_row_height = Min(search_row_height, dim_2f32(rect).y);
+        rect.y0 += search_row_height;
+        rect.y0 = floor_f32(rect.y0);
+
+        // build container
+        UI_Box *search_row = &ui_nil_box;
+        UI_PrefHeight(ui_px(search_row_height, 1.f)) // UI_TagF("focus")
+        {
+            if (!vs->contents_are_focused)
+            {
+                ui_set_next_border_color(ui_color_from_name(s("border")));
+            }
+            search_row = ui_build_box_from_stringf(UI_BoxFlag_DrawBorder|UI_BoxFlag_DrawDropShadow, "###search");
+        }
+
+        // build contents
+        UI_Parent(search_row) UI_WidthFill UI_HeightFill UI_Focus(vs->query_is_open && !vs->contents_are_focused ? UI_FocusKind_On : UI_FocusKind_Off)
+            TI_Font(cmd_kind_info->query.flags & TI_QueryFlag_CodeInput ? TI_FontSlot_Code : TI_FontSlot_Main)
+            UI_Flags(UI_BoxFlag_DisableFocusOverlay|UI_BoxFlag_DisableFocusBorder)
+        {
+            UI_TagF("weak")
+            {
+                if (cmd_name.size != 0)
+                {
+                    ui_spacer(ui_em(0.5f, 1.f));
+                    UI_TextAlignment(UI_TextAlign_Center)
+                        UI_Transparency(1-search_row_open_t)
+                        UI_PrefWidth(ui_em(3.f, 1.f))
+                        TI_Font(TI_FontSlot_Icons)
+                        ui_label(ti_icon_kind_text_table[icon == TI_IconKind_Null ? TI_IconKind_Find : icon]);
+                    UI_Transparency(1-search_row_open_t)
+                        TI_Font(TI_FontSlot_Main) UI_PrefWidth(ui_text_dim(1, 1))
+                        UI_FontSize(ui_top_font_size()*0.85f)
+                        ui_label(ti_display_from_code_name(cmd_name));
+                }
+                else
+                {
+                    ui_spacer(ui_em(0.5f, 1.f));
+                    UI_TextAlignment(UI_TextAlign_Center) TI_Font(TI_FontSlot_Icons) UI_PrefWidth(ui_em(2.f, 1.f))
+                        ui_label(ti_icon_kind_text_table[TI_IconKind_Find]);
+                }
+            }
+            UI_Key line_edit_key = {0};
+            TI_Cell_Params params = {0};
+            {
+                params.flags |= !!(cmd_kind_info->query.flags & TI_QueryFlag_CodeInput) * TI_CellFlag_CodeContents;
+                params.flags |= TI_CellFlag_NoBackground;
+                params.cursor               = &vs->query_cursor;
+                params.mark                 = &vs->query_mark;
+                params.edit_buffer          = vs->query_buffer;
+                params.edit_string_size_out = &vs->query_string_size;
+                params.edit_buffer_size     = sizeof(vs->query_buffer);
+                params.pre_edit_value       = current_input;
+                params.line_edit_key_out    = &line_edit_key;
+            }
+            UI_Transparency(1-search_row_open_t)
+            {
+                UI_Signal sig = ti_cellf(&params, "###search");
+                if (ui_pressed(sig))
+                {
+                    vs->query_is_open = true;
+                    vs->contents_are_focused = false;
+                    ti_cmd(TI_CmdKind_FocusPanel);
+                }
+            }
+        }
+
+        // commit string to view
+        if (input_root == &cfg_nil_node)
+        {
+            input_root = cfg_node_child_from_string_or_alloc(ti_state->cfg, query_root, str8_lit("input"));
+        }
+        cfg_node_new_replace(ti_state->cfg, input_root, str8(vs->query_buffer, vs->query_string_size));
+    }
+
+    //////////////////////////
+    // build main view container
+    //
+    UI_Box *view_container = &ui_nil_box;
+    UI_WidthFill UI_HeightFill
+    {
+        view_container = ui_build_box_from_key(0, ui_key_zero());
+    }
+
+    //////////////////////
+    // fill view container
+    //
+    UI_Parent(view_container)
+        UI_FontSize(ti_font_size())
+        UI_PrefHeight(ui_px(floor_f32(ui_top_font_size()*ti_setting_f32_from_name(str8_lit("row_height"))), 1.f))
+    {
+        //////////////////
+        // special-case view: "getting started"
+        //
+        if(0){}
+        else if (str8_match(view_name, str8_lit("getting_started"), 0))
+        {
+            Temp scratch = scratch_begin(0, 0);
+            ui_set_next_flags(UI_BoxFlag_DefaultFocusNav);
+            UI_Focus(UI_FocusKind_On) UI_WidthFill UI_HeightFill UI_NamedColumn(s("empty_view"))
+                UI_Padding(ui_pct(1, 0)) UI_Focus(UI_FocusKind_Null)
+            {
+                CFG_Node_Ptr_List targets = cfg_node_top_level_list_from_string(scratch.arena, s("target"));
+                // @TODO list browsers here....
+                Rng2f32 view_rect = ui_top_parent()->rect;
+
+                // icon & info
+                UI_Padding(ui_em(2.f, 1.f))
+                {
+                    // icon
+                    {
+                        f32 icon_dim = ui_top_font_size()*10.f;
+                        ui_set_next_flags(UI_BoxFlag_AnimatePosY);
+                        UI_PrefHeight(ui_px(icon_dim, 1.f))
+                            UI_Row
+                            UI_Padding(ui_pct(1, 0))
+                            UI_PrefWidth(ui_px(icon_dim, 1.f))
+                        {
+                            R_Handle texture = ti_state->icon_texture;
+                            Vec2s32 texture_dim = r_size_from_tex2d(texture);
+                            ui_image(texture, R_Tex2DSampleKind_Linear, r2f32p(0, 0, texture_dim.x, texture_dim.y), v4f32(1, 1, 1, 1), 0, str8_lit(""));
+                        }
+                    }
+
+                    // title
+                    ui_spacer(ui_em(2.f, 1.f));
+                    UI_WidthFill UI_PrefHeight(ui_em(2.f, 1.f))
+                        UI_Row
+                        UI_Padding(ui_pct(1, 0))
+                        UI_TextAlignment(UI_TextAlign_Center)
+                        UI_PrefWidth(ui_text_dim(1, 1))
+                        UI_FontSize(ui_top_font_size()*2.f)
+                    {
+                        ui_label(s(BUILD_TITLE));
+                    }
+
+                    // info
+                    ui_spacer(ui_em(1.f, 1.f));
+                    UI_WidthFill UI_PrefHeight(ui_em(2.f, 1.f))
+                        UI_Row
+                        UI_Padding(ui_pct(1, 0))
+                        UI_TextAlignment(UI_TextAlign_Center)
+                        UI_PrefWidth(ui_text_dim(1, 1))
+                        UI_TagF("weak")
+                    {
+                        ui_label(s(BUILD_VERSION_STRING_LITERAL " " BUILD_RELEASE_PHASE_STRING_LITERAL));
+                        ui_label(s(BUILD_GIT_HASH));
+                    }
+                }
+
+                // helper for command lister activation
+                UI_PrefHeight(ui_em(3.75f, 1.f))
+                    UI_Row
+                    UI_Padding(ui_pct(1, 0))
+                    UI_TextAlignment(UI_TextAlign_Center)
+                    UI_PrefHeight(ui_em(28.f, 1.f))
+                    UI_CornerRadius(ui_top_font_size()/2.f)
+                    if (ui_clicked(ti_icon_buttonf(TI_IconKind_List, 0, "Open Commands & Settings Palette")))
+                {
+                    // @TODO
+                    sh_message(0, s("OpenPalette"), s("This is where I would open a palette settings page..."));
+                }
+
+                // to browser stuff here
+            }
+            scratch_end(scratch);
+        }
+
+        ///////////////
+        // watch view
+        else if(str8_match(view_name, str8_lit("watch"), 0))
+        {
+            Temp scratch = scratch_begin(0, 0);
+            TI_Lister_View_State *lvs = ti_view_state_by_size(sizeof(TI_Lister_View_State));
+
+            // unpack
+            String8 filter   = ti_view_query_input();
+            String8 cmd_name = ti_view_query_cmd();
+            bool32 is_lister           = (cfg_node_child_from_string(view, s("lister")) != &cfg_nil_node);
+            bool32 create_new          = (cfg_node_child_from_string(view, s("create_new")) != &cfg_nil_node);
+            bool32 prefer_single_click = (cfg_node_child_from_string(view, s("activate_with_single_click")) != &cfg_nil_node);
+            f32 row_height_px = ui_top_px_height();
+            s64 visible_rows  = Max(1, (s64)(dim_2f32(rect).y/row_height_px));
+
+            // evaluate query into random-access item array
+            TI_Query_Item_List item_list = ti_query_items_from_string(scratch.arena, expr_string, filter);
+            s64 count = (s64)item_list.count;
+            TI_Query_Item **items = push_array(scratch.arena, TI_Query_Item *, count+1);
+            {
+                u64 idx = 0;
+                for (TI_Query_Item *n = item_list.first; n != 0; n = n->next)
+                {
+                    items[idx++] = n;
+                }
+            }
+
+            // filter changed? -> reset cursor
+            u64 filter_hash = u64_hash_from_str8(filter);
+            if (filter_hash != lvs->filter_hash)
+            {
+                lvs->filter_hash = filter_hash;
+                lvs->cursor = 0;
+            }
+            lvs->cursor = Clamp(0, lvs->cursor, count);
+
+            // consume evnts: accept & navigation
+            bool32 snap_to_cursor = 0;
+            UI_Focus(UI_FocusKind_On)
+                for (UI_Event *evt = 0; ui_is_focus_active() && ui_next_event(&evt);)
+            {
+                bool32 taken = 0;
+                if (is_lister && evt->kind == UI_EventKind_Press && evt->slot == UI_EventActionSlot_Accept)
+                {
+                    // nothing selected -> creating new? use the typed input. otherwise pick the first row.
+                    if (create_new && lvs->cursor == 0)
+                    {
+                        taken = 1;
+                        ti_cmd(TI_CmdKind_CompleteQuery, .file_path = filter);
+                    }
+                    else if (count != 0)
+                    {
+                        taken = ti_query_item_complete(cmd_name, items[Max(lvs->cursor, 1) - 1]);
+                    }
+                }
+                else if (evt->kind == UI_EventKind_Navigate && count != 0)
+                {
+                    s32 dy = (evt->delta_unit == UI_EventDeltaUnit_Whole ?
+                              (evt->delta_2s32.x != 0 ? evt->delta_2s32.x : evt->delta_2s32.y) :
+                              evt->delta_2s32.y);
+                    if (dy != 0)
+                    {
+                        taken = 1;
+                        snap_to_cursor = 1;
+                        switch (evt->delta_unit)
+                        {
+                            default:
+                            case UI_EventDeltaUnit_Char:
+                            {
+                                lvs->cursor += dy;
+                                if (lvs->cursor < 0)     { lvs->cursor = count; }
+                                if (lvs->cursor > count) { lvs->cursor = 0; }
+                            } break;
+                            case UI_EventDeltaUnit_Word:
+                            case UI_EventDeltaUnit_Line:
+                            case UI_EventDeltaUnit_Page:
+                            {
+                                lvs->cursor += (dy > 0 ? +1 : -1) * Max(1, visible_rows-3);
+                                lvs->cursor = Clamp(1, lvs->cursor, count);
+                            } break;
+                            case UI_EventDeltaUnit_Whole:
+                            {
+                                lvs->cursor = (dy > 0 ? count : 1);
+                            } break;
+                        }
+                    }
+                }
+                if (taken) { ui_eat_event(evt); }
+            }
+
+            // scroll container
+            UI_Box *list = &ui_nil_box;
+            UI_WidthFill UI_HeightFill UI_ChildLayoutAxis(Axis2_Y)
+            {
+                list = ui_build_box_from_stringf(UI_BoxFlag_Clip|
+                                                 UI_BoxFlag_Clickable|
+                                                 UI_BoxFlag_AllowOverflowY|
+                                                 UI_BoxFlag_ViewScrollY|
+                                                 UI_BoxFlag_ViewClampY,
+                                                 "###lister_list");
+            }
+
+            // keep cursor row visible
+            if (snap_to_cursor && lvs->cursor != 0)
+            {
+                f32 view_h = dim_2f32(rect).y;
+                f32 y0     = (lvs->cursor-1)*row_height_px;
+                f32 y1     = y0 + row_height_px;
+                f32 off    = list->view_off_target.y;
+                if (y0 < off)             { off = y0; }
+                else if (y1 > off+view_h) { off = y1 - view_h; }
+                list->view_off_target.y = off;
+            }
+
+            // visible window of rows
+            f32 off0 = Min(list->view_off.y, list->view_off_target.y);
+            f32 off1 = Max(list->view_off.y, list->view_off_target.y);
+            s64 first = Max(0, (s64)(off0/row_height_px));
+            s64 opl   = Min(count, (s64)(off1/row_height_px) + visible_rows + 2);
+            first = Min(first, opl);
+
+            bool32 pressed = 0;
+            UI_Parent(list) TI_Font(TI_FontSlot_Main)
+            {
+                ui_spacer(ui_px(first*row_height_px, 1.f));
+                for (s64 idx = first; idx < opl; idx += 1)
+                {
+                    TI_Query_Item *item = items[idx];
+                    u64 item_hash   = u64_hash_from_str8(item->value);
+                    bool32 selected = (lvs->cursor == idx+1);
+                    bool32 is_file  = (item->icon == TI_IconKind_FileOutline || item->icon == TI_IconKind_FolderClosedFilled);
+                    bool32 is_cmd   = ti_query_item_is_cmd(item);
+                    TI_Cmd_Kind_Info *info = ti_cmd_kind_info_from_string(item->value);
+
+                    // row box (odd rows shaded)
+                    UI_Box *row_box = &ui_nil_box;
+                    ui_set_next_pref_width(ui_pct(1, 0));
+                    UI_TagF(idx & 1 ? "alt" : "")
+                        row_box = ui_build_box_from_stringf(UI_BoxFlag_DisableFocusOverlay|((idx & 1) * UI_BoxFlag_DrawBackground),
+                                                            "row_%I64x", item_hash);
+
+                    // icon + name
+                    DR_FStr_List fstrs = {0};
+                    {
+                        Vec4f32 weak_color = {0};
+                        UI_TagF("weak") weak_color = ui_color_from_name(str8_lit("text"));
+                        DR_FStr_Params icon_params = {ti_font_from_slot(TI_FontSlot_Icons), ti_raster_flags_from_slot(TI_FontSlot_Icons), weak_color, ui_top_font_size()};
+                        DR_FStr_Params name_params = {ui_top_font(), ui_top_text_raster_flags(), ui_color_from_name(str8_lit("text")), ui_top_font_size()};
+                        dr_fstrs_push_new(scratch.arena, &fstrs, &icon_params, ti_icon_kind_text_table[item->icon]);
+                        dr_fstrs_push_new(scratch.arena, &fstrs, &name_params, str8_lit(" "));
+                        dr_fstrs_push_new(scratch.arena, &fstrs, &name_params, item->display);
+                    }
+
+                    // cell params
+                    bool32 single_click = (is_cmd || prefer_single_click);
+                    TI_Cell_Params params = {0};
+                    params.flags        = TI_CellFlag_KeyboardClickable|TI_CellFlag_Button;
+                    params.meta_fstrs   = fstrs;
+                    params.search_needle = (is_file ? str8_skip_last_slash(filter) : filter);
+                    if (single_click) { params.flags |= TI_CellFlag_SingleClickActivate; }
+                    if (is_cmd && info->flags & TI_CmdKindFlag_ListInUI)
+                    {
+                        params.flags        |= TI_CellFlag_Bindings;
+                        params.bindings_name = item->value;
+                    }
+                    if (is_cmd && row_height_px > ui_top_font_size()*3.5f)
+                    {
+                        params.description = info->description;
+                    }
+
+                    // build cell
+                    UI_Signal sig = {0};
+                    UI_Parent(row_box)
+                        UI_WidthFill UI_HeightFill
+                        UI_FocusHot(selected ? UI_FocusKind_On : UI_FocusKind_Off)
+                        UI_FocusActive(UI_FocusKind_Off)
+                        UI_TagF("implicit")
+                    {
+                        sig = ti_cellf(&params, "###cell_%I64x", item_hash);
+                    }
+
+                    // interactions
+                    if (!single_click && ui_pressed(sig))
+                    {
+                        lvs->cursor = idx+1;
+                        pressed = 1;
+                    }
+                    if ((!single_click && ui_double_clicked(sig)) ||
+                        (single_click && ui_clicked(sig)) ||
+                        (prefer_single_click && ui_pressed(sig)) ||
+                        (sig.f & UI_SignalFlag_KeyboardPressed))
+                    {
+                        if (!single_click) { ui_kill_action(); }
+                        ti_query_item_complete(cmd_name, item);
+                    }
+                }
+                ui_spacer(ui_px((count-opl)*row_height_px, 1.f));
+            }
+            ui_signal_from_box(list);
+
+            if (pressed) { ti_cmd(TI_CmdKind_FocusPanel); }
+            vs->contents_are_focused = 0;
+            scratch_end(scratch);
+        }
+
+        ///////////////////////
+        // more views go here as they did with "getting_started"
+        //
+
+        /////////////////
+        // visualizer hook
+        //
+        else
+        {
+            Temp scratch = scratch_begin(0, 0);
+            TI_View_UI_Rule *view_ui_rule = ti_view_ui_rule_from_string(view_name);
+            // expr_string
+
+            // peek presses, steal focus from query bar
+            for (UI_Event *evt = 0; ui_next_event(&evt);)
+            {
+                if (evt->kind == UI_EventKind_Press && contains_2f32(rect, evt->pos))
+                {
+                    vs->contents_are_focused = true;
+                    break;
+                }
+            }
+
+            // 'pull out' button, if floating
+            if (view_is_floating)
+            {
+                UI_Signal pull_out_sig = {0};
+                UI_TagF(".") UI_TagF("tab") UI_Rect(r2f32p(floor_f32(ui_top_font_size()*1.5f),
+                                                           floor_f32(ui_top_font_size()*1.5f),
+                                                           floor_f32(ui_top_font_size()*1.5f + ui_top_font_size()*3.f),
+                                                           floor_f32(ui_top_font_size()*1.5f + ui_top_font_size()*3.f)))
+                    UI_CornerRadius(floor_f32(ui_top_font_size()*1.5f))
+                    UI_TextAlignment(UI_TextAlign_Center)
+                    TI_Font(TI_FontSlot_Icons)
+                    UI_FontSize(floor_f32(ui_top_font_size()*0.9f))
+                {
+                    UI_Box *box = ui_build_box_from_stringf(UI_BoxFlag_Clickable|
+                                                            UI_BoxFlag_Floating|
+                                                            UI_BoxFlag_DrawText|
+                                                            UI_BoxFlag_DrawBorder|
+                                                            UI_BoxFlag_DrawBackground|
+                                                            UI_BoxFlag_DrawActiveEffects|
+                                                            UI_BoxFlag_DrawHotEffects,
+                                                            "%S###pull_out",
+                                                            ti_icon_kind_text_table[TI_IconKind_Window]);
+                    pull_out_sig = ui_signal_from_box(box);
+                }
+                if(ui_hovering(pull_out_sig)) UI_Tooltip TI_Font(TI_FontSlot_Main)
+                {
+                    ui_state->tooltip_anchor_key = pull_out_sig.box->key;
+                    ui_labelf("Pull Out As New Tab");
+                }
+                if(ui_dragging(pull_out_sig) && !contains_2f32(pull_out_sig.box->rect, ui_mouse()))
+                {
+                    //ti_drag_begin(TI_RegSlot_View);
+                    sh_message(0, s("Drag Begin"), s("You pressed the pull out tab"));
+                }
+            }
+
+            // build ui via hook
+            view_ui_rule->ui(rect);
+
+            scratch_end(scratch);
+        }
+    }
+
+    ///////////////////////
+    // catchall completion controls
+    //
+    if (vs->query_is_open) UI_Focus(UI_FocusKind_On)
+    {
+        if (ui_is_focus_active() && ui_slot_press(UI_EventActionSlot_Cancel))
+        {
+            vs->query_is_open = 0;
+            vs->query_string_size = 0;
+        }
+        if (ui_is_focus_active() && ui_slot_press(UI_EventActionSlot_Accept))
+        {
+            String8 cmd_name = ti_view_query_cmd();
+            String8 input = ti_view_query_input();
+            TI_Cmd_Kind_Info *cmd_kind_info = ti_cmd_kind_info_from_string(cmd_name);
+            TI_RegsScope()
+            {
+                ti_regs_fill_slot_from_string(cmd_kind_info->query.slot, str8_zero(), input);
+                ti_cmd(TI_CmdKind_CompleteQuery);
+            }
+        }
+    }
+
+    vs->last_frame_index_built = ti_state->frame_index;
+    ProfEnd();
 }
 
 ///////////////////////
@@ -481,31 +1067,97 @@ internal String8 ti_view_setting_from_name(String8 name)
     return result;
 }
 
-/*
-internal bool32 ti_view_setting_bool32_from_name(String8 string)
+internal bool32 ti_view_setting_bool32_from_name(String8 name)
+{
+    String8 string = ti_view_setting_from_name(name);
+    u64 value_u64 = 0;
+    try_u64_from_str8_c_rules(name, &value_u64);
+    return !!value_u64;
+}
+
+internal u64 ti_view_setting_u64_from_name(String8 name)
+{
+    String8 string = ti_view_setting_from_name(name);
+    u64 value_u64 = 0;
+    try_u64_from_str8_c_rules(name, &value_u64);
+    return value_u64;
+}
+
+internal f32 ti_view_setting_f32_from_name(String8 name)
+{
+    String8 string = ti_view_setting_from_name(name);
+    f32 result = (f32)f64_from_str8(string);
+    return result;
+}
+
+internal u64 ti_view_setting_addr_from_name(String8 name)
 {
 }
 
-internal u64 ti_view_setting_u64_from_name(String8 string)
-{
-}
-
-internal f32 ti_view_setting_f32_from_name(String8 string)
-{
-}
-
-internal u64 ti_view_setting_addr_from_name(String8 string)
-{
-}
-
-internal String8 ti_view_setting_from_name(String8 name)
-{
-}
-*/
 
 // pushing/attaching view resources
 
+internal void *ti_view_state_by_size(u64 size)
+{
+    CFG_Node *view = cfg_node_from_id(ti_regs()->view);
+    TI_View_State *view_state = ti_view_state_from_cfg(view);
+    if (view_state->user_data == 0)
+    {
+        view_state->user_data = push_array(view_state->arena, u8, size);
+    }
+    return view_state->user_data;
+}
+
+internal Arena *ti_push_view_arena(void)
+{
+    CFG_Node *view = cfg_node_from_id(ti_regs()->view);
+    TI_View_State *view_state = ti_view_state_from_cfg(view);
+    TI_Arena_Ext *ext = push_array(view_state->arena, TI_Arena_Ext, 1);
+    ext->arena = arena_alloc();
+    SLLQueuePush(view_state->first_arena_ext, view_state->last_arena_ext, ext);
+    return ext->arena;
+}
+
 // storing view-attached state
+
+internal void ti_store_view_loading_info(bool32 is_loading, u64 progress_u64, u64 progress_u64_target)
+{
+    CFG_Node *view = cfg_node_from_id(ti_regs()->view);
+    TI_View_State *view_state = ti_view_state_from_cfg(view);
+    bool32 loading_state_is_new = (is_loading && view_state->loading_t_target != (f32)!!is_loading);
+    view_state->loading_t_target = (f32)!!is_loading;
+    view_state->loading_progress_v = progress_u64;
+    view_state->loading_progress_v_target = progress_u64_target;
+    if(loading_state_is_new || view_state->last_frame_index_built+1 < ti_state->frame_index)
+    {
+        view_state->loading_t = view_state->loading_t_target;
+    }
+}
+
+internal void ti_store_view_scroll_pos(UI_Scroll_Pt2 pos)
+{
+    CFG_Node *view = cfg_node_from_id(ti_regs()->view);
+    TI_View_State *view_state = ti_view_state_from_cfg(view);
+    view_state->scroll_pos = pos;
+}
+
+internal void ti_store_view_param(String8 key, String8 value)
+{
+    CFG_Node *view = cfg_node_from_id(ti_regs()->view);
+    CFG_Node *child = cfg_node_child_from_string_or_alloc(ti_state->cfg, view, key);
+    cfg_node_new_replace(ti_state->cfg, child, value);
+}
+
+internal void ti_store_view_paramf(String8 key, char *fmt, ...)
+{
+    Temp scratch = scratch_begin(0, 0);
+    va_list args;
+    va_start(args, fmt);
+    String8 string = push_str8fv(scratch.arena, fmt, args);
+    ti_store_view_param(key, string);
+    va_end(args);
+    scratch_end(scratch);
+}
 
 ///////////////////////
 // Window Functions
@@ -627,7 +1279,10 @@ internal TI_Window_State *ti_window_state_from_cfg(CFG_Node *cfg)
         }
         ws->r = r_window_equip(ws->os);
         ws->ui = ui_state_alloc();
+        ws->drop_completion_arena = arena_alloc();
         ws->query_arena = arena_alloc();
+        //ws->hover_eval_arena = arena_alloc();
+        ws->autocomp_arena = arena_alloc();
         ws->last_dpi = wm_dpi_from_window(ws->os);
         WM_Monitor zero_monitor = {0};
         if (!wm_monitor_match(zero_monitor, preferred_monitor))
@@ -698,9 +1353,14 @@ internal void ti_window_frame(void)
     TI_Window_State *ws       = ti_window_state_from_cfg(cfg_node_from_id(ti_regs()->window));
     CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
     bool32 window_is_focused  = wm_window_is_focused(ws->os);
-    //bool32 popup_is_open      = (ti_state->popup_active);
+    bool32 popup_is_open      = (ti_state->popup_active);
     bool32 query_is_open      = (ws->query_top != 0);
 
+    if(!window_is_focused || popup_is_open)
+    {
+        ws->menu_bar_key_held = 0;
+        ws->menu_bar_focus_press_started = 0;
+    }
     ui_select_state(ws->ui);
 
     /////////////////////////////
@@ -750,9 +1410,21 @@ internal void ti_window_frame(void)
 
         // chose which theme cfg to use
         CFG_Node *theme_cfg = theme_cfgs[1];
+        if(ti_setting_bool32_from_name(str8_lit("user_project_theme")))
+        {
+            theme_cfg = theme_cfgs[0];
+            if(theme_cfg == &cfg_nil_node)
+            {
+                theme_cfg = theme_cfgs[1];
+            }
+        }
 
         // map the theme config to the associated tree (right now just a preset)
-        MD_Node *theme_tree = ti_state->theme_preset_trees[TI_ThemePreset_DefaultDark];
+        MD_Node *theme_tree = ti_theme_tree_from_name(scratch.arena, access, theme_cfg->first->string);
+        if(colors_cfgs.count == 0 && theme_tree == &md_nil_node)
+        {
+            theme_tree = ti_state->theme_preset_trees[TI_ThemePreset_DefaultWaves];
+        }
 
         //build tasks for color applications - each task comprises of a metadesk
         // tree, describing the color patterns
@@ -820,6 +1492,15 @@ internal void ti_window_frame(void)
         }
 
         access_close(access);
+    }
+
+    ////////////////////////
+    // @window_frame_part compute window's font raster flags
+    //
+    {
+        ws->font_slot_raster_flags[TI_FontSlot_Icons] = FNT_RasterFlag_Smooth;
+        ws->font_slot_raster_flags[TI_FontSlot_Main] = (ti_setting_bool32_from_name(str8_lit("smooth_ui_text"))*FNT_RasterFlag_Smooth)|(ti_setting_bool32_from_name(str8_lit("hint_ui_text"))*FNT_RasterFlag_Hinted);
+        ws->font_slot_raster_flags[TI_FontSlot_Code] = (ti_setting_bool32_from_name(str8_lit("smooth_code_text"))*FNT_RasterFlag_Smooth)|(ti_setting_bool32_from_name(str8_lit("hint_code_text"))*FNT_RasterFlag_Hinted);
     }
 
     //////////////////////////
@@ -970,6 +1651,7 @@ internal void ti_window_frame(void)
     
     //////////////////////////////
     // @window_frame_part build UI
+    UI_Box *lister_box = &ui_nil_box;
     ProfScope("build UI")
     {
         //////////////////////////
@@ -1014,9 +1696,23 @@ internal void ti_window_frame(void)
             ui_push_pref_width(ui_px(floor_f32(ui_top_font_size() * 20.f), 1.f));
             ui_push_pref_height(ui_px(floor_f32(ui_top_font_size() * 3.f), 1.f));
             ui_push_blur_size(10.f);
+            FNT_RasterFlags text_raster_flags = 0;
+            if(ti_setting_bool32_from_name(str8_lit("smooth_ui_text"))) {text_raster_flags |= FNT_RasterFlag_Smooth;}
+            if(ti_setting_bool32_from_name(str8_lit("hint_ui_text"))) {text_raster_flags |= FNT_RasterFlag_Hinted;}
+            ui_push_text_raster_flags(text_raster_flags);
         }
 
+        /////////////////////////
+        // @window_ui_part calculate code color slot RGBAs
+        //
+        for EachEnumVal(TI_CodeColorSlot, s)
+        {
+            ws->theme_code_colors[s] = ui_color_from_name(ti_code_color_slot_name_table[s]);
+        }
+
+        ////////////////////////
         // @window_ui_part calculate top-level rectangles/sizes
+        //
         f32 window_edge_px = ui_top_font_size() * 0.2f;
         Rng2f32 window_rect = wm_client_rect_from_window(ws->os);
         Vec2f32 window_rect_dim = dim_2f32(window_rect);
@@ -1046,6 +1742,217 @@ internal void ti_window_frame(void)
             scratch_end(scratch);
         }
 
+        ////////////////////
+        // @window_ui_part rich hover / drag/drop tooltips
+        //
+
+        //////////////////
+        // @window_ui_part drag/drop visualization tooltips
+        //
+        if(ti_drag_is_active() && window_is_focused)
+            TI_RegsScope(.window = ti_state->drag_drop_regs->window,
+                         .panel = ti_state->drag_drop_regs->panel,
+                         .tab = 0,
+                         .view = ti_state->drag_drop_regs->view)
+        {
+            Temp scratch = scratch_begin(0, 0);
+            CFG_Node *view = cfg_node_from_id(ti_state->drag_drop_regs->view);
+            {
+                //- rjf: tab dragging
+                if(ti_state->drag_drop_regs_slot == TI_RegSlot_View && view != &cfg_nil_node)
+                {
+                    CFG_Node *immediate_parent = &cfg_nil_node;
+                    for(CFG_Node *p = view->parent; p != &cfg_nil_node; p = p->parent)
+                    {
+                        if(str8_match(p->parent->string, str8_lit("immediate"), 0))
+                        {
+                            immediate_parent = p->parent;
+                            break;
+                        }
+                    }
+                    if(immediate_parent != &cfg_nil_node)
+                    {
+                        cfg_node_child_from_string_or_alloc(ti_state->cfg, immediate_parent, str8_lit("hot"));
+                    }
+                    UI_Size main_width = ui_top_pref_width();
+                    UI_Size main_height = ui_top_pref_height();
+                    UI_TextAlign main_text_align = ui_top_text_alignment();
+                    UI_Tooltip
+                        UI_PrefWidth(main_width)
+                        UI_PrefHeight(main_height)
+                        UI_TextAlignment(main_text_align)
+                    {
+                        ui_state->tooltip_can_overflow_window = 1;
+                        ui_set_next_pref_width(ui_em(60.f, 1.f));
+                        ui_set_next_pref_height(ui_em(40.f, 1.f));
+                        ui_set_next_child_layout_axis(Axis2_Y);
+                        UI_Box *container = ui_build_box_from_key(0, ui_key_zero());
+                        UI_Parent(container)
+                        {
+                            UI_Row UI_PrefWidth(ui_text_dim(10, 1))
+                            {
+                                DR_FStr_List fstrs = ti_title_fstrs_from_cfg(scratch.arena, view, 0);
+                                UI_Box *name_box = ui_build_box_from_key(UI_BoxFlag_DrawText, ui_key_zero());
+                                ui_box_equip_display_fstrs(name_box, &fstrs);
+                            }
+                            ui_set_next_pref_width(ui_pct(1, 0));
+                            ui_set_next_pref_height(ui_pct(1, 0));
+                            ui_set_next_child_layout_axis(Axis2_Y);
+                            UI_Box *view_preview_container = ui_build_box_from_stringf(UI_BoxFlag_DrawBorder|UI_BoxFlag_DrawBackground|UI_BoxFlag_Clip, "###view_preview_container");
+                            UI_Parent(view_preview_container) UI_Focus(UI_FocusKind_Off) UI_WidthFill
+                            {
+                                ti_view_ui(view_preview_container->rect);
+                            }
+                        }
+                    }
+                }
+            }
+            scratch_end(scratch);
+        }
+
+        ////////////////////////
+        // @window_ui_part developer menu
+        //
+        if(ws->dev_menu_is_open) TI_Font(TI_FontSlot_Code)
+        {
+            // @TODO
+        }
+
+        //////////////////////
+        // @window_ui_part drop-completion context menu
+        //
+        if(ws->top_drop_completion_task != 0)
+        {
+            TI_Drop_Completion_Task *task = ws->top_drop_completion_task;
+            bool32 done = 0;
+            UI_CtxMenu(ti_state->drop_completion_key) UI_PrefWidth(ui_em(40.f, 1.f)) UI_TagF("implicit")
+            {
+                // rjf: file names
+                UI_TagF("weak") UI_Row UI_Padding(ui_em(1.25f, 1.f))
+                {
+                    String8_List strings = {0};
+                    u64 idx = 0;
+                    for(String8_Node *n = task->paths.first; n != 0 && idx < 20; n = n->next, idx += 1)
+                    {
+                        str8_list_push(scratch.arena, &strings, str8_skip_last_slash(n->string));
+                        if(idx+1 == 20)
+                        {
+                            str8_list_push(scratch.arena, &strings, str8_lit("..."));
+                        }
+                    }
+                    String_Join join = {.sep = str8_lit(", ")};
+                    String8 string = str8_list_join(scratch.arena, &strings, &join);
+                    UI_PrefWidth(ui_pct(1, 0)) ui_label(string);
+                }
+                
+                // rjf: option to add EXEs as targets
+                /*
+                if(task->exe)
+                {
+                    if(ui_clicked(ti_icon_buttonf(TI_IconKind_Target, 0, "Add as target%s", (task->paths.node_count > 1) ? "s" : "")))
+                    {
+                        for(String8_Node *n = task->paths.first; n != 0; n = n->next)
+                        {
+                            ti_cmd(TI_CmdKind_AddTarget, .file_path = n->string);
+                        }
+                        done = 1;
+                    }
+                }
+                */
+
+                /*
+                // rjf: option to load pcap files
+                if(task->pcap)
+                {
+                }
+                */
+                
+                // rjf: option to just open & view the file contents
+                if(ui_clicked(ti_icon_buttonf(TI_IconKind_FileOutline, 0, "View file%s contents", (task->paths.node_count > 1) ? "s'" : "")))
+                {
+                    for(String8_Node *n = task->paths.first; n != 0; n = n->next)
+                    {
+                        //ti_cmd(TI_CmdKind_Open, .file_path = n->string);
+                        sh_message(0, s("TI_CmdKind_Open"), n->string);
+                    }
+                    done = 1;
+                }
+            }
+            
+            // rjf: pop task, close context menu if needed, when done
+            if(done)
+            {
+                SLLStackPop(ws->top_drop_completion_task);
+                if(ws->top_drop_completion_task == 0)
+                {
+                    ui_ctx_menu_close();
+                }
+            }
+        }
+
+        ///////////////////
+        // @window_ui_part popup
+        //
+        {
+            if(ti_state->popup_t > 0.005f) UI_TextAlignment(UI_TextAlign_Center) UI_Focus(ti_state->popup_active ? UI_FocusKind_Root : UI_FocusKind_Off)
+            {
+                Vec2f32 window_dim = dim_2f32(window_rect);
+                UI_Box *bg_box = &ui_nil_box;
+                Vec4f32 shadow_color = ui_color_from_name(str8_lit("drop_shadow"));
+                shadow_color.w += (1.f - shadow_color.w) * 0.5f;
+                UI_Rect(window_rect)
+                    UI_ChildLayoutAxis(Axis2_X)
+                    UI_Focus(UI_FocusKind_On)
+                    UI_Transparency(1-ti_state->popup_t)
+                    UI_TagF("floating")
+                    UI_BackgroundColor(shadow_color)
+                {
+                    bg_box = ui_build_box_from_stringf(UI_BoxFlag_FixedSize|
+                                                       UI_BoxFlag_Floating|
+                                                       UI_BoxFlag_Clickable|
+                                                       UI_BoxFlag_Scroll|
+                                                       UI_BoxFlag_DefaultFocusNav|
+                                                       UI_BoxFlag_DisableFocusOverlay|
+                                                       UI_BoxFlag_DisableFocusBorder|
+                                                       UI_BoxFlag_DrawBackground, "###popup_%p", ws);
+                }
+                if(ti_state->popup_active) UI_Parent(bg_box) UI_Transparency(1-ti_state->popup_t)
+                {
+                    ui_ctx_menu_close();
+                    UI_WidthFill UI_PrefHeight(ui_children_sum(1.f)) UI_Column UI_Padding(ui_pct(1, 0)) UI_TagF("floating")
+                    {
+                        ui_set_next_blur_size(10*ti_state->popup_t);
+                        ui_set_next_pref_width(ui_children_sum(1));
+                        ui_set_next_pref_height(ui_children_sum(1));
+                        ui_set_next_child_layout_axis(Axis2_Y);
+                        UI_Box *panel = ui_build_box_from_stringf(UI_BoxFlag_DrawBackground|UI_BoxFlag_DrawBackgroundBlur|UI_BoxFlag_DrawBorder|UI_BoxFlag_DrawDropShadow, "");
+                        UI_Parent(panel)
+                        {
+                            ui_spacer(ui_em(1.5f, 1.f));
+                            UI_TextRasterFlags(ti_raster_flags_from_slot(TI_FontSlot_Main)) UI_FontSize(ui_top_font_size()*2.f) UI_PrefHeight(ui_em(3.f, 1.f)) ui_label(ti_state->popup_title);
+                            UI_PrefHeight(ui_em(3.f, 1.f)) UI_TagF("weak") ui_label(ti_state->popup_desc);
+                            ui_spacer(ui_em(1.5f, 1.f));
+                            UI_Row UI_Padding(ui_pct(1.f, 0.f)) UI_PrefWidth(ui_em(16.f, 1.f)) UI_PrefHeight(ui_em(3.5f, 1.f)) UI_CornerRadius(ui_top_font_size()*0.5f)
+                            {
+                                UI_TagF("pop")
+                                    if(ui_clicked(ui_buttonf("OK")) || (ui_key_match(bg_box->default_nav_focus_hot_key, ui_key_zero()) && ui_slot_press(UI_EventActionSlot_Accept)))
+                                {
+                                    ti_cmd(TI_CmdKind_PopupAccept);
+                                }
+                                ui_spacer(ui_em(1.f, 1.f));
+                                if(ui_clicked(ui_buttonf("Cancel")) || ui_slot_press(UI_EventActionSlot_Cancel))
+                                {
+                                    ti_cmd(TI_CmdKind_PopupCancel);
+                                }
+                            }
+                            ui_spacer(ui_em(3.f, 1.f));
+                        }
+                    }
+                }
+                ui_signal_from_box(bg_box);
+            }
+        }
+
         ///////////////////
         // @window_ui_part gather all tasks to build floating views
         //
@@ -1067,6 +1974,8 @@ internal void ti_window_frame(void)
             bool32 pressed;
             bool32 pressed_outside;
         };
+        Floating_View_Task *autocomp_floating_view_task = 0;
+        Floating_View_Task *hover_eval_floating_view_task = 0;
         Floating_View_Task *query_floating_view_task = 0;
         Floating_View_Task *first_floating_view_task = 0;
         Floating_View_Task *last_floating_view_task = 0;
@@ -1404,7 +2313,6 @@ internal void ti_window_frame(void)
                             UI_Row UI_Padding(ui_pct(1, 0)) TI_Font(TI_FontSlot_Main) UI_FontSize(ui_top_font_size()*0.8f) UI_TagF("alt")
                                 UI_PrefWidth(ui_text_dim(1, 1)) UI_TextAlignment(UI_TextAlign_Center)
                             {
-                                /*
                                 ti_cmd_binding_buttons(ti_cmd_kind_info_table[TI_CmdKind_MoveUp].string, s(""), 1, TI_CmdBindingButtonFlag_NoEdit);
                                 ui_spacer(ui_em(1.f, 1.f));
                                 ui_label(s("/"));
@@ -1418,9 +2326,8 @@ internal void ti_window_frame(void)
 
                                 ui_spacer(ui_em(1, 1));
 
-                                ui_cmd_binding_buttons(ti_cmd_kind_info_table[TI_CmdKind_Cancel].string, s(""), 1, TI_CmdBindingButtonFlag_NoEdit);
+                                ti_cmd_binding_buttons(ti_cmd_kind_info_table[TI_CmdKind_Cancel].string, s(""), 1, TI_CmdBindingButtonFlag_NoEdit);
                                 ui_label(s("to cancel"));
-                                */
                             }
                         }
                     }
@@ -1484,7 +2391,11 @@ internal void ti_window_frame(void)
                             String8 path_chopped = str8_chop_last_slash(input->first->string);
                             CFG_Node *user = cfg_node_child_from_string(cfg_node_root(), str8_lit("user"));
                             CFG_Node *current_path = cfg_node_child_from_string_or_alloc(ti_state->cfg, user, str8_lit("current_path"));
-                            // set current path
+                            if(!str8_match(current_path->first->string, path_chopped, 0))
+                            {
+                                //ti_cmd(TI_CmdKind_SetCurrentPath, .file_path = path_chopped);
+                                sh_message(0, s("TI_CmdKind_SetCurrentPath"), path_chopped);
+                            }
                         }
                     }
                 }
@@ -1540,9 +2451,35 @@ internal void ti_window_frame(void)
                                 UI_CtxMenu(file_menu_key) UI_PrefWidth(ui_em(50.f, 1.f)) UI_TagF("implicit")
                                 {
                                     String8 cmds[] = {
+                                        //ti_cmd_kind_info_table[TI_CmdKind_Open].string,
+                                        //{0},//-
+                                        ti_cmd_kind_info_table[TI_CmdKind_NewProject].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_OpenProject].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_OpenRecentProject].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_SaveProject].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_ProjectSettings].string,
+                                        {0},//-
+                                        ti_cmd_kind_info_table[TI_CmdKind_NewUser].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_OpenUser].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_SaveUser].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_UserSettings].string,
+                                        {0},//-
                                         ti_cmd_kind_info_table[TI_CmdKind_Exit].string,
                                     };
                                     u32 codepoints[] = {
+                                        //'o',
+                                        //0,//-
+                                        'j',
+                                        'p',
+                                        'r',
+                                        'a',
+                                        't',
+                                        0,//-
+                                        'w',
+                                        'u',
+                                        's',
+                                        'e',
+                                        0,//-
                                         'x',
                                     };
                                     StaticAssert(ArrayCount(codepoints) == ArrayCount(cmds), menu_button_check);
@@ -1556,19 +2493,93 @@ internal void ti_window_frame(void)
                                     String8 cmds[] = {
                                         ti_cmd_kind_info_table[TI_CmdKind_OpenWindow].string,
                                         ti_cmd_kind_info_table[TI_CmdKind_CloseWindow].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_ToggleFullscreen].string,
+                                        {0},//-
+                                        ti_cmd_kind_info_table[TI_CmdKind_WindowSettings].string,
                                     };
                                     u32 codepoints[] = {
                                         'w',
                                         'c',
+                                        'f',
+                                        0,//-
+                                        's',
                                     };
                                     StaticAssert(ArrayCount(codepoints) == ArrayCount(cmds), menu_button_check);
                                     ti_cmd_list_menu_buttons(ArrayCount(cmds), cmds, codepoints);
                                 }
                                 
                                 // panel menu
+                                UI_Key panel_menu_key = ui_key_from_string(ui_key_zero(), str8_lit("_panel_menu_key_"));
+                                UI_CtxMenu(panel_menu_key) UI_PrefWidth(ui_em(50.f, 1.f)) UI_TagF("implicit")
+                                {
+                                    String8 cmds[] = {
+                                        ti_cmd_kind_info_table[TI_CmdKind_NewPanelUp].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_NewPanelDown].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_NewPanelRight].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_NewPanelLeft].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_ClosePanel].string,
+                                        {0},//-
+                                        ti_cmd_kind_info_table[TI_CmdKind_NextPanel].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_PrevPanel].string,
+                                        {0},//-
+                                        ti_cmd_kind_info_table[TI_CmdKind_TabBarTop].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_TabBarBottom].string,
+                                        {0},//-
+                                        ti_cmd_kind_info_table[TI_CmdKind_ResetToDefaultPanels].string,
+                                    };
+                                    u32 codepoints[] = {
+                                        'u',
+                                        'd',
+                                        'r',
+                                        'l',
+                                        'o',
+                                        0,//-
+                                        'n',
+                                        'p',
+                                        0,//-
+                                        0,
+                                        0,
+                                        0,//-
+                                        0,
+                                    };
+                                    StaticAssert(ArrayCount(codepoints) == ArrayCount(cmds), menu_button_check);
+                                    ti_cmd_list_menu_buttons(ArrayCount(cmds), cmds, codepoints);
+                                }
                                 
                                 // view menu
-                                
+                                UI_Key tab_menu_key = ui_key_from_string(ui_key_zero(), str8_lit("_tab_menu_key_"));
+                                UI_CtxMenu(tab_menu_key) UI_PrefWidth(ui_em(50.f, 1.f)) UI_TagF("implicit")
+                                {
+                                    String8 cmds[] = {
+                                        ti_cmd_kind_info_table[TI_CmdKind_OpenTab].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_CloseTab].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_DuplicateTab].string,
+                                        {0},//-
+                                        ti_cmd_kind_info_table[TI_CmdKind_MoveTabLeft].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_MoveTabRight].string,
+                                        {0},//-
+                                        ti_cmd_kind_info_table[TI_CmdKind_NextTab].string,
+                                        ti_cmd_kind_info_table[TI_CmdKind_PrevTab].string,
+                                        {0},//-
+                                        ti_cmd_kind_info_table[TI_CmdKind_TabSettings].string,
+                                    };
+                                    u32 codepoints[] = {
+                                        'o',
+                                        'c',
+                                        'd',
+                                        0,//-
+                                        'l',
+                                        'r',
+                                        0,//-
+                                        'n',
+                                        'p',
+                                        0,//-
+                                        's',
+                                    };
+                                    StaticAssert(ArrayCount(codepoints) == ArrayCount(cmds), menu_button_check);
+                                    ti_cmd_list_menu_buttons(ArrayCount(cmds), cmds, codepoints);
+                                }
+                                 
                                 // help menu
                                 
                                 // buttons
@@ -1584,6 +2595,8 @@ internal void ti_window_frame(void)
                                     } items[] = {
                                         {str8_lit("File"),       'f', WM_Key_F, file_menu_key},
                                         {str8_lit("Window"),     'w', WM_Key_W, window_menu_key},
+                                        {str8_lit("Panel"),      'p', WM_Key_P, panel_menu_key},
+                                        {str8_lit("Tab"),        'b', WM_Key_V, tab_menu_key},
                                     };
                                     
                                     // determine if one of the menus is already open
@@ -1632,6 +2645,11 @@ internal void ti_window_frame(void)
                                         for (u64 idx = 0; idx < ArrayCount(items); idx += 1)
                                     {
                                         ui_set_next_fastpath_codepoint(items[idx].codepoint);
+                                        bool32 alt_fastpath_key = 0;
+                                        if(ti_setting_bool32_from_name(str8_lit("focus_menu_bar_with_alt")) && ui_key_press(WM_Modifier_Alt, items[idx].key))
+                                        {
+                                            alt_fastpath_key = 1;
+                                        }
                                         if ((ws->menu_bar_key_held || ws->menu_bar_focused) && !ui_any_ctx_menu_is_open())
                                         {
                                             ui_set_next_flags(UI_BoxFlag_DrawTextFastpathCodepoint);
@@ -1648,7 +2666,7 @@ internal void ti_window_frame(void)
                                                     ui_ctx_menu_open(items[idx].menu_key, sig.box->key, v2f32(0, sig.box->rect.y1 - sig.box->rect.y0));
                                                 }
                                             }
-                                            else if (ui_pressed(sig))
+                                            else if (ui_pressed(sig) || alt_fastpath_key)
                                             {
                                                 if (ui_ctx_menu_is_open(items[idx].menu_key))
                                                 {
@@ -1754,6 +2772,306 @@ internal void ti_window_frame(void)
         //
         {}
 
+        //////////////////////
+        // @window_ui_part panel non-leaf UI (drag boundaries, drag/drop sites)
+        //
+        bool32 is_changing_panel_boundaries = 0;
+        ProfScope("non-leaf panel UI")
+            for(CFG_Panel_Node *panel = panel_tree.root;
+                panel != &cfg_nil_panel_node;
+                panel = cfg_panel_node_rec__depth_first_pre(panel_tree.root, panel).next)
+        {
+            //////////////////////////
+            //- rjf: continue on leaf panels
+            //
+            if(panel->first == &cfg_nil_panel_node)
+            {
+                continue;
+            }
+            
+            //////////////////////////
+            //- rjf: grab info
+            //
+            Axis2 split_axis = panel->split_axis;
+            Rng2f32 panel_rect = cfg_target_rect_from_panel_node(content_rect, panel_tree.root, panel);
+            
+            //////////////////////////
+            //- rjf: boundary tab-drag/drop sites
+            //
+            {
+                CFG_Node *drag_view = cfg_node_from_id(ti_state->drag_drop_regs->view);
+                if(ti_drag_is_active() && ti_state->drag_drop_regs_slot == TI_RegSlot_View && drag_view != &cfg_nil_node)
+                {
+                    //- rjf: params
+                    f32 drop_site_major_dim_px = ceil_f32(ui_top_font_size()*7.f);
+                    f32 drop_site_minor_dim_px = ceil_f32(ui_top_font_size()*5.f);
+                    f32 corner_radius = ui_top_font_size()*0.5f;
+                    f32 padding = ceil_f32(ui_top_font_size()*0.5f);
+                    
+                    //- rjf: special case - build Y boundary drop sites on root panel
+                    //
+                    // (this does not naturally follow from the below algorithm, since the
+                    // root level panel only splits on X)
+                    if(panel == panel_tree.root) UI_CornerRadius(corner_radius)
+                    {
+                        Vec2f32 panel_rect_center = center_2f32(panel_rect);
+                        Axis2 axis = axis2_flip(panel_tree.root->split_axis);
+                        for EachEnumVal(Side, side)
+                        {
+                            UI_Key key = ui_key_from_stringf(ui_key_zero(), "root_extra_split_%i", side);
+                            Rng2f32 site_rect = panel_rect;
+                            site_rect.p0.v[axis2_flip(axis)] = panel_rect_center.v[axis2_flip(axis)] - drop_site_major_dim_px/2;
+                            site_rect.p1.v[axis2_flip(axis)] = panel_rect_center.v[axis2_flip(axis)] + drop_site_major_dim_px/2;
+                            site_rect.p0.v[axis] = panel_rect.v[side].v[axis] - drop_site_minor_dim_px/2;
+                            site_rect.p1.v[axis] = panel_rect.v[side].v[axis] + drop_site_minor_dim_px/2;
+                            
+                            // rjf: build
+                            UI_Box *site_box = &ui_nil_box;
+                            {
+                                f32 site_open_t = ui_anim(ui_key_from_stringf(key, "open_t"), 1.f, .rate = ti_state->menu_animation_rate);
+                                UI_Rect(site_rect) UI_Squish(0.1f-0.1f*site_open_t) UI_Transparency(1-site_open_t)
+                                {
+                                    site_box = ui_build_box_from_key(UI_BoxFlag_DropSite|UI_BoxFlag_DrawHotEffects, key);
+                                    ui_signal_from_box(site_box);
+                                }
+                                UI_Box *site_box_viz = &ui_nil_box;
+                                UI_Parent(site_box) UI_WidthFill UI_HeightFill
+                                    UI_Padding(ui_px(padding, 1.f))
+                                    UI_Column
+                                    UI_Padding(ui_px(padding, 1.f))
+                                    UI_GroupKey(key)
+                                {
+                                    ui_set_next_child_layout_axis(axis2_flip(axis));
+                                    site_box_viz = ui_build_box_from_key(UI_BoxFlag_DrawBackground|
+                                                                         UI_BoxFlag_DrawBorder|
+                                                                         UI_BoxFlag_DrawDropShadow|
+                                                                         UI_BoxFlag_DrawBackgroundBlur|
+                                                                         UI_BoxFlag_DrawHotEffects, ui_key_zero());
+                                }
+                                UI_Parent(site_box_viz) UI_WidthFill UI_HeightFill UI_Padding(ui_px(padding, 1.f))
+                                {
+                                    ui_set_next_child_layout_axis(axis);
+                                    UI_Box *row_or_column = ui_build_box_from_key(0, ui_key_zero()); UI_Parent(row_or_column) UI_Padding(ui_px(padding, 1.f))
+                                    {
+                                        ui_build_box_from_key(UI_BoxFlag_DrawBorder, ui_key_zero());
+                                        ui_spacer(ui_px(padding, 1.f));
+                                        ui_build_box_from_key(UI_BoxFlag_DrawBorder, ui_key_zero());
+                                    }
+                                }
+                            }
+                            
+                            // rjf: viz
+                            if(ui_key_match(site_box->key, ui_drop_hot_key()))
+                            {
+                                Rng2f32 future_split_rect_target = site_rect;
+                                future_split_rect_target.p0.v[axis] -= drop_site_major_dim_px;
+                                future_split_rect_target.p1.v[axis] += drop_site_major_dim_px;
+                                future_split_rect_target.p0.v[axis2_flip(axis)] = panel_rect.p0.v[axis2_flip(axis)];
+                                future_split_rect_target.p1.v[axis2_flip(axis)] = panel_rect.p1.v[axis2_flip(axis)];
+                                future_split_rect_target = pad_2f32(future_split_rect_target, -ui_top_font_size()*2.f);
+                                Vec2f32 future_split_rect_target_center = center_2f32(future_split_rect_target);
+                                Rng2f32 future_split_rect = {
+                                    ui_anim(ui_key_from_stringf(ui_key_zero(), "drop_site_v0"), future_split_rect_target.x0, .initial = future_split_rect_target_center.x, .rate = ti_state->menu_animation_rate),
+                                    ui_anim(ui_key_from_stringf(ui_key_zero(), "drop_site_v1"), future_split_rect_target.y0, .initial = future_split_rect_target_center.y, .rate = ti_state->menu_animation_rate),
+                                    ui_anim(ui_key_from_stringf(ui_key_zero(), "drop_site_v2"), future_split_rect_target.x1, .initial = future_split_rect_target_center.x, .rate = ti_state->menu_animation_rate),
+                                    ui_anim(ui_key_from_stringf(ui_key_zero(), "drop_site_v3"), future_split_rect_target.y1, .initial = future_split_rect_target_center.y, .rate = ti_state->menu_animation_rate),
+                                };
+                                UI_Rect(future_split_rect) UI_TagF("drop_site") UI_CornerRadius(ui_top_font_size()*2.f)
+                                {
+                                    ui_build_box_from_key(UI_BoxFlag_DrawBackground|UI_BoxFlag_DrawBorder, ui_key_zero());
+                                }
+                            }
+                            
+                            // rjf: drop
+                            if(ui_key_match(site_box->key, ui_drop_hot_key()) && ti_drag_drop())
+                            {
+                                Dir2 dir = (axis == Axis2_Y ? (side == Side_Min ? Dir2_Up : Dir2_Down) :
+                                            axis == Axis2_X ? (side == Side_Min ? Dir2_Left : Dir2_Right) :
+                                            Dir2_Invalid);
+                                if(dir != Dir2_Invalid)
+                                {
+                                    CFG_Panel_Node *split_panel = panel;
+                                    ti_cmd(TI_CmdKind_SplitPanel,
+                                           .dst_panel  = split_panel->cfg->id,
+                                           .panel      = ti_state->drag_drop_regs->panel,
+                                           .view      = ti_state->drag_drop_regs->view,
+                                           .dir2       = dir);
+                                }
+                            }
+                        }
+                    }
+                    
+                    //- rjf: iterate all children, build boundary drop sites
+                    Axis2 split_axis = panel->split_axis;
+                    UI_CornerRadius(corner_radius) for(CFG_Panel_Node *child = panel->first;; child = child->next)
+                    {
+                        // rjf: form rect
+                        Rng2f32 child_rect = cfg_target_rect_from_panel_node_child(panel_rect, panel, child);
+                        Vec2f32 child_rect_center = center_2f32(child_rect);
+                        UI_Key key = ui_key_from_stringf(ui_key_zero(), "drop_boundary_%p_%p", panel->cfg, child->cfg);
+                        Rng2f32 site_rect = r2f32(child_rect_center, child_rect_center);
+                        site_rect.p0.v[split_axis] = child_rect.p0.v[split_axis] - drop_site_minor_dim_px/2;
+                        site_rect.p1.v[split_axis] = child_rect.p0.v[split_axis] + drop_site_minor_dim_px/2;
+                        site_rect.p0.v[axis2_flip(split_axis)] -= drop_site_major_dim_px/2;
+                        site_rect.p1.v[axis2_flip(split_axis)] += drop_site_major_dim_px/2;
+                        
+                        // rjf: build
+                        UI_Box *site_box = &ui_nil_box;
+                        {
+                            f32 site_open_t = ui_anim(ui_key_from_stringf(key, "open_t"), 1.f, .rate = ti_state->menu_animation_rate);
+                            UI_Rect(site_rect) UI_Squish(0.1f-0.1f*site_open_t) UI_Transparency(1-site_open_t)
+                            {
+                                site_box = ui_build_box_from_key(UI_BoxFlag_DropSite|UI_BoxFlag_DrawHotEffects, key);
+                                ui_signal_from_box(site_box);
+                            }
+                            UI_Box *site_box_viz = &ui_nil_box;
+                            UI_Parent(site_box) UI_WidthFill UI_HeightFill
+                                UI_Padding(ui_px(padding, 1.f))
+                                UI_Column
+                                UI_Padding(ui_px(padding, 1.f))
+                                UI_GroupKey(key)
+                            {
+                                ui_set_next_child_layout_axis(axis2_flip(split_axis));
+                                site_box_viz = ui_build_box_from_key(UI_BoxFlag_DrawBackground|
+                                                                     UI_BoxFlag_DrawBorder|
+                                                                     UI_BoxFlag_DrawDropShadow|
+                                                                     UI_BoxFlag_DrawBackgroundBlur|
+                                                                     UI_BoxFlag_DrawHotEffects, ui_key_zero());
+                            }
+                            UI_Parent(site_box_viz) UI_WidthFill UI_HeightFill UI_Padding(ui_px(padding, 1.f))
+                            {
+                                ui_set_next_child_layout_axis(split_axis);
+                                UI_Box *row_or_column = ui_build_box_from_key(0, ui_key_zero()); UI_Parent(row_or_column) UI_Padding(ui_px(padding, 1.f))
+                                {
+                                    ui_build_box_from_key(UI_BoxFlag_DrawBorder, ui_key_zero());
+                                    ui_spacer(ui_px(padding, 1.f));
+                                    ui_build_box_from_key(UI_BoxFlag_DrawBorder, ui_key_zero());
+                                }
+                            }
+                        }
+                        
+                        // rjf: viz
+                        if(ui_key_match(site_box->key, ui_drop_hot_key()))
+                        {
+                            Rng2f32 future_split_rect_target = site_rect;
+                            future_split_rect_target.p0.v[split_axis] -= drop_site_major_dim_px;
+                            future_split_rect_target.p1.v[split_axis] += drop_site_major_dim_px;
+                            future_split_rect_target.p0.v[axis2_flip(split_axis)] = child_rect.p0.v[axis2_flip(split_axis)];
+                            future_split_rect_target.p1.v[axis2_flip(split_axis)] = child_rect.p1.v[axis2_flip(split_axis)];
+                            future_split_rect_target = pad_2f32(future_split_rect_target, -ui_top_font_size()*2.f);
+                            Vec2f32 future_split_rect_target_center = center_2f32(future_split_rect_target);
+                            Rng2f32 future_split_rect = {
+                                ui_anim(ui_key_from_stringf(ui_key_zero(), "drop_site_v0"), future_split_rect_target.x0, .initial = future_split_rect_target_center.x, .rate = ti_state->menu_animation_rate),
+                                ui_anim(ui_key_from_stringf(ui_key_zero(), "drop_site_v1"), future_split_rect_target.y0, .initial = future_split_rect_target_center.y, .rate = ti_state->menu_animation_rate),
+                                ui_anim(ui_key_from_stringf(ui_key_zero(), "drop_site_v2"), future_split_rect_target.x1, .initial = future_split_rect_target_center.x, .rate = ti_state->menu_animation_rate),
+                                ui_anim(ui_key_from_stringf(ui_key_zero(), "drop_site_v3"), future_split_rect_target.y1, .initial = future_split_rect_target_center.y, .rate = ti_state->menu_animation_rate),
+                            };
+                            UI_Rect(future_split_rect) UI_TagF("drop_site") UI_CornerRadius(ui_top_font_size()*2.f)
+                            {
+                                ui_build_box_from_key(UI_BoxFlag_DrawBackground|UI_BoxFlag_DrawBorder, ui_key_zero());
+                            }
+                        }
+                        
+                        // rjf: drop
+                        if(ui_key_match(site_box->key, ui_drop_hot_key()) && ti_drag_drop())
+                        {
+                            Dir2 dir = (panel->split_axis == Axis2_X ? Dir2_Left : Dir2_Up);
+                            CFG_Panel_Node *split_panel = child;
+                            if(split_panel == &cfg_nil_panel_node)
+                            {
+                                split_panel = panel->last;
+                                dir = (panel->split_axis == Axis2_X ? Dir2_Right : Dir2_Down);
+                            }
+                            ti_cmd(TI_CmdKind_SplitPanel,
+                                   .dst_panel  = split_panel->cfg->id,
+                                   .panel      = ti_state->drag_drop_regs->panel,
+                                   .view      = ti_state->drag_drop_regs->view,
+                                   .dir2       = dir);
+                        }
+                        
+                        // rjf: exit on opl child
+                        if(child == &cfg_nil_panel_node)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            //////////////////////////
+            //- rjf: do UI for drag boundaries between all children
+            //
+            for(CFG_Panel_Node *child = panel->first;
+                child != &cfg_nil_panel_node && child->next != &cfg_nil_panel_node;
+                child = child->next)
+            {
+                CFG_Panel_Node *min_child = child;
+                CFG_Panel_Node *max_child = min_child->next;
+                Rng2f32 min_child_rect = cfg_target_rect_from_panel_node_child(panel_rect, panel, min_child);
+                Rng2f32 max_child_rect = cfg_target_rect_from_panel_node_child(panel_rect, panel, max_child);
+                Rng2f32 boundary_rect = {0};
+                {
+                    boundary_rect.p0.v[split_axis] = min_child_rect.p1.v[split_axis] - ui_top_font_size()/3;
+                    boundary_rect.p1.v[split_axis] = max_child_rect.p0.v[split_axis] + ui_top_font_size()/3;
+                    boundary_rect.p0.v[axis2_flip(split_axis)] = panel_rect.p0.v[axis2_flip(split_axis)];
+                    boundary_rect.p1.v[axis2_flip(split_axis)] = panel_rect.p1.v[axis2_flip(split_axis)];
+                }
+                
+                UI_Rect(boundary_rect)
+                {
+                    ui_set_next_hover_cursor(split_axis == Axis2_X ? WM_Cursor_LeftRight : WM_Cursor_UpDown);
+                    UI_Box *box = ui_build_box_from_stringf(UI_BoxFlag_Clickable, "###%p_%p", min_child->cfg, max_child->cfg);
+                    UI_Signal sig = ui_signal_from_box(box);
+                    if(ui_double_clicked(sig))
+                    {
+                        ui_kill_action();
+                        f32 sum_pct = min_child->pct_of_parent + max_child->pct_of_parent;
+                        min_child->pct_of_parent = 0.5f * sum_pct;
+                        max_child->pct_of_parent = 0.5f * sum_pct;
+                        cfg_node_equip_stringf(ti_state->cfg, min_child->cfg, "%f", min_child->pct_of_parent);
+                        cfg_node_equip_stringf(ti_state->cfg, max_child->cfg, "%f", max_child->pct_of_parent);
+                    }
+                    else if(ui_pressed(sig))
+                    {
+                        Vec2f32 v = {min_child->pct_of_parent, max_child->pct_of_parent};
+                        ui_store_drag_struct(&v);
+                    }
+                    else if(ui_dragging(sig))
+                    {
+                        Vec2f32 v = *ui_get_drag_struct(Vec2f32);
+                        Vec2f32 mouse_delta      = ui_drag_delta();
+                        f32 total_size           = dim_2f32(panel_rect).v[split_axis];
+                        f32 min_pct__before      = v.v[0];
+                        f32 min_pixels__before   = min_pct__before * total_size;
+                        f32 min_pixels__after    = min_pixels__before + mouse_delta.v[split_axis];
+                        if(min_pixels__after < 50.f)
+                        {
+                            min_pixels__after = 50.f;
+                        }
+                        f32 min_pct__after       = min_pixels__after / total_size;
+                        f32 pct_delta            = min_pct__after - min_pct__before;
+                        f32 max_pct__before      = v.v[1];
+                        f32 max_pct__after       = max_pct__before - pct_delta;
+                        f32 max_pixels__after    = max_pct__after * total_size;
+                        if(max_pixels__after < 50.f)
+                        {
+                            max_pixels__after = 50.f;
+                            max_pct__after = max_pixels__after / total_size;
+                            pct_delta = -(max_pct__after - max_pct__before);
+                            min_pct__after = min_pct__before + pct_delta;
+                        }
+                        min_child->pct_of_parent = min_pct__after;
+                        max_child->pct_of_parent = max_pct__after;
+                        cfg_node_equip_stringf(ti_state->cfg, min_child->cfg, "%f", min_pct__after);
+                        cfg_node_equip_stringf(ti_state->cfg, max_child->cfg, "%f", max_pct__after);
+                        is_changing_panel_boundaries = 1;
+                    }
+                }
+            }
+        }
+
+        
+        
         ///////////////////
         // @window_ui_part animate panels
         //
@@ -1794,11 +3112,10 @@ internal void ti_window_frame(void)
             {
                 if (panel->first != &cfg_nil_panel_node) {continue;}
                 bool32 panel_is_focused = (window_is_focused &&
-                                           //!ti_state->popup_active &&
+                                           !ti_state->popup_active &&
                                            !ws->menu_bar_focused &&
-                                           //!query_is_open &&
+                                           !query_is_open &&
                                            !ui_any_ctx_menu_is_open() &&
-                                           //!ws->hover_eval_focused &&
                                            panel_tree.focused == panel);
                 CFG_Node *selected_tab = panel->selected_tab;
                 TI_View_State *selected_tab_view_state = ti_view_state_from_cfg(selected_tab);
@@ -1844,7 +3161,191 @@ internal void ti_window_frame(void)
                     // decide to skip this panel (e.g. if it is too small)
                     //
                     bool32 build_panel = (content_rect.x1 > content_rect.x0 && content_rect.y1 > content_rect.y0);
+
+                    //////////////////////////
+                    //- rjf: build combined split+movetab drag/drop sites
+                    //
+                    if(build_panel)
+                    {
+                        CFG_Node *view = cfg_node_from_id(ti_state->drag_drop_regs->view);
+                        if(ti_drag_is_active() && ti_state->drag_drop_regs_slot == TI_RegSlot_View && view != &cfg_nil_node && contains_2f32(panel_rect, ui_mouse()) && ui_key_match(ui_drop_hot_key(), ui_key_zero()))
+                        {
+                            f32 drop_site_dim_px = ceil_f32(ui_top_font_size()*7.f);
+                            drop_site_dim_px = Min(drop_site_dim_px, dim_2f32(panel_rect).v[panel->split_axis]/4.f);
+                            drop_site_dim_px = Max(drop_site_dim_px, ceil_f32(ui_top_font_size()*3.f));
+                            Vec2f32 drop_site_half_dim = v2f32(drop_site_dim_px/2, drop_site_dim_px/2);
+                            Vec2f32 panel_center = center_2f32(panel_rect);
+                            f32 corner_radius = ui_top_font_size()*0.5f;
+                            f32 padding = ceil_f32(ui_top_font_size()*0.5f);
+                            struct
+                            {
+                                UI_Key key;
+                                Dir2 split_dir;
+                                Rng2f32 rect;
+                            } sites[] = {
+                                {
+                                    ui_key_from_stringf(ui_key_zero(), "drop_split_center_%p", panel->cfg),
+                                    Dir2_Invalid,
+                                    r2f32(sub_2f32(panel_center, drop_site_half_dim),
+                                          add_2f32(panel_center, drop_site_half_dim))
+                                },
+                                {
+                                    ui_key_from_stringf(ui_key_zero(), "drop_split_up_%p", panel->cfg),
+                                    Dir2_Up,
+                                    r2f32p(panel_center.x-drop_site_half_dim.x,
+                                           panel_center.y-drop_site_half_dim.y - drop_site_half_dim.y*2,
+                                           panel_center.x+drop_site_half_dim.x,
+                                           panel_center.y+drop_site_half_dim.y - drop_site_half_dim.y*2),
+                                },
+                                {
+                                    ui_key_from_stringf(ui_key_zero(), "drop_split_down_%p", panel->cfg),
+                                    Dir2_Down,
+                                    r2f32p(panel_center.x-drop_site_half_dim.x,
+                                           panel_center.y-drop_site_half_dim.y + drop_site_half_dim.y*2,
+                                           panel_center.x+drop_site_half_dim.x,
+                                           panel_center.y+drop_site_half_dim.y + drop_site_half_dim.y*2),
+                                },
+                                {
+                                    ui_key_from_stringf(ui_key_zero(), "drop_split_left_%p", panel->cfg),
+                                    Dir2_Left,
+                                    r2f32p(panel_center.x-drop_site_half_dim.x - drop_site_half_dim.x*2,
+                                           panel_center.y-drop_site_half_dim.y,
+                                           panel_center.x+drop_site_half_dim.x - drop_site_half_dim.x*2,
+                                           panel_center.y+drop_site_half_dim.y),
+                                },
+                                {
+                                    ui_key_from_stringf(ui_key_zero(), "drop_split_right_%p", panel->cfg),
+                                    Dir2_Right,
+                                    r2f32p(panel_center.x-drop_site_half_dim.x + drop_site_half_dim.x*2,
+                                           panel_center.y-drop_site_half_dim.y,
+                                           panel_center.x+drop_site_half_dim.x + drop_site_half_dim.x*2,
+                                           panel_center.y+drop_site_half_dim.y),
+                                },
+                            };
+                            UI_CornerRadius(corner_radius)
+                                for(u64 idx = 0; idx < ArrayCount(sites); idx += 1)
+                            {
+                                UI_Key key = sites[idx].key;
+                                Dir2 dir = sites[idx].split_dir;
+                                Rng2f32 rect = sites[idx].rect;
+                                Axis2 split_axis = axis2_from_dir2(dir);
+                                Side split_side = side_from_dir2(dir);
+                                if(dir != Dir2_Invalid && split_axis == panel->parent->split_axis)
+                                {
+                                    continue;
+                                }
+                                UI_Box *site_box = &ui_nil_box;
+                                {
+                                    f32 site_open_t = ui_anim(ui_key_from_stringf(key, "open_t"), 1.f, .rate = ti_state->menu_animation_rate);
+                                    UI_Rect(rect) UI_Squish(0.1f-0.1f*site_open_t) UI_Transparency(1-site_open_t)
+                                    {
+                                        site_box = ui_build_box_from_key(UI_BoxFlag_DropSite|UI_BoxFlag_DrawHotEffects, key);
+                                        ui_signal_from_box(site_box);
+                                    }
+                                    UI_Box *site_box_viz = &ui_nil_box;
+                                    UI_GroupKey(key)
+                                        UI_Parent(site_box) UI_WidthFill UI_HeightFill
+                                        UI_Padding(ui_px(padding, 1.f))
+                                        UI_Column
+                                        UI_Padding(ui_px(padding, 1.f))
+                                    {
+                                        ui_set_next_child_layout_axis(axis2_flip(split_axis));
+                                        site_box_viz = ui_build_box_from_key(UI_BoxFlag_DrawBackground|
+                                                                             UI_BoxFlag_DrawBorder|
+                                                                             UI_BoxFlag_DrawDropShadow|
+                                                                             UI_BoxFlag_DrawBackgroundBlur|
+                                                                             UI_BoxFlag_DrawHotEffects, ui_key_zero());
+                                    }
+                                    if(dir != Dir2_Invalid)
+                                    {
+                                        UI_Parent(site_box_viz) UI_WidthFill UI_HeightFill UI_Padding(ui_px(padding, 1.f))
+                                        {
+                                            ui_set_next_child_layout_axis(split_axis);
+                                            UI_Box *row_or_column = ui_build_box_from_key(0, ui_key_zero());
+                                            UI_Parent(row_or_column) UI_Padding(ui_px(padding, 1.f)) UI_TagF("drop_site")
+                                            {
+                                                if(split_side == Side_Min) { ui_set_next_flags(UI_BoxFlag_DrawBackground); }
+                                                ui_build_box_from_key(UI_BoxFlag_DrawBorder, ui_key_zero());
+                                                ui_spacer(ui_px(padding, 1.f));
+                                                if(split_side == Side_Max) { ui_set_next_flags(UI_BoxFlag_DrawBackground); }
+                                                ui_build_box_from_key(UI_BoxFlag_DrawBorder, ui_key_zero());
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        UI_Parent(site_box_viz) UI_WidthFill UI_HeightFill UI_Padding(ui_px(padding, 1.f))
+                                        {
+                                            ui_set_next_child_layout_axis(split_axis);
+                                            UI_Box *row_or_column = ui_build_box_from_key(0, ui_key_zero());
+                                            UI_Parent(row_or_column) UI_Padding(ui_px(padding, 1.f)) UI_TagF("drop_site")
+                                            {
+                                                ui_build_box_from_key(UI_BoxFlag_DrawBorder|UI_BoxFlag_DrawBackground, ui_key_zero());
+                                            }
+                                        }
+                                    }
+                                }
+                                if(ui_key_match(site_box->key, ui_drop_hot_key()) && ti_drag_drop())
+                                {
+                                    if(dir != Dir2_Invalid)
+                                    {
+                                        ti_cmd(TI_CmdKind_SplitPanel,
+                                               .dst_panel = panel->cfg->id,
+                                               .panel = ti_state->drag_drop_regs->panel,
+                                               .view = ti_state->drag_drop_regs->view,
+                                               .dir2 = dir);
+                                    }
+                                    else
+                                    {
+                                        ti_cmd(TI_CmdKind_MoveView,
+                                               .dst_panel = panel->cfg->id,
+                                               .panel = ti_state->drag_drop_regs->panel,
+                                               .view = ti_state->drag_drop_regs->view,
+                                               .prev_tab = cfg_node_ptr_list_last(&panel->tabs)->id);
+                                    }
+                                }
+                            }
+                            for(u64 idx = 0; idx < ArrayCount(sites); idx += 1)
+                            {
+                                bool32 is_drop_hot = ui_key_match(ui_drop_hot_key(), sites[idx].key);
+                                if(is_drop_hot)
+                                {
+                                    Axis2 split_axis = axis2_from_dir2(sites[idx].split_dir);
+                                    Side split_side = side_from_dir2(sites[idx].split_dir);
+                                    Rng2f32 future_split_rect_target = panel_rect;
+                                    if(sites[idx].split_dir != Dir2_Invalid)
+                                    {
+                                        Vec2f32 panel_center = center_2f32(panel_rect);
+                                        future_split_rect_target.v[side_flip(split_side)].v[split_axis] = panel_center.v[split_axis];
+                                    }
+                                    future_split_rect_target = pad_2f32(future_split_rect_target, -ui_top_font_size()*2.f);
+                                    Vec2f32 future_split_rect_target_center = center_2f32(future_split_rect_target);
+                                    Rng2f32 future_split_rect =
+                                        {
+                                            ui_anim(ui_key_from_stringf(ui_key_zero(), "drop_site_v0"), future_split_rect_target.x0, .initial = future_split_rect_target_center.x, .rate = ti_state->menu_animation_rate),
+                                            ui_anim(ui_key_from_stringf(ui_key_zero(), "drop_site_v1"), future_split_rect_target.y0, .initial = future_split_rect_target_center.y, .rate = ti_state->menu_animation_rate),
+                                            ui_anim(ui_key_from_stringf(ui_key_zero(), "drop_site_v2"), future_split_rect_target.x1, .initial = future_split_rect_target_center.x, .rate = ti_state->menu_animation_rate),
+                                            ui_anim(ui_key_from_stringf(ui_key_zero(), "drop_site_v3"), future_split_rect_target.y1, .initial = future_split_rect_target_center.y, .rate = ti_state->menu_animation_rate),
+                                        };
+                                    UI_Rect(future_split_rect) UI_TagF("drop_site") UI_CornerRadius(ui_top_font_size()*2.f)
+                                    {
+                                        ui_build_box_from_key(UI_BoxFlag_DrawBackground|UI_BoxFlag_DrawBorder, ui_key_zero());
+                                    }
+                                }
+                            }
+                        }
+                    }
                     
+                    //////////////////////////
+                    //- rjf: build catch-all panel drop-site
+                    //
+                    UI_Key catchall_drop_site_key = ui_key_from_stringf(ui_key_zero(), "catchall_drop_site_%p", panel->cfg);
+                    if(build_panel && ti_drag_is_active() && ti_state->drag_drop_regs_slot == TI_RegSlot_View) UI_Rect(panel_rect)
+                    {
+                        UI_Box *catchall_drop_site = ui_build_box_from_key(UI_BoxFlag_DropSite, catchall_drop_site_key);
+                        ui_signal_from_box(catchall_drop_site);
+                    }
+
                     ////////////////////
                     // panel not selecteed? -> darken
                     //
@@ -1890,6 +3391,18 @@ internal void ti_window_frame(void)
                         ti_push_regs(.panel = panel->cfg->id,
                                      .tab = selected_tab->id,
                                      .view = selected_tab->id);
+                        {
+                            String8 view_expr = ti_expr_from_cfg(selected_tab);
+                            String8 view_file_path = ti_file_path_from_eval_string(ti_frame_arena(), view_expr);
+                            // NOTE(rjf): we want to only fill out this view's file path slot if it
+                            // evaluates one - this way, a view can use the slot to know the selected
+                            // file path (if there is one). this is useful when pushing commandas which
+                            // apply to a cursor, for example.
+                            if(view_file_path.size != 0)
+                            {
+                                ti_regs()->file_path = view_file_path;
+                            }
+                        }
                         
                         // build view container
                         UI_Box *view_container_box = &ui_nil_box;
@@ -1979,7 +3492,7 @@ internal void ti_window_frame(void)
                     f32 max_tab_width_px = ui_top_font_size()*20.f;
                     if (build_panel) UI_TagF("tab")
                     {
-                        bool32 reset = (ws->window_layout_reset || ws->frames_alive < 5);// || is_changing_panel_boundaries);
+                        bool32 reset = (ws->window_layout_reset || ws->frames_alive < 5 || is_changing_panel_boundaries);
                         for (CFG_Node_Ptr_Node *n = panel->tabs.first; n != 0; n = n->next)
                         {
                             CFG_Node *tab = n->v;
@@ -2027,7 +3540,50 @@ internal void ti_window_frame(void)
                             tab_bar_box->view_off.y = tab_bar_box->view_off_target.y = 0;
                         }
                     }
-                    
+
+                    ////////////////////
+                    // determine tab drop site
+                    //
+                    bool32 tab_drop_is_active = ti_drag_is_active() && ui_key_match(ui_drop_hot_key(), catchall_drop_site_key);
+                    CFG_Node *tab_drop_prev = &cfg_nil_node;
+                    if(build_panel)
+                    {
+                        f32 best_prev_distance_px = 1000000.f;
+                        Tab_Task start_boundary_tab_task = {first_tab_task, &cfg_nil_node};
+                        f32 off = 0;
+                        for(Tab_Task *task = &start_boundary_tab_task; task != 0; task = task->next)
+                        {
+                            off += task->tab_width;
+                            Vec2f32 anchor_pt = v2f32(tab_bar_box->rect.x0 + off, tab_bar_box->rect.y1);
+                            f32 distance = length_2f32(sub_2f32(ui_mouse(), anchor_pt));
+                            if(distance < best_prev_distance_px)
+                            {
+                                best_prev_distance_px = distance;
+                                tab_drop_prev = task->tab;
+                            }
+                        }
+                    }
+
+                    //////////////////////////
+                    //- rjf: turn off drop visualization if this drag would be a no-op
+                    //
+                    if(tab_drop_is_active && ti_state->drag_drop_regs->panel == panel->cfg->id)
+                    {
+                        Tab_Task start_boundary_tab_task = {first_tab_task, &cfg_nil_node};
+                        if(tab_drop_prev->id == ti_state->drag_drop_regs->view)
+                        {
+                            tab_drop_is_active = 0;
+                        }
+                        if(tab_drop_is_active) for(Tab_Task *t = &start_boundary_tab_task; t != 0; t = t->next)
+                        {
+                            if(t->tab == tab_drop_prev && t->next != 0 && t->next->tab->id == ti_state->drag_drop_regs->view)
+                            {
+                                tab_drop_is_active = 0;
+                                break;
+                            }
+                        }
+                    }
+
                     //////////////
                     // build tab bar contents
                     if (build_panel) UI_Focus(UI_FocusKind_Off) UI_Parent(tab_bar_box) UI_Padding(ui_em(0.5f, 1.f)) UI_PrefHeight(ui_pct(1, 0)) UI_TagF("tab")
@@ -2057,6 +3613,10 @@ internal void ti_window_frame(void)
                                 
                                 // choose palette
                                 bool32 omit_name = 0;
+                                if(ti_drag_is_active() && ti_state->drag_drop_regs->view == tab->id && ti_state->drag_drop_regs_slot == TI_RegSlot_View)
+                                {
+                                    omit_name = 1;
+                                }
                                 
                                 // build tab container box
                                 UI_Parent(tab_column_box)
@@ -2114,7 +3674,13 @@ internal void ti_window_frame(void)
                                                 UI_Signal sig = ui_signal_from_box(edit_box);
                                                 if (ui_pressed(sig))
                                                 {
-                                                    // we dont have queries yet
+                                                    ti_cmd(TI_CmdKind_CancelAllQueries);
+                                                    if(ws->query_top == 0 || !ui_key_match(sig.box->key, ws->query_top->regs->ui_key))
+                                                    {
+                                                        ti_cmd(TI_CmdKind_PushQuery,
+                                                               .ui_key       = sig.box->key,
+                                                               .expr         = push_str8f(scratch.arena, "query:config.$%I64x", tab->id));
+                                                    } 
                                                 }
                                             }
                                         }
@@ -2150,15 +3716,16 @@ internal void ti_window_frame(void)
                                             ti_cmd(TI_CmdKind_FocusTab);
                                             ti_cmd(TI_CmdKind_FocusPanel);
                                         }
-                                        /*
                                         else if (ui_dragging(sig) && !ti_drag_is_active() && length_2f32(ui_drag_delta()) > 10.f)
                                         {
                                             ti_drag_begin(TI_RegSlot_View);
                                         }
-                                        */
                                         else if (ui_right_clicked(sig))
                                         {
-                                            // no queries yet...
+                                            ti_cmd(TI_CmdKind_CancelAllQueries);
+                                            ti_cmd(TI_CmdKind_PushQuery,
+                                                   .ui_key       = sig.box->key,
+                                                   .expr         = push_str8f(scratch.arena, "query:config.$%I64x", tab->id));
                                         }
                                         else if (ui_middle_clicked(sig))
                                         {
@@ -2175,6 +3742,42 @@ internal void ti_window_frame(void)
 
                             // if this is the currently active drop site's previous tab, then build empty space
                             // to visualize where tab will be moved once dropped
+                            if(tab_drop_is_active &&
+                               ti_drag_is_active() &&
+                               ti_state->drag_drop_regs_slot == TI_RegSlot_View &&
+                               tab == tab_drop_prev)
+                            {
+                                // rjf: begin vertical region for this spot
+                                ui_set_next_child_layout_axis(Axis2_Y);
+                                ui_set_next_pref_width(ui_px(ui_top_font_size()*4.f, 1));
+                                UI_Box *tab_column_box = ui_build_box_from_stringf(!is_changing_panel_boundaries*UI_BoxFlag_AnimatePosX, "tab_column_%p", tab);
+                                
+                                // rjf: build spot container box
+                                UI_Parent(tab_column_box)
+                                    UI_PrefHeight(ui_px(tab_bar_vheight, 1))
+                                    UI_TagF("hollow")
+                                {
+                                    if(panel->tab_side == Side_Max)
+                                    {
+                                        ui_spacer(ui_px(tab_bar_rv_diff-1.f, 1.f));
+                                    }
+                                    else
+                                    {
+                                        ui_spacer(ui_px(1.f, 1.f));
+                                    }
+                                    ui_set_next_group_key(catchall_drop_site_key);
+                                    UI_Box *tab_box = ui_build_box_from_key(UI_BoxFlag_DrawHotEffects|
+                                                                            UI_BoxFlag_DrawBackground|
+                                                                            UI_BoxFlag_DrawBorder|
+                                                                            UI_BoxFlag_Clickable,
+                                                                            ui_key_zero());
+                                }
+                                
+                                // rjf: space for next tab
+                                {
+                                    ui_spacer(ui_px(floor_f32(ui_top_font_size()*0.4f), 1.f));
+                                }
+                            }
                         }
 
                         // build add-new-tab button
@@ -2215,19 +3818,26 @@ internal void ti_window_frame(void)
                                                                                 panel->cfg);
                                     }
                                     UI_Signal sig = ui_signal_from_box(add_new_box);
-                                    if (ui_pressed(sig))
+                                    if(ui_pressed(sig))
                                     {
                                         ti_cmd(TI_CmdKind_FocusPanel, .panel = panel->cfg->id);
-                                        ti_cmd(TI_CmdKind_RunCommand, .cmd_name = ti_cmd_kind_info_table[TI_CmdKind_OpenTab].string);
+                                        if(ws->query_top && ui_key_match(add_new_box->key, ws->query_top->regs->ui_key))
+                                        {
+                                            ti_cmd(TI_CmdKind_CancelAllQueries);
+                                        }
+                                        else
+                                        {
+                                            ti_cmd(TI_CmdKind_RunCommand, .cmd_name = ti_cmd_kind_info_table[TI_CmdKind_OpenTab].string);
+                                        }
                                     }
-                                    if (ui_hovering(sig)) UI_Tooltip
+                                    if(ui_hovering(sig)) UI_Tooltip
                                     {
                                         ui_state->tooltip_anchor_key = add_new_box->key;
                                         ui_set_next_pref_width(ui_children_sum(1));
                                         UI_Row
                                         {
                                             ui_labelf("Open New Tab");
-                                            //ti_cmd_binding_buttons(ti_cmd_kind_info_table[TI_CmdKind_OpenTab].string, s(""), 1, TI_CmdBindingButtonFlag_NoEdit);
+                                            ti_cmd_binding_buttons(ti_cmd_kind_info_table[TI_CmdKind_OpenTab].string, s(""), 1, TI_CmdBindingButtonFlag_NoEdit);
                                         }
                                     }
                                 }
@@ -2241,6 +3851,14 @@ internal void ti_window_frame(void)
                     ////////////////
                     // accept tab drops
                     //
+                    if(tab_drop_is_active && ti_drag_drop() && ti_state->drag_drop_regs_slot == TI_RegSlot_View)
+                    {
+                        ti_cmd(TI_CmdKind_MoveView,
+                               .dst_panel = panel->cfg->id,
+                               .panel     = ti_state->drag_drop_regs->panel,
+                               .view     = ti_state->drag_drop_regs->view,
+                               .prev_tab  = tab_drop_prev->id);
+                    }
                     
                     /////////////
                     // accept file drops
@@ -2252,6 +3870,11 @@ internal void ti_window_frame(void)
         ////////////////////////
         // @window_ui_part drag/drop cancelling
         //
+        if(ti_drag_is_active() && ui_slot_press(UI_EventActionSlot_Cancel))
+        {
+            ti_drag_kill();
+            ui_kill_action();
+        }
 
         ////////////////////
         // @window_ui_part top-level font size changing
@@ -2295,14 +3918,14 @@ internal void ti_window_frame(void)
         Rng2f32 window_rect = wm_client_rect_from_window(ws->os);
 
         // unpack settings
-        f32 rounded_corner_amount = 0.5f;
-        f32 border_softness       = 1.f;
-        bool32 do_background_blur                = true;
-        bool32 force_opaque_floating_backgrounds = true;
-        bool32 do_drop_shadows                   = true;
+        f32 rounded_corner_amount = ti_setting_f32_from_name(str8_lit("rounded_corner_amount"));
+        f32 border_softness = 1.f;
+        bool32 do_background_blur = ti_setting_bool32_from_name(str8_lit("background_blur"));
+        bool32 force_opaque_floating_backgrounds = ti_setting_bool32_from_name(str8_lit("opaque_backgrounds"));
+        bool32 do_drop_shadows = ti_setting_bool32_from_name(str8_lit("drop_shadows"));
         Vec4f32 base_background_color = ui_color_from_name(str8_lit("background"));
-        Vec4f32 base_border_color     = ui_color_from_name(str8_lit("border"));
-        Vec4f32 drop_shadow_color     = ui_color_from_name(str8_lit("drop_shadow"));
+        Vec4f32 base_border_color = ui_color_from_name(str8_lit("border"));
+        Vec4f32 drop_shadow_color = ui_color_from_name(str8_lit("drop_shadow"));
 
         // set up heatmap buckets
         f32 heatmap_bucket_size = 32.f;
@@ -2921,12 +4544,74 @@ NO_OPTIMIZE_END
 // Colors, Fonts, Config
 
 // colors
+internal MD_Node *ti_theme_tree_from_name(Arena *arena, Access *access, String8 theme_name)
+{
+    Temp scratch = scratch_begin(&arena, 1);
+    MD_Node *theme_tree = &md_nil_node;
+    if(theme_name.size != 0)
+    {
+        for EachEnumVal(TI_ThemePreset, p)
+        {
+            if(str8_match(theme_name, ti_theme_preset_display_string_table[p], 0))
+            {
+                theme_tree = ti_state->theme_preset_trees[p];
+                break;
+            }
+        }
+        if(theme_tree == &md_nil_node)
+        {
+            String8 path = str8f(scratch.arena, "%S/tide/themes/%S", get_process_info()->user_program_config_data_path, theme_name);
+            u64 endt_us = now_time_us()+100;
+            if(ti_state->frame_index <= 5)
+            {
+                endt_us = now_time_us()+50000;
+            }
+            u128 hash = fs_hash_from_path_range(path, r1u64(0, max_u64), endt_us);
+            String8 data = c_data_from_hash(access, hash);
+            theme_tree = md_tree_from_string(arena, data);
+        }
+    }
+    scratch_end(scratch);
+    return theme_tree;
+}
+
+internal Vec4f32 ti_rgba_from_code_color_slot(TI_CodeColorSlot slot)
+{
+    TI_Window_State *ws = ti_window_state_from_cfg(cfg_node_from_id(ti_regs()->window));
+    Vec4f32 result = ws->theme_code_colors[slot];
+    return result;
+}
+
+internal TI_CodeColorSlot ti_code_color_slot_from_txt_token_kind(TXT_TokenKind kind)
+{
+    TI_CodeColorSlot color = TI_CodeColorSlot_CodeDefault;
+    switch(kind)
+    {
+        default:{}break;
+        case TXT_TokenKind_Keyword:     {color = TI_CodeColorSlot_CodeKeyword;}break;
+        case TXT_TokenKind_Numeric:     {color = TI_CodeColorSlot_CodeNumeric;}break;
+        case TXT_TokenKind_String:      {color = TI_CodeColorSlot_CodeString;}break;
+        case TXT_TokenKind_Char:        {color = TI_CodeColorSlot_CodeString;}break;
+        case TXT_TokenKind_Meta:        {color = TI_CodeColorSlot_CodeMeta;}break;
+        case TXT_TokenKind_LineComment: {color = TI_CodeColorSlot_CodeComment;}break;
+        case TXT_TokenKind_BlockComment:{color = TI_CodeColorSlot_CodeComment;}break;
+        case TXT_TokenKind_Symbol:      {color = TI_CodeColorSlot_CodeDelimiterOperator;}break;
+    }
+    return color;
+}
+
+internal TI_CodeColorSlot ti_code_color_slot_from_txt_token_kind_lookup_string(TXT_TokenKind kind, String8 string, bool32 allow_macros, bool32 is_called)
+{
+    // @TODO make this real
+    return ti_code_color_slot_from_txt_token_kind(kind);
+}
 
 // fonts
 internal f32 ti_font_size(void)
 {
-    // TODO make this real
-    return 10.f;
+    f32 size = ti_setting_f32_from_name(str8_lit("font_size"));
+    size = Clamp(6.f, size, 72.f);
+    return size;
 }
 
 internal FNT_Tag ti_font_from_slot(TI_FontSlot slot)
@@ -3025,6 +4710,69 @@ internal TI_Regs *ti_pop_regs(void)
         ti_state->top_regs = &ti_state->base_regs;
     }
     return regs;
+}
+
+internal void ti_regs_fill_slot_from_string(TI_RegSlot slot, String8 query_expr, String8 string)
+{
+    switch(slot)
+    {
+        // basic string cases
+        default:
+        case TI_RegSlot_String:
+        case TI_RegSlot_FilePath: {
+            {
+                String8_Txt_Pt_Pair pair = str8_txt_pt_pair_from_string(string);
+                ti_regs()->string = str8_copy(ti_frame_arena(), string);
+                if(pair.pt.line != 0)
+                {
+                    ti_regs()->file_path = str8_copy(ti_frame_arena(), pair.string);
+                    //ti_regs()->line_num  = (u64)pair.pt.line;
+                    //ti_regs()->column_num = (u64)pair.pt.column;
+                }
+            }
+        } break;
+        case TI_RegSlot_Expr: {
+            {
+                ti_regs()->expr = str8_copy(ti_frame_arena(), string);
+            }
+        } break;
+        case TI_RegSlot_CmdName: {
+            {
+                ti_regs()->cmd_name = str8_copy(ti_frame_arena(), string);
+            }
+        } break;
+
+            // cfgs
+        case TI_RegSlot_Cfg:
+        case TI_RegSlot_Window:
+        case TI_RegSlot_Panel:
+        case TI_RegSlot_Tab:
+        case TI_RegSlot_View:
+        case TI_RegSlot_PrevTab:
+        case TI_RegSlot_DstPanel: {
+            {
+                bool32 good = 0;
+                if(!good && str8_match(str8_prefix(string, 1), str8_lit("$"), 0))
+                {
+                    String8 numeric_part = str8_skip(string, 1);
+                    CFG_ID id = u64_from_str8(numeric_part, 16);
+                    ti_regs()->cfg = id;
+                    good = 1;
+                }
+                if(!good && query_expr.size != 0)
+                {
+                    Temp scratch = scratch_begin(0, 0);
+                    TI_Query_Item_List items = ti_query_items_from_string(scratch.arena, query_expr, string);
+                    if(items.count != 0)
+                    {
+                        ti_regs()->cfg = items.first->cfg;
+                    }
+                    good = (ti_regs()->cfg != 0);
+                    scratch_end(scratch);
+                }
+            }
+        } break;
+    }
 }
 
 /////////////////////
@@ -3130,11 +4878,18 @@ internal void ti_init(Cmd_Line *cmdline)
         scratch_end(scratch);
     }
     ti_state->num_frames_requested = 2;
+    ti_state->seconds_until_autosave = 0.5f;
     for (u64 idx = 0; idx < ArrayCount(ti_state->cmds_arenas); idx += 1)
     {
         ti_state->cmds_arenas[idx] = arena_alloc();
     }
     ti_state->cmd_output_arena = arena_alloc();
+    ti_state->popup_arena = arena_alloc();
+    ti_state->ctx_menu_key = ui_key_from_string(ui_key_zero(), str8_lit("top_level_ctx_menu"));
+    ti_state->drop_completion_key = ui_key_from_string(ui_key_zero(), str8_lit("drop_completion_ctx_menu"));
+    ti_state->bind_change_arena = arena_alloc();
+    ti_state->drag_drop_arena = arena_alloc();
+    ti_state->drag_drop_regs = push_array(ti_state->drag_drop_arena, TI_Regs, 1);
     ti_state->top_regs = &ti_state->base_regs;
 
     // set up schemas
@@ -3369,6 +5124,9 @@ internal void ti_init(Cmd_Line *cmdline)
         scratch_end(scratch);
     }
 
+    // check initial installation status
+    ti_state->installed = sh_install_or_uninstall_self(0, 0);
+
     ProfEnd();
     scratch_end(scratch);
 }
@@ -3390,7 +5148,22 @@ internal void ti_frame(void)
         ti_regs_copy_contents(ti_frame_arena(), &ti_state->top_regs->v, &ti_state->top_regs->v);
         scratch_end(scratch);
     }
-    if (ti_state->frame_depth == 1)
+    if(ti_state->next_hover_regs != 0)
+    {
+        ti_state->hover_regs = ti_regs_copy(ti_frame_arena(), ti_state->next_hover_regs);
+        ti_state->hover_regs_slot = ti_state->next_hover_regs_slot;
+        ti_state->next_hover_regs = 0;
+    }
+    else
+    {
+        ti_state->hover_regs = push_array(ti_frame_arena(), TI_Regs, 1);
+        ti_state->hover_regs_slot = TI_RegSlot_Null;
+    }
+    bool32 allow_text_hotkeys = !ti_state->text_edit_mode;
+    bool32 allow_text_multiline_hotkeys = !ti_state->text_edit_mode_multiline;
+    ti_state->text_edit_mode = 0;
+    ti_state->text_edit_mode_multiline = 0;
+    if(ti_state->frame_depth == 1)
     {
         arena_clear(ti_state->cmd_output_arena);
         MemoryZeroStruct(&ti_state->cmd_outputs);
@@ -3548,7 +5321,7 @@ internal void ti_frame(void)
     WM_Event_List events = {0};
     if (ti_state->frame_depth == 1)
     {
-        events = wm_get_events(scratch.arena, ti_state->num_frames_requested == 0);// make a DEV_always_refresh here
+        events = wm_get_events(scratch.arena, ti_state->num_frames_requested == !DEV_always_refresh);
     }
 
     ////////////////////
@@ -3611,6 +5384,59 @@ internal void ti_frame(void)
     // megin measuring actual per-frame work
     u64 begin_time_us = now_time_us();
 
+    /////////////////
+    // bind change
+    //
+    if(!ti_state->popup_active && ti_state->bind_change_active)
+    {
+        if(wm_key_press(&events, wm_window_zero(), 0, WM_Key_Esc))
+        {
+            ti_request_frame();
+            ti_state->bind_change_active = 0;
+        }
+        if(wm_key_press(&events, wm_window_zero(), 0, WM_Key_Delete))
+        {
+            ti_request_frame();
+            cfg_node_release(ti_state->cfg, cfg_node_from_id(ti_state->bind_change_binding_id));
+            ti_state->bind_change_active = 0;
+        }
+        for(WM_Event *event = events.first, *next = 0; event != 0; event = next)
+        {
+            if(event->kind == WM_EventKind_Press &&
+               event->key != WM_Key_Esc &&
+               event->key != WM_Key_Return &&
+               event->key != WM_Key_Backspace &&
+               event->key != WM_Key_Delete &&
+               event->key != WM_Key_LeftMouseButton &&
+               event->key != WM_Key_RightMouseButton &&
+               event->key != WM_Key_MiddleMouseButton &&
+               event->key != WM_Key_Ctrl &&
+               event->key != WM_Key_Alt &&
+               event->key != WM_Key_Shift)
+            {
+                ti_state->bind_change_active = 0;
+                CFG_Node *binding = cfg_node_from_id(ti_state->bind_change_binding_id);
+                if(binding == &cfg_nil_node)
+                {
+                    CFG_Node *user = cfg_node_child_from_string(cfg_node_root(), str8_lit("user"));
+                    CFG_Node *keybindings = cfg_node_child_from_string_or_alloc(ti_state->cfg, user, str8_lit("keybindings"));
+                    binding = cfg_node_new(ti_state->cfg, keybindings, str8_lit(""));
+                }
+                cfg_node_release_all_children(ti_state->cfg, binding);
+                cfg_node_new(ti_state->cfg, binding, ti_state->bind_change_cmd_name);
+                cfg_node_new(ti_state->cfg, binding, wm_key_cfg_name_table[event->key]);
+                if(event->modifiers & WM_Modifier_Ctrl)  { cfg_node_new(ti_state->cfg, binding, str8_lit("ctrl")); }
+                if(event->modifiers & WM_Modifier_Shift) { cfg_node_new(ti_state->cfg, binding, str8_lit("shift")); }
+                if(event->modifiers & WM_Modifier_Alt)   { cfg_node_new(ti_state->cfg, binding, str8_lit("alt")); }
+                u32 codepoint = wm_codepoint_from_modifiers_and_key(event->modifiers, event->key);
+                wm_text(&events, event->window, codepoint);
+                wm_eat_event(&events, event);
+                ti_request_frame();
+                break;
+            }
+        }
+    }
+
     ///////////////////////
     // build key map from config
     ProfScope("build key map from config")
@@ -3641,6 +5467,12 @@ internal void ti_frame(void)
             }
             bool32 take = false;
 
+            // try drag/drop drop-kickoff
+            if(ti_drag_is_active() && event->kind == WM_EventKind_Release && event->key == WM_Key_LeftMouseButton)
+            {
+                ti_state->drag_drop_state = TI_DragDropState_Dropping;
+            }
+
             // try window close
             if (!take && event->kind == WM_EventKind_WindowClose && ws != 0)
             {
@@ -3649,7 +5481,6 @@ internal void ti_frame(void)
             }
 
             // try menu bar opertaions
-            /*
             if (ti_state->alt_menu_bar_enabled && wm_window_is_focused(ws->os))
             {
                 if (!take && event->kind == WM_EventKind_Press && event->key == WM_Key_Alt && event->modifiers == 0 && event->is_repeat == 0)
@@ -3686,14 +5517,51 @@ internal void ti_frame(void)
                     ws->menu_bar_focused = 0;
                 }
             }
-            */
 
             // try hotkey presses
+            if(!take && event->kind == WM_EventKind_Press)
+            {
+                CFG_Binding binding = {event->key, event->modifiers};
+                CFG_Key_Map_Node_Ptr_List key_map_nodes = cfg_key_map_node_ptr_list_from_binding(scratch.arena, ti_state->key_map, binding);
+                if(key_map_nodes.first != 0)
+                {
+                    u32 hit_char = wm_codepoint_from_modifiers_and_key(event->modifiers, event->key);
+                    if((allow_text_hotkeys || hit_char == 0 || (hit_char == '\n' && allow_text_multiline_hotkeys)))
+                    {
+                        String8 cmd_name = key_map_nodes.first->v->name;
+                        ti_cmd(TI_CmdKind_RunCommand, .cmd_name = cmd_name);
+                        wm_text(&events, event->window, hit_char);
+                        next = event->next;
+                        take = true;
+                        if(event->modifiers & WM_Modifier_Alt)
+                        {
+                            ws->menu_bar_focus_press_started = 0;
+                        }
+                    }
+                }
+                else if(WM_Key_F1 <= event->key && event->key <= WM_Key_F19)
+                {
+                    ws->menu_bar_focus_press_started = 0;
+                }
+                ti_request_frame();
+            }
 
             // try text events
+            if(!take && event->kind == WM_EventKind_Text && (event->character != '\n' || !allow_text_multiline_hotkeys))
+            {
+                String32 insertion32 = str32(&event->character, 1);
+                String8 insertion8 = str8_from_32(scratch.arena, insertion32);
+                ti_cmd(TI_CmdKind_InsertText, .string = insertion8);
+                ti_request_frame();
+                take = 1;
+                if(event->modifiers & WM_Modifier_Alt)
+                {
+                    ws->menu_bar_focus_press_started = 0;
+                }
+            }
 
             // do fall-through
-            if (!take)
+            if(!take)
             {
                 take = true;
                 ti_cmd(TI_CmdKind_WMEvent, .wm_event = event);
@@ -3713,13 +5581,67 @@ internal void ti_frame(void)
     TI_Cmd *cmd = 0;
     ProfScope("loop - consume events in core, tick engine, and repeat") for (u64 cmd_process_loop_idx = 0; cmd_process_loop_idx < 3; cmd_process_loop_idx += 1)
     {
+        /////////////////////
+        // build extra maps
+        ti_state->view_ui_rule_map = ti_view_ui_rule_map_make(scratch.arena, 512);
+        ProfScope("build extra maps")
+        {
+            // choose set of lenses
+            // TODO: @lenses generate via metapgoram
+            struct
+            {
+                String8 name;
+                bool32 inherited_by_members;
+                bool32 inherited_by_elements;
+                bool32 array_like;
+                TI_View_UI_Function_Type *ui;
+            } lens_table[] = {
+                {str8_lit("text"),       0, 0, 0,     TI_VIEW_UI_FUNCTION_NAME(text)},
+                {str8_lit("geo3d"),      0, 0, 0,     TI_VIEW_UI_FUNCTION_NAME(geo3d)},
+            };
+
+            // fill lenses in view ui rule map
+            {
+                for EachElement(idx, lens_table)
+                {
+                    if(lens_table[idx].ui != 0)
+                    {
+                        ti_view_ui_rule_map_insert(scratch.arena, ti_state->view_ui_rule_map, lens_table[idx].name, lens_table[idx].ui);
+                    }
+                }
+            }
+        }
+        
         /////////////////////////////////
         // evaluate unpacked settings (must be used earlier than this point in the frame,
         // but cannot evaluate before this point, so we need to prep for next frame
         //
+        ti_state->alt_menu_bar_enabled = ti_setting_bool32_from_name(s("focus_menu_bar_with_alt"));
 
-        
-        
+        /////////////////////////////
+        // do installation/uninstallation of app
+        //
+        bool32 installed = ti_setting_bool32_from_name(s("install_to_system"));
+        bool32 last_installed = ti_state->installed;
+        if(installed != last_installed)
+        {
+            sh_install_or_uninstall_self(1, installed);
+            ti_state->installed = installed;
+        }
+
+        ///////////////////
+        // autosave if needed
+        //
+        {
+            ti_state->seconds_until_autosave -= ti_state->frame_dt;
+            if(ti_state->seconds_until_autosave <= 0.f)
+            {
+                //ti_cmd(TI_CmdKind_WriteUserData);
+                //ti_cmd(TI_CmdKind_WriteProjectData);
+                ti_state->seconds_until_autosave = 5.f;
+            }
+        }
+
         /////////////////////////////
         // process top-level graphical commands
         //
@@ -3745,6 +5667,45 @@ internal void ti_frame(void)
                 Vec2s32 panel_change_dir = {0};
                 switch (kind)
                 {
+                    // fallthrough
+                    default: {
+                        {
+                            // try to open tabs, if this is a tab-fastpath-opener
+                            if (kind >= TI_CmdKind_FirstTabFastPathCmd)
+                            {
+                                u64 fast_path_idx = (kind - TI_CmdKind_FirstTabFastPathCmd);
+                                String8 view_name = ti_tab_fast_path_view_name_table[fast_path_idx];
+                                String8 query_name = ti_tab_fast_path_query_name_table[fast_path_idx];
+                                ti_cmd(TI_CmdKind_BuildTab, .string = view_name, .expr = query_name);
+                            }
+                        }
+                    } break;
+                        // open palette
+                    case TI_CmdKind_OpenPalette: {
+                        {
+                            CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                            CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
+                            CFG_Node *tab = panel_tree.focused->selected_tab;
+                            String8_List exprs = {0};
+                            {
+                                str8_list_pushf(scratch.arena, &exprs, "query:commands");
+                                if(tab != &cfg_nil_node)
+                                {
+                                    str8_list_pushf(scratch.arena, &exprs, "query:config.$%I64x", tab->id);
+                                }
+                                if(window != &cfg_nil_node)
+                                {
+                                    str8_list_pushf(scratch.arena, &exprs, "query:config.$%I64x", window->id);
+                                }
+                                str8_list_pushf(scratch.arena, &exprs, "query:user_settings");
+                                str8_list_pushf(scratch.arena, &exprs, "query:project_settings");
+                                // list other query types here...
+                            }
+                            String8 expr = str8_list_join(scratch.arena, &exprs, &(String_Join){.sep = str8_lit(", ")});
+                            ti_cmd(TI_CmdKind_CancelAllQueries);
+                            ti_cmd(TI_CmdKind_PushQuery, .expr = expr, .do_implicit_root = 1, .do_lister = 1, .do_big_rows = 1, .view = tab->id, .tab = tab->id);
+                        }
+                    } break;
                     case TI_CmdKind_OpenTab: {
                         {
                             ti_cmd(TI_CmdKind_CancelAllQueries);
@@ -3763,7 +5724,29 @@ internal void ti_frame(void)
                             }
 
                             // command has filesystem query, user wants native filesystem UI -> get the path the run the command
-                            //else if (info->query.slot == TI_RegsSlot_FilePath && ti_setting_bool32_from_name(str8_lit("use_native_file_system_dialog")))
+                            else if (info->query.slot == TI_RegSlot_FilePath && ti_setting_bool32_from_name(str8_lit("use_native_file_system_dialog")))
+                            {
+                                CFG_Node *user = cfg_node_child_from_string(cfg_node_root(), str8_lit("user"));
+                                CFG_Node *current_path = cfg_node_child_from_string(user, str8_lit("current_path"));
+                                String8 current_path_string = current_path->first->string;
+                                if(current_path_string.size == 0)
+                                {
+                                    current_path_string = path_normalized_from_string(scratch.arena, get_current_path(scratch.arena));
+                                }
+                                String8 cmd_title = ti_display_from_code_name(info->string);
+                                if(cmd_title.size == 0)
+                                {
+                                    cmd_title = info->string;
+                                }
+                                String8 file_path = sh_pick_file(scratch.arena, cmd_title, current_path_string);
+                                file_path = path_normalized_from_string(scratch.arena, file_path);
+                                if(file_path.size != 0)
+                                {
+                                    TI_RegsScope(.cmd_name = str8_zero(), .file_path = file_path) ti_push_cmd(cmd->regs->cmd_name, ti_regs());
+                                    //ti_cmd(TI_CmdKind_SetCurrentPath, .file_path = str8_chop_last_slash(file_path));
+                                    sh_message(0, s("TI_CmdKind_SetCurrentPath"), str8_chop_last_slash(file_path));
+                                }
+                            }
 
                             // command has required query -> prep query
                             else
@@ -3811,6 +5794,13 @@ internal void ti_frame(void)
                             cfg_node_child_from_string_or_alloc(ti_state->cfg, panels, str8_lit("selected"));
                         }
                     } break;
+                    case TI_CmdKind_WindowSettings: {
+                        {
+                            String8 expr = push_str8f(scratch.arena, "query:config.$%I64x", ti_regs()->window);
+                            ti_cmd(TI_CmdKind_CancelAllQueries);
+                            ti_cmd(TI_CmdKind_PushQuery, .expr = expr, .do_implicit_root = 1, .do_big_rows = 1, .do_lister = 1);
+                        }
+                    } break;
                     case TI_CmdKind_CloseWindow: {
                         {
                             CFG_Node_Ptr_List all_windows = cfg_node_top_level_list_from_string(scratch.arena, str8_lit("window"));
@@ -3832,6 +5822,73 @@ internal void ti_frame(void)
                             if (ws != &ti_nil_window_state)
                             {
                                 wm_window_set_fullscreen(ws->os, !wm_window_is_fullscreen(ws->os));
+                            }
+                        }
+                    } break;
+                    case TI_CmdKind_BringToFont: {
+                        {
+                            CFG_Node *last_focused_wcfg = cfg_node_from_id(ti_state->last_focused_window);
+                            TI_Window_State *last_focused_ws = ti_window_state_from_cfg(last_focused_wcfg);
+                            if(last_focused_ws == &ti_nil_window_state)
+                            {
+                                last_focused_ws = ti_state->first_window_state;
+                            }
+                            if(last_focused_ws != &ti_nil_window_state)
+                            {
+                                wm_window_set_minimized(last_focused_ws->os, 0);
+                                wm_window_focus(last_focused_ws->os);
+                            }
+                        }
+                    } break;
+                        // confirmations
+                    case TI_CmdKind_PopupAccept: {
+                        {
+                            ti_state->popup_active = 0;
+                            ti_state->popup_key = ui_key_zero();
+                            for(TI_Cmd_Node *n = ti_state->popup_cmds.first; n != 0; n = n->next)
+                            {
+                                ti_push_cmd(n->cmd.name, n->cmd.regs);
+                            }
+                        }
+                    } break;
+                    case TI_CmdKind_PopupCancel: {
+                        {
+                            ti_state->popup_active = 0;
+                            ti_state->popup_key = ui_key_zero();
+                        }
+                    } break;
+                        // keybindings
+                    case TI_CmdKind_ResetToDefaultBindings: {
+                        {
+                            CFG_Node *user = cfg_node_child_from_string(cfg_node_root(), str8_lit("user"));
+                            CFG_Node_Ptr_List all_keybindings = cfg_node_child_list_from_string(scratch.arena, user, str8_lit("keybindings"));
+                            for(CFG_Node_Ptr_Node *n = all_keybindings.first; n != 0; n = n->next)
+                            {
+                                cfg_node_release(ti_state->cfg, n->v);
+                            }
+                            CFG_Node *keybindings = cfg_node_new(ti_state->cfg, user, str8_lit("keybindings"));
+                            for EachElement(idx, ti_default_binding_table)
+                            {
+                                String8 name = ti_default_binding_table[idx].string;
+                                CFG_Binding binding = ti_default_binding_table[idx].binding;
+                                CFG_Node *binding_root = cfg_node_new(ti_state->cfg, keybindings, str8_zero());
+                                cfg_node_new(ti_state->cfg, binding_root, name);
+                                cfg_node_new(ti_state->cfg, binding_root, wm_key_cfg_name_table[binding.key]);
+                                if(binding.modifiers & WM_Modifier_Ctrl)  {cfg_node_newf(ti_state->cfg, binding_root, "ctrl");}
+                                if(binding.modifiers & WM_Modifier_Shift) {cfg_node_newf(ti_state->cfg, binding_root, "shift");}
+                                if(binding.modifiers & WM_Modifier_Alt)   {cfg_node_newf(ti_state->cfg, binding_root, "alt");}
+                            }
+                        }
+                    } break;
+                        // config path saving/loading/applying
+                    case TI_CmdKind_OpenRecentProject: {
+                        {
+                            CFG_Node *cfg = cfg_node_from_id(ti_regs()->cfg);
+                            CFG_Node *path = cfg_node_child_from_string(cfg, str8_lit("path"));
+                            if(str8_match(cfg->string, str8_lit("recent_project"), 0) &&
+                               path->first->string.size != 0)
+                            {
+                                ti_cmd(TI_CmdKind_OpenProject, .file_path = path->first->string);
                             }
                         }
                     } break;
@@ -3884,6 +5941,7 @@ internal void ti_frame(void)
                                 file_cfg_list = cfg_node_ptr_list_from_string(scratch.arena, ti_state->cfg, ti_state->cfg_schema_table, str8_chop_last_slash(file_path), file_data);
                             }
 
+                            // store path
                             if (file_is_okay)
                             {
                                 switch(kind)
@@ -3933,24 +5991,56 @@ internal void ti_frame(void)
                             }
                             
                             // if config did not define any keybindings for the user, then we need to build a sensible default
-                            /*
-                              if (file_is_okay && kind == TI_CmdKind_OpenUser)
-                              {
-                              CFG_Node_Ptr_List all_keybindings = cfg_node_child_list_from_string(scratch.arena, file_root, str8_lit("keybindings"));
-                              if (all_keybindings.count == 0)
-                              {
-                              ti_cmd(TI_CmdKind_ResetToDefaultBindings);
-                              }
-                              }
-                            */
+                            if (file_is_okay && kind == TI_CmdKind_OpenUser)
+                            {
+                                CFG_Node_Ptr_List all_keybindings = cfg_node_child_list_from_string(scratch.arena, file_root, str8_lit("keybindings"));
+                                if (all_keybindings.count == 0)
+                                {
+                                    ti_cmd(TI_CmdKind_ResetToDefaultBindings);
+                                }
+                            }
                             
                             // record last-opened user in config directory
                             
                             // record recently-opened projects in the user
                             
                             // eliminate all project-filtered tab focuses
+                            if(file_is_okay && kind == TI_CmdKind_OpenProject)
+                            {
+                                CFG_Node_Ptr_List windows = cfg_node_top_level_list_from_string(scratch.arena, str8_lit("window"));
+                                for(CFG_Node_Ptr_Node *n = windows.first; n != 0; n = n->next)
+                                {
+                                    CFG_Panel_Tree panels = cfg_panel_tree_from_cfg(scratch.arena, n->v);
+                                    for(CFG_Panel_Node *panel = panels.root; panel != &cfg_nil_panel_node; panel = cfg_panel_node_rec__depth_first_pre(panels.root, panel).next)
+                                    {
+                                        if(ti_cfg_is_project_filtered(panel->selected_tab))
+                                        {
+                                            CFG_Node *fallback_tab = &cfg_nil_node;
+                                            for(CFG_Node_Ptr_Node *tab_n = panel->tabs.first; tab_n != 0; tab_n = tab_n->next)
+                                            {
+                                                CFG_Node *tab = tab_n->v;
+                                                if(!ti_cfg_is_project_filtered(tab))
+                                                {
+                                                    fallback_tab = tab;
+                                                    break;
+                                                }
+                                            }
+                                            ti_cmd(TI_CmdKind_FocusTab, .panel = panel->cfg->id, .tab = fallback_tab->id);
+                                        }
+                                    }
+                                }
+                            }
                             
                             // if just opened project -> set new current path
+                            if(kind == TI_CmdKind_OpenProject)
+                            {
+                                String8 new_current_dir = str8_chop_last_slash(ti_regs()->file_path);
+                                if(new_current_dir.size != 0)
+                                {
+                                    //ti_cmd(TI_CmdKind_SetCurrentPath, .file_path = new_current_dir);
+                                    sh_message(0, s("TI_CmdKind_SetCurrentPath"), new_current_dir);
+                                }
+                            }
                             
                             // if just oepned user -> load last project, is enabled
                         }
@@ -3965,6 +6055,47 @@ internal void ti_frame(void)
                             ti_cmd(TI_CmdKind_OpenProject, .file_path = str8_zero());
                         }
                     } break;
+                    case TI_CmdKind_SaveUser:
+                    case TI_CmdKind_SaveProject: {
+                        {
+                            String8 new_path = ti_regs()->file_path;
+                            bool32 file_will_be_overwritten = (properties_from_file_path(new_path).created != 0);
+                            UI_Key key = ui_key_from_string(ui_key_zero(), str8_lit("save_config_overwrite_confirm"));
+                            if(file_will_be_overwritten && !ti_regs()->force_confirm && !ui_key_match(ti_state->popup_key, key))
+                            {
+                                ti_state->popup_key = key;
+                                ti_state->popup_active = 1;
+                                arena_clear(ti_state->popup_arena);
+                                MemoryZeroStruct(&ti_state->popup_cmds);
+                                ti_state->popup_title = push_str8f(ti_state->popup_arena, "Are you sure you want to save to this path?");
+                                ti_state->popup_desc  = push_str8f(ti_state->popup_arena, "The existing file at '%S' will be overwritten.", new_path);
+                                TI_Regs *regs = ti_regs_copy(ti_frame_arena(), ti_regs());
+                                regs->force_confirm = 1;
+                                ti_cmd_list_push_new(ti_state->popup_arena, &ti_state->popup_cmds, ti_cmd_kind_info_table[kind].string, regs);
+                            }
+                            else switch(kind)
+                            {
+                                default:{}break;
+                                case TI_CmdKind_SaveUser: {
+                                    {
+                                        arena_clear(ti_state->user_path_arena);
+                                        ti_state->user_path = push_str8_copy(ti_state->user_path_arena, new_path);
+                                        //ti_cmd(TI_CmdKind_WriteUserData);
+                                        //ti_cmd(TI_CmdKind_RecordUserAsLastOpened);
+                                    }
+                                } break;
+                                case TI_CmdKind_SaveProject: {
+                                    {
+                                        arena_clear(ti_state->project_path_arena);
+                                        ti_state->project_path = push_str8_copy(ti_state->project_path_arena, new_path);
+                                        //ti_cmd(TI_CmdKind_WriteProjectData);
+                                        //ti_cmd(TI_CmdKind_RecordProjectInUser);
+                                    }
+                                } break;
+                            }
+                        }
+                    } break;
+                        // font sizes
                     case TI_CmdKind_IncWindowFontSize: cfg = cfg_node_from_id(ti_regs()->window); ti_regs()->view = 0; ti_regs()->tab = 0; goto inc_font_size;
                     case TI_CmdKind_IncViewFontSize:   cfg = cfg_node_from_id(ti_regs()->view); goto inc_font_size;
                     inc_font_size:;
@@ -4002,6 +6133,7 @@ internal void ti_frame(void)
                     split:;
                     if (split_dir != Dir2_Invalid)
                     {
+                        // unpack
                         Axis2 split_axis = axis2_from_dir2(split_dir);
                         Side split_side = side_from_dir2(split_dir);
                         if (split_panel == &cfg_nil_node)
@@ -4162,6 +6294,30 @@ internal void ti_frame(void)
                             ti_cmd(TI_CmdKind_TabBarBottom, .panel = new_panel_cfg->id);
                         }
                     } break;
+                    // panel rotation
+                    case TI_CmdKind_RotatePanelColumns: {
+                        {
+                            CFG_Node *panel_cfg = cfg_node_from_id(ti_regs()->panel);
+                            CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, panel_cfg);
+                            CFG_Panel_Node *panel = cfg_panel_node_from_tree_cfg(panel_tree.root, panel_cfg);
+                            CFG_Panel_Node *parent = &cfg_nil_panel_node;
+                            for(CFG_Panel_Node *p = panel->parent; p != &cfg_nil_panel_node; p = p->parent)
+                            {
+                                if(p->split_axis == Axis2_X)
+                                {
+                                    parent = p;
+                                    break;
+                                }
+                            }
+                            if(parent != &cfg_nil_panel_node && parent->child_count > 1)
+                            {
+                                CFG_Node *rotated = parent->first->cfg;
+                                cfg_node_unhook(ti_state->cfg, parent->cfg, parent->first->cfg);
+                                cfg_node_insert_child(ti_state->cfg, parent->cfg, parent->last->cfg, rotated);
+                            }
+                        }
+                    } break;
+                        // panel focusing
                     case TI_CmdKind_NextPanel: panel_sib_off = OffsetOf(CFG_Panel_Node, next); panel_child_off = OffsetOf(CFG_Panel_Node, first); goto cycle;
                     case TI_CmdKind_PrevPanel: panel_sib_off = OffsetOf(CFG_Panel_Node, prev); panel_child_off = OffsetOf(CFG_Panel_Node, last); goto cycle;
                     cycle:;
@@ -4663,8 +6819,8 @@ internal void ti_frame(void)
                             CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                             CFG_Node *panels = cfg_node_child_from_string(window, str8_lit("panels"));
                             CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
-
-                            // defined all of the "fixed" tabs we care about
+                            
+                            //- rjf: define all of the "fixed" tabs we care about
 #define X(name) CFG_Node *name = &cfg_nil_node;
 #define Y(name, rule, expr) CFG_Node *name = &cfg_nil_node;
 #define Z(name) CFG_Node *name = &cfg_nil_node;
@@ -4672,20 +6828,122 @@ internal void ti_frame(void)
 #undef X
 #undef Y
 #undef Z
-                            // find all the fixed tabs, and all text viewers
+            
+                            //- rjf: find all the fixed tabs, and all text viewers
                             bool32 any_fixed_tabs_found = 0;
                             CFG_Node_Ptr_List texts = {0};
-                            for (CFG_Panel_Node *panel = panel_tree.root;
-                                 panel != &cfg_nil_panel_node;
-                                 panel = cfg_panel_node_rec__depth_first_pre(panel_tree.root, panel).next)
+                            for(CFG_Panel_Node *panel = panel_tree.root;
+                                panel != &cfg_nil_panel_node;
+                                panel = cfg_panel_node_rec__depth_first_pre(panel_tree.root, panel).next)
                             {
-                                for (CFG_Node_Ptr_Node *n = panel->tabs.first; n != 0; n = n->next)
+                                for(CFG_Node_Ptr_Node *n = panel->tabs.first; n != 0; n = n->next)
                                 {
                                     CFG_Node *tab = n->v;
-                                    bool32 need_unhook = true;
-                                    if (0){}
-                                    // @here
+                                    bool32 need_unhook = 1;
+                                    if(0){}
+#define X(name) else if(str8_match(tab->string, str8_lit("watch"), 0) && str8_match(ti_expr_from_cfg(tab), str8_lit("query:" #name), 0)) {name = tab;}
+#define Y(name, rule, expr) else if(str8_match(tab->string, str8_lit(#rule), 0) && str8_match(ti_expr_from_cfg(tab), str8_lit(expr), 0)) {name = tab;}
+#define Z(name) else if(str8_match(tab->string, str8_lit(#name), 0)) {name = tab;}
+                                    TI_FixedTabXList
+#undef X
+#undef Y
+#undef Z
+                                    else if(str8_match(tab->string, str8_lit("text"), 0)) {cfg_node_ptr_list_push(scratch.arena, &texts, tab);}
+                                    else
+                                    {
+                                        need_unhook = 0;
+                                    }
+                                    if(need_unhook)
+                                    {
+                                        cfg_node_equip_string(ti_state->cfg, tab, str8_lit("geo3d"));
+                                        cfg_node_release(ti_state->cfg, cfg_node_child_from_string(tab, str8_lit("expression")));
+                                        cfg_node_release(ti_state->cfg, cfg_node_child_from_string(tab, str8_lit("project")));
+                                        cfg_node_unhook(ti_state->cfg, panel->cfg, tab);
+                                        any_fixed_tabs_found = 1;
+                                    }
                                 }
+                            }
+            
+                            //- rjf: release the old panel tree
+                            cfg_node_release(ti_state->cfg, panels);
+                            
+                            //- rjf: allocate any missing tabs
+#define X(name) if(name == &cfg_nil_node) {name = cfg_node_alloc(ti_state->cfg); cfg_node_equip_string(ti_state->cfg, name, str8_lit("geo3d"));}
+#define Y(name, rule, expr) if(name == &cfg_nil_node) {name = cfg_node_alloc(ti_state->cfg); cfg_node_equip_string(ti_state->cfg, name, str8_lit("geo3d"));}
+#define Z(name) if(name == &cfg_nil_node && !any_fixed_tabs_found) {name = cfg_node_alloc(ti_state->cfg); cfg_node_equip_string(ti_state->cfg, name, str8_lit("geo3d"));}
+                            TI_FixedTabXList
+#undef X
+#undef Y
+#undef Z
+            
+                            //- rjf: eliminate all tab selections
+#define X(name) if(name != &cfg_nil_node) {cfg_node_release(ti_state->cfg, cfg_node_child_from_string(name, str8_lit("selected")));}
+#define Y(name, rule, expr) if(name != &cfg_nil_node) {cfg_node_release(ti_state->cfg, cfg_node_child_from_string(name, str8_lit("selected")));}
+#define Z(name) if(name != &cfg_nil_node) {cfg_node_release(ti_state->cfg, cfg_node_child_from_string(name, str8_lit("selected")));}
+                            TI_FixedTabXList
+#undef X
+#undef Y
+#undef Z
+                            for(CFG_Node_Ptr_Node *n = texts.first; n != 0; n = n->next)
+                            {
+                                cfg_node_equip_string(ti_state->cfg, n->v, str8_lit("geo3d"));
+                                cfg_node_release(ti_state->cfg, cfg_node_child_from_string(n->v, str8_lit("selected")));
+                            }
+                            
+                            //- rjf: create the panel root
+                            panels = cfg_node_new(ti_state->cfg, window, str8_lit("panels"));
+                            
+                            //- rjf: rebuild the new panel tree
+                            switch(kind)
+                            {
+                                default:{}break;
+                                    
+                                    //- rjf: (default layout)
+                                case TI_CmdKind_ResetToDefaultPanels:
+                                    {
+                                        // rjf: root split
+                                        cfg_node_child_from_string_or_alloc(ti_state->cfg, window, s("split_x"));
+                                        CFG_Node *root_0 = cfg_node_new(ti_state->cfg, panels, s("0.70"));
+                                        CFG_Node *root_1 = cfg_node_new(ti_state->cfg, panels, s("0.30"));
+                                        
+                                        // rjf: root 0 gets 'getting started' and source
+                                        if(getting_started != &cfg_nil_node)
+                                        {
+                                            cfg_node_insert_child(ti_state->cfg, root_0, root_0->last, getting_started);
+                                            cfg_node_new(ti_state->cfg, getting_started, s("selected"));
+                                        }
+                                        else if(texts.first)
+                                        {
+                                            cfg_node_new(ti_state->cfg, texts.first->v, s("selected"));
+                                        }
+                                        for(CFG_Node_Ptr_Node *n = texts.first; n != 0; n = n->next)
+                                        {
+                                            cfg_node_insert_child(ti_state->cfg, root_0, root_0->last, n->v);
+                                        }
+                                        cfg_node_new(ti_state->cfg, root_0, s("selected"));
+                                        
+                                        // rjf: root 1 split
+                                        CFG_Node *root_1_0 = cfg_node_new(ti_state->cfg, root_1, s("0.25"));
+                                        CFG_Node *root_1_1 = cfg_node_new(ti_state->cfg, root_1, s("0.50"));
+                                        CFG_Node *root_1_2 = cfg_node_new(ti_state->cfg, root_1, s("0.25"));
+                                        cfg_node_insert_child(ti_state->cfg, root_1_1, root_1_1->last, output);
+                                    }break;
+                            }
+                            
+                            //- rjf: release any unused views from the previous layout
+#define X(name) if(name->parent == &cfg_nil_node) {cfg_node_release(ti_state->cfg, name);}
+#define Y(name, rule, expr) if(name->parent == &cfg_nil_node) {cfg_node_release(ti_state->cfg, name);}
+#define Z(name) if(name->parent == &cfg_nil_node) {cfg_node_release(ti_state->cfg, name);}
+                            TI_FixedTabXList
+#undef X
+#undef Y
+#undef Z
+            
+                            //- rjf: remember that we reset the panel layouts
+                            TI_Window_State *ws = ti_window_state_from_cfg(window);
+                            if(ws != &ti_nil_window_state)
+                            {
+                                ws->window_layout_reset = 1;
                             }
                         }
                     } break;
@@ -4749,12 +7007,12 @@ internal void ti_frame(void)
                                 if (is_floating)
                                 {
 #define Opt(cnd, key) if(!(cnd)) { cfg_node_release(ti_state->cfg, cfg_node_child_from_string(view, s(key))); } else { cfg_node_child_from_string_or_alloc(ti_state->cfg, view, s(key)); }
-                Opt(!ti_regs()->do_implicit_root, "explicit_root");
-                Opt(ti_regs()->do_lister, "lister");
-                Opt(ti_regs()->small_size, "small");
-                Opt(ti_regs()->activate_with_single_click, "activate_with_single_click");
-                Opt(ti_regs()->prefer_new_tab, "prefer_new_tab");
-                Opt(ti_regs()->create_new, "create_new");
+                                    Opt(!ti_regs()->do_implicit_root, "explicit_root");
+                                    Opt(ti_regs()->do_lister, "lister");
+                                    Opt(ti_regs()->small_size, "small");
+                                    Opt(ti_regs()->activate_with_single_click, "activate_with_single_click");
+                                    Opt(ti_regs()->prefer_new_tab, "prefer_new_tab");
+                                    Opt(ti_regs()->create_new, "create_new");
 #undef Opt
                                 }
 
@@ -4769,7 +7027,7 @@ internal void ti_frame(void)
                                         String8 current_path_string = current_path->first->string;
                                         if (current_path_string.size == 0)
                                         {
-                                            current_path_string = path_normalised_from_string(scratch.arena, get_current_path(scratch.arena));
+                                            current_path_string = path_normalized_from_string(scratch.arena, get_current_path(scratch.arena));
                                         }
                                         initial_input = current_path_string;
                                         initial_input = push_str8f(scratch.arena, "%S/", initial_input);
@@ -4888,6 +7146,14 @@ internal void ti_frame(void)
                             MemoryCopy(vs->query_buffer, ti_regs()->string.str, vs->query_string_size);
                         }
                     } break;
+                        // developer commands
+                    case TI_CmdKind_ToggleDevMenu: {
+                        {
+                            CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                            TI_Window_State *ws = ti_window_state_from_cfg(window);
+                            ws->dev_menu_is_open ^= 1;
+                        }
+                    } break;
                     case TI_CmdKind_WMEvent: {
                         {
                             WM_Event *wm_event = ti_regs()->wm_event;
@@ -4920,6 +7186,446 @@ internal void ti_frame(void)
                             }
                         }
                     } break;
+                        // meta controls
+                    case TI_CmdKind_Edit:
+                    case TI_CmdKind_Accept:
+                    case TI_CmdKind_Cancel:
+                    case TI_CmdKind_FocusMenu:
+                    case TI_CmdKind_Lock:
+                    case TI_CmdKind_Unlock:
+                    case TI_CmdKind_ToggleLock: {
+                        {
+                            CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                            TI_Window_State *ws = ti_window_state_from_cfg(window);
+                            UI_Event evt = zero_struct;
+                            evt.kind     = UI_EventKind_Press;
+                            switch (kind)
+                            {
+                                default:{}break;
+                                case TI_CmdKind_Edit:      { evt.slot = UI_EventActionSlot_Edit; }break;
+                                case TI_CmdKind_Accept:    { evt.slot = UI_EventActionSlot_Accept; }break;
+                                case TI_CmdKind_Cancel:    { evt.slot = UI_EventActionSlot_Cancel; }break;
+                                case TI_CmdKind_FocusMenu: { evt.slot = UI_EventActionSlot_FocusMenu; }break;
+                                case TI_CmdKind_Lock:      { evt.slot = UI_EventActionSlot_Lock; }break;
+                                case TI_CmdKind_Unlock:    { evt.slot = UI_EventActionSlot_Unlock; }break;
+                                case TI_CmdKind_ToggleLock:{ evt.slot = UI_EventActionSlot_ToggleLock; }break;
+                            }
+                            ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                        }
+                    } break;
+                    //- rjf: directional movement & text controls
+                    //
+                    // NOTE(rjf): These all get funneled into a separate intermediate that
+                    // can be used by the UI build phase for navigation and stuff, as well
+                    // as builder codepaths that want to use these controls to modify text.
+                    //
+                    case TI_CmdKind_MoveLeft: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_PickSelectSide|UI_EventFlag_ZeroDeltaOnSelect|UI_EventFlag_ExplicitDirectional;
+                        evt.delta_unit = UI_EventDeltaUnit_Char;
+                        evt.delta_2s32 = v2s32(-1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveRight: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_PickSelectSide|UI_EventFlag_ZeroDeltaOnSelect|UI_EventFlag_ExplicitDirectional;
+                        evt.delta_unit = UI_EventDeltaUnit_Char;
+                        evt.delta_2s32 = v2s32(+1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveUp: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_ExplicitDirectional|UI_EventFlag_Secondary;
+                        evt.delta_unit = UI_EventDeltaUnit_Char;
+                        evt.delta_2s32 = v2s32(+0, -1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveDown: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_ExplicitDirectional|UI_EventFlag_Secondary;
+                        evt.delta_unit = UI_EventDeltaUnit_Char;
+                        evt.delta_2s32 = v2s32(+0, +1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveLeftSelect: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_KeepMark|UI_EventFlag_ExplicitDirectional;
+                        evt.delta_unit = UI_EventDeltaUnit_Char;
+                        evt.delta_2s32 = v2s32(-1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveRightSelect: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_KeepMark|UI_EventFlag_ExplicitDirectional;
+                        evt.delta_unit = UI_EventDeltaUnit_Char;
+                        evt.delta_2s32 = v2s32(+1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveUpSelect: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_KeepMark|UI_EventFlag_ExplicitDirectional|UI_EventFlag_Secondary;
+                        evt.delta_unit = UI_EventDeltaUnit_Char;
+                        evt.delta_2s32 = v2s32(+0, -1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveDownSelect: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_KeepMark|UI_EventFlag_ExplicitDirectional|UI_EventFlag_Secondary;
+                        evt.delta_unit = UI_EventDeltaUnit_Char;
+                        evt.delta_2s32 = v2s32(+0, +1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveLeftChunk: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_ExplicitDirectional;
+                        evt.delta_unit = UI_EventDeltaUnit_Word;
+                        evt.delta_2s32 = v2s32(-1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveRightChunk: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_ExplicitDirectional;
+                        evt.delta_unit = UI_EventDeltaUnit_Word;
+                        evt.delta_2s32 = v2s32(+1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveUpChunk: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_ExplicitDirectional|UI_EventFlag_Secondary;
+                        evt.delta_unit = UI_EventDeltaUnit_Word;
+                        evt.delta_2s32 = v2s32(+0, -1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveDownChunk: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_ExplicitDirectional|UI_EventFlag_Secondary;
+                        evt.delta_unit = UI_EventDeltaUnit_Word;
+                        evt.delta_2s32 = v2s32(+0, +1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveUpPage: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_Secondary;
+                        evt.delta_unit = UI_EventDeltaUnit_Page;
+                        evt.delta_2s32 = v2s32(+0, -1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveDownPage: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_Secondary;
+                        evt.delta_unit = UI_EventDeltaUnit_Page;
+                        evt.delta_2s32 = v2s32(+0, +1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveUpWhole: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_Secondary;
+                        evt.delta_unit = UI_EventDeltaUnit_Whole;
+                        evt.delta_2s32 = v2s32(+0, -1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveDownWhole: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_Secondary;
+                        evt.delta_unit = UI_EventDeltaUnit_Whole;
+                        evt.delta_2s32 = v2s32(+0, +1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveLeftChunkSelect: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_KeepMark|UI_EventFlag_ExplicitDirectional;
+                        evt.delta_unit = UI_EventDeltaUnit_Word;
+                        evt.delta_2s32 = v2s32(-1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveRightChunkSelect: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_KeepMark|UI_EventFlag_ExplicitDirectional;
+                        evt.delta_unit = UI_EventDeltaUnit_Word;
+                        evt.delta_2s32 = v2s32(+1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveUpChunkSelect: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_KeepMark|UI_EventFlag_ExplicitDirectional;
+                        evt.delta_unit = UI_EventDeltaUnit_Word;
+                        evt.delta_2s32 = v2s32(+0, -1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveDownChunkSelect: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_KeepMark|UI_EventFlag_ExplicitDirectional;
+                        evt.delta_unit = UI_EventDeltaUnit_Word;
+                        evt.delta_2s32 = v2s32(+0, +1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveUpPageSelect: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_KeepMark;
+                        evt.delta_unit = UI_EventDeltaUnit_Page;
+                        evt.delta_2s32 = v2s32(+0, -1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveDownPageSelect: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_KeepMark;
+                        evt.delta_unit = UI_EventDeltaUnit_Page;
+                        evt.delta_2s32 = v2s32(+0, +1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveUpWholeSelect: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_KeepMark;
+                        evt.delta_unit = UI_EventDeltaUnit_Whole;
+                        evt.delta_2s32 = v2s32(+0, -1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveDownWholeSelect: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_KeepMark;
+                        evt.delta_unit = UI_EventDeltaUnit_Whole;
+                        evt.delta_2s32 = v2s32(+0, +1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveUpReorder: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_Reorder;
+                        evt.delta_unit = UI_EventDeltaUnit_Char;
+                        evt.delta_2s32 = v2s32(+0, -1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveDownReorder: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_Reorder;
+                        evt.delta_unit = UI_EventDeltaUnit_Char;
+                        evt.delta_2s32 = v2s32(+0, +1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveHome: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.delta_unit = UI_EventDeltaUnit_Line;
+                        evt.delta_2s32 = v2s32(-1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveEnd: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.delta_unit = UI_EventDeltaUnit_Line;
+                        evt.delta_2s32 = v2s32(+1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveHomeSelect: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_KeepMark;
+                        evt.delta_unit = UI_EventDeltaUnit_Line;
+                        evt.delta_2s32 = v2s32(-1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MoveEndSelect: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_KeepMark;
+                        evt.delta_unit = UI_EventDeltaUnit_Line;
+                        evt.delta_2s32 = v2s32(+1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_SelectAll: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt1 = zero_struct;
+                        evt1.kind       = UI_EventKind_Navigate;
+                        evt1.delta_unit = UI_EventDeltaUnit_Whole;
+                        evt1.delta_2s32 = v2s32(-1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt1);
+                        UI_Event evt2 = zero_struct;
+                        evt2.kind       = UI_EventKind_Navigate;
+                        evt2.flags      = UI_EventFlag_KeepMark;
+                        evt2.delta_unit = UI_EventDeltaUnit_Whole;
+                        evt2.delta_2s32 = v2s32(+1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt2);
+                    }break;
+                    case TI_CmdKind_DeleteSingle: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Edit;
+                        evt.flags      = UI_EventFlag_Delete|UI_EventFlag_ZeroDeltaOnSelect;
+                        evt.delta_unit = UI_EventDeltaUnit_Char;
+                        evt.delta_2s32 = v2s32(+1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_DeleteChunk: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Edit;
+                        evt.flags      = UI_EventFlag_Delete|UI_EventFlag_ZeroDeltaOnSelect;
+                        evt.delta_unit = UI_EventDeltaUnit_Word;
+                        evt.delta_2s32 = v2s32(+1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_BackspaceSingle: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Edit;
+                        evt.flags      = UI_EventFlag_Delete|UI_EventFlag_ZeroDeltaOnSelect;
+                        evt.delta_unit = UI_EventDeltaUnit_Char;
+                        evt.delta_2s32 = v2s32(-1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_BackspaceChunk: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Edit;
+                        evt.flags      = UI_EventFlag_Delete|UI_EventFlag_ZeroDeltaOnSelect;
+                        evt.delta_unit = UI_EventDeltaUnit_Word;
+                        evt.delta_2s32 = v2s32(-1, +0);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_Copy: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind  = UI_EventKind_Edit;
+                        evt.flags = UI_EventFlag_Copy|UI_EventFlag_KeepMark;
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_Cut: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind  = UI_EventKind_Edit;
+                        evt.flags = UI_EventFlag_Copy|UI_EventFlag_Delete;
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_Paste: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind   = UI_EventKind_Text;
+                        evt.flags  = UI_EventFlag_Paste;
+                        evt.string = wm_get_clipboard_text(scratch.arena);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_InsertText: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind   = UI_EventKind_Text;
+                        evt.string = ti_regs()->string;
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                        //- rjf: directionless navigation
+                    case TI_CmdKind_MoveNext: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_Secondary;
+                        evt.delta_unit = UI_EventDeltaUnit_Char;
+                        evt.delta_2s32 = v2s32(+0, +1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
+                    case TI_CmdKind_MovePrev: {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind       = UI_EventKind_Navigate;
+                        evt.flags      = UI_EventFlag_Secondary;
+                        evt.delta_unit = UI_EventDeltaUnit_Char;
+                        evt.delta_2s32 = v2s32(+0, -1);
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                    }break;
                 }
             }
         }
@@ -4948,7 +7654,6 @@ internal void ti_frame(void)
     //
     ProfScope("get fonts from the config")
     {
-        /*
         bool32 use_alternative_font_for_ui = ti_setting_bool32_from_name(s("use_alternative_font_for_ui"));
         if (use_alternative_font_for_ui)
         {
@@ -4975,9 +7680,6 @@ internal void ti_frame(void)
         {
             ti_state->font_slot_table[TI_FontSlot_Code] = fnt_tag_from_static_data_string(&ti_default_code_font_bytes);
         }
-        */
-        ti_state->font_slot_table[TI_FontSlot_Main]  = fnt_tag_from_static_data_string(&ti_default_main_font_bytes);
-        ti_state->font_slot_table[TI_FontSlot_Code]  = fnt_tag_from_static_data_string(&ti_default_code_font_bytes);
         ti_state->font_slot_table[TI_FontSlot_Icons] = fnt_tag_from_static_data_string(&ti_icon_font_bytes);
     }
 
@@ -5046,15 +7748,70 @@ internal void ti_frame(void)
         }
     }
 
+    //////////////////////
+    // compute all ambiguous paths from view titles
+    //
+    ProfScope("compute all ambiguous paths from view titles")
+    {
+        Temp scratch = scratch_begin(0, 0);
+        ti_state->ambiguous_path_slots_count = 512;
+        ti_state->ambiguous_path_slots = push_array(ti_frame_arena(), TI_Ambiguous_Path_Node *, ti_state->ambiguous_path_slots_count);
+        for(TI_Window_State *ws = ti_state->first_window_state; ws != &ti_nil_window_state; ws = ws->order_next)
+        {
+            CFG_Node *window = cfg_node_from_id(ws->cfg_id);
+            CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
+            for(CFG_Panel_Node *p = panel_tree.root; p != &cfg_nil_panel_node; p = cfg_panel_node_rec__depth_first_pre(panel_tree.root, p).next)
+            {
+                for(CFG_Node_Ptr_Node *tab_n = p->tabs.first; tab_n != 0; tab_n = tab_n->next)
+                {
+                    CFG_Node *tab = tab_n->v;
+                    if(ti_cfg_is_project_filtered(tab))
+                    {
+                        continue;
+                    }
+                    TI_RegsScope(.tab = tab->id, .view = tab->id)
+                    {
+                        String8 eval_string = ti_expr_from_cfg(tab);
+                        String8 file_path = ti_file_path_from_eval_string(scratch.arena, eval_string);
+                        if(file_path.size != 0)
+                        {
+                            String8 name = str8_skip_last_slash(file_path);
+                            u64 hash = u64_hash_from_str8__case_insensitive(name);
+                            u64 slot_idx = hash%ti_state->ambiguous_path_slots_count;
+                            TI_Ambiguous_Path_Node *node = 0;
+                            for(TI_Ambiguous_Path_Node *n = ti_state->ambiguous_path_slots[slot_idx];
+                                n != 0;
+                                n = n->next)
+                            {
+                                if(str8_match(n->name, name, StringMatchFlag_CaseInsensitive))
+                                {
+                                    node = n;
+                                    break;
+                                }
+                            }
+                            if(node == 0)
+                            {
+                                node = push_array(ti_frame_arena(), TI_Ambiguous_Path_Node, 1);
+                                SLLStackPush(ti_state->ambiguous_path_slots[slot_idx], node);
+                                node->name = push_str8_copy(ti_frame_arena(), name);
+                            }
+                            str8_list_push(ti_frame_arena(), &node->paths, push_str8_copy(ti_frame_arena(), file_path));
+                        }
+                    }
+                }
+            }
+        }
+        scratch_end(scratch);
+    }
+
     ////////////////////////////////////
     // compute amimation rates, given config
     //
     {
-        f32 master_animations_f    = 1.f;
-        f32 scrolling_animations_f = 1.f;
-        f32 tooltip_animations_f   = 1.f;
-        f32 menu_animations_f      = 1.f;
-
+        f32 master_animations_f    = (f32)!!ti_setting_bool32_from_name(str8_lit("animations"));
+        f32 scrolling_animations_f = (f32)!!ti_setting_bool32_from_name(str8_lit("scrolling_animations"));
+        f32 tooltip_animations_f   = (f32)!!ti_setting_bool32_from_name(str8_lit("tooltip_animations"));
+        f32 menu_animations_f      = (f32)!!ti_setting_bool32_from_name(str8_lit("menu_animations"));
         ti_state->catchall_animation_rate     = 1 - master_animations_f*pow_f32(2, (-60.f * ti_state->frame_dt));
         ti_state->menu_animation_rate         = 1 - master_animations_f*menu_animations_f*pow_f32(2, (-70.f * ti_state->frame_dt));
         ti_state->menu_animation_rate__slow   = 1 - master_animations_f*menu_animations_f*pow_f32(2, (-50.f * ti_state->frame_dt));
@@ -5062,6 +7819,19 @@ internal void ti_frame(void)
         ti_state->rich_hover_animation_rate   = 1 - master_animations_f*menu_animations_f*pow_f32(2, (-50.f * ti_state->frame_dt));
         ti_state->scrolling_animation_rate    = 1 - master_animations_f*scrolling_animations_f*pow_f32(2, (-60.f * ti_state->frame_dt));
         ti_state->tooltip_animation_rate      = 1 - master_animations_f*tooltip_animations_f*pow_f32(2, (-60.f * ti_state->frame_dt));
+    }
+
+    ///////////////
+    // animate confirmation
+    //
+    {
+        f32 rate = ti_setting_bool32_from_name(str8_lit("menu_animations")) ? 1 - pow_f32(2, (-30.f * ti_state->frame_dt)) : 1.f;
+        bool32 popup_open = ti_state->popup_active;
+        ti_state->popup_t += rate * ((f32)!!popup_open-ti_state->popup_t);
+        if(abs_f32(ti_state->popup_t - (f32)!!popup_open) > 0.005f)
+        {
+            ti_request_frame();
+        }
     }
 
     ///////////////////////////////
@@ -5105,6 +7875,10 @@ internal void ti_frame(void)
                     ui_state_release(ws->ui);
                     r_window_unequip(ws->os, ws->r);
                     wm_window_close(ws->os);
+                    arena_release(ws->drop_completion_arena);
+                    arena_release(ws->query_arena);
+                    //arena_release(ws->hover_eval_arena);
+                    arena_release(ws->autocomp_arena);
                     arena_release(ws->arena);
                     DLLRemove_NPZ(&ti_nil_window_state, ti_state->first_window_state, ti_state->last_window_state, ws, order_next, order_prev);
                     DLLRemove_NP(ti_state->window_state_slots[slot_idx].first, ti_state->window_state_slots[slot_idx].last, ws, hash_next, hash_prev);
@@ -5120,6 +7894,14 @@ internal void ti_frame(void)
     if (DEV_simulate_lag)
     {
         sleep_ms(300);
+    }
+
+    ////////////////////
+    // end grag/drop if needed
+    //
+    if(ti_state->drag_drop_state == TI_DragDropState_Dropping)
+    {
+        ti_state->drag_drop_state = TI_DragDropState_Null;
     }
 
     //////////////////////////////

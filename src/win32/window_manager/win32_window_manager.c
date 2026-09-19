@@ -578,7 +578,7 @@ w32_wm_wnd_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
           u8 *name_ptr = push_array(w32_wm_event_arena, u8, name_size);
           DragQueryFile(drop, idx, (char *)name_ptr, name_size);
           String8 path_string = str8(name_ptr, name_size - 1);
-          String8 path_string__normalized = path_normalised_from_string(w32_wm_event_arena, path_string);
+          String8 path_string__normalized = path_normalized_from_string(w32_wm_event_arena, path_string);
           str8_list_push(w32_wm_event_arena, &event->strings, path_string__normalized);
         }
         DragFinish(drop);

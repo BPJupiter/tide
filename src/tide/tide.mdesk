@@ -5,12 +5,13 @@
 // Embedded Data
 
 @embed_file ti_icon_font_bytes:              "../data/icons.ttf"
-@embed_file ti_default_main_font_bytes:      "../data/Inconsolata-Regular.ttf"
+@embed_file ti_default_main_font_bytes:      "../data/segoeui.ttf"
 @embed_file ti_default_code_font_bytes:      "../data/JetBrainsMono-Regular.ttf"
 @embed_file ti_icon_file_bytes:              "../data/logo.ico"
 //@embed_file ti_cable_geo_json_bytes:         "../data/telegeography/cable-geo.json"
 //@embed_file ti_landing_point_geo_json_bytes: "../data/telegeography/landing-point-geo.json"
 @embed_file ti_test_fish_texture_bytes:      "../data/test/Fish.png"
+@embed_file ti_test_moops_texture_bytes:     "../data/test/Moops.png"
 //@embed_file ti_map_vertex_bytes:        "../data/generated/map_vertices.vb"
 //@embed_file ti_map_index_bytes:         "../data/generated/map_indices.ib"
 
@@ -435,7 +436,6 @@ TI_RegTable:
     {String8       ctx_expr                    CtxExpr                   }
 
     // general parameters
-    {u32           pid                         PID                       }
     {bool32        force_confirm               ForceConfirm              }
     {bool32        force_focus                 ForceFocus                }
     {bool32        no_rich_tooltip             NoRichTooltip             }
@@ -495,6 +495,9 @@ TI_CmdTable:    //               |   |        |              |                  
 {//                              |   |        |              |                  |                                |                         |                     /                          |                                  /                                                                                                               |                                |      
     // exiting
     {Exit                         0   1        1              ""                 Null        0  0  0  0  0  0  0                            X                     "exit"                      "Exit"                           "Exits the TIDE program."                                                                                        "quit,close,abort"               ""        }
+    
+    // palette
+    {OpenPalette                  0   1        1              ""                 Null        0  0  0  0  0  0  0                            List                  "open_palette"              "Open Palette"                   "Opens the palette."                                                                                             "help,cmd,lister"                ""        }
 
     // command fast-path
     {RunCommand                   0   0        0              "query:commands"   CmdName     0  0  0  0  0  1  1                            Null                  "run_command"               "Run Command"                    "Runs a command from the command palette."                                                                       "help,cmd"                       ""        }
@@ -515,6 +518,13 @@ TI_CmdTable:    //               |   |        |              |                  
     {ToggleFullscreen             0   1        1              ""                 Null        0  0  0  0  0  0  0                            Window                "toggle_fullscreen"         "Toggle Fullscreen"              "Toggles fullscreen view on the active window."                                                                  ""                               ""        }
     {BringToFont                  0   0        1              ""                 Null        0  0  0  0  0  0  0                            Window                "bring_to_front"            "Bring To Font"                  "Brings all windows to the front, and focuses the monst recently focused window"                                 "top"                            ""        }
 
+    // popups
+    {PopupAccept                  0   0        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "popup_accept"              "Popup Accept"                   "Accepts the active popup prompt."                                                                               ""                               ""        }
+    {PopupCancel                  0   0        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "popup_cancel"              "Popup Cancel"                   "Cancels the active popup prompt."                                                                               ""                               ""        }
+
+    // keybindings
+    {ResetToDefaultBindings       0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "reset_to_default_bindings" "Reset To Default Bindings"      "Resets all keybindings to their defaults."                                                                      ""                               ""        }
+
     // panel splitting
     {ResetToDefaultPanels         0   1        1              ""                 Null        0  0  0  0  0  0  0                            Window                "reset_to_default_panels"   "Reset To Default Panel Layout"  "Resets the window to the default panel layout."                                                                 ""                               ""        }
     {NewPanelLeft                 0   1        1              ""                 Null        0  0  0  0  0  0  0                            XSplit                "new_panel_left"            "Split Panel Left"               "Creates a new panel to the left of the active panel."                                                           ""                               ""        }
@@ -522,6 +532,9 @@ TI_CmdTable:    //               |   |        |              |                  
     {NewPanelRight                0   1        1              ""                 Null        0  0  0  0  0  0  0                            XSplit                "new_panel_right"           "Split Panel Right"              "Creates a new panel to the right of the active panel."                                                          ""                               ""        }
     {NewPanelDown                 0   1        1              ""                 Null        0  0  0  0  0  0  0                            YSplit                "new_panel_down"            "Split Panel Down"               "Creates a new panel at the bottom of the active panel."                                                         ""                               ""        }
     {SplitPanel                   0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "split_panel"               "Split Panel"                    "Creates a new panel in a given direction, and moves a tab to it, if specified"                                  ""                               ""        }
+
+    // panel rotation
+    {RotatePanelColumns           0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "rotate_panel_columns"      "Rotate Panel Columns"           "Rotates all panels at the closest column level of the panel hierarchy."                                         ""                               ""        }
 
     // focused panel changing
     {NextPanel                    0   1        1              ""                 Null        0  0  0  0  0  0  0                            RightArrow            "next_panel"                "Focus Next Panel"               "Cycles the active panel forward."                                                                               ""                               ""        }
@@ -556,13 +569,80 @@ TI_CmdTable:    //               |   |        |              |                  
     {NewProject                   0   1        1              ""                 Null        1  0  0  0  0  1  0                            Add                   "new_project"               "New Project"                    "Creates a new project file, and sets the current project path as that file's path."                             "new,user,project,layout"        ""        }
     {OpenUser                     0   1        1              ""                 FilePath    1  0  0  0  0  1  1                            Person                "open_user"                 "Open User"                      "Opens a user file path, immediately loading it, and begins autosaving to it."                                   "load,user,project,layout"       ""        }
     {OpenProject                  0   1        1              ""                 FilePath    1  0  0  0  0  1  1                            Briefcase             "open_project"              "Open Project"                   "Opens a project file path, immediately loading it, and begins autosaving to it."                                "project,project,session"        ""        }
+    {OpenRecentProject            0   1        1         "query:recent_projects" Cfg         0  0  0  0  0  1  1                            Briefcase             "open_recent_project"       "Open Recent Project"            "Opens a recently used project file."                                                                            "project,project,session"        ""        }
+    {SaveUser                     0   1        1         `folder:\\"$input\\"`   FilePath    1  0  0  0  0  1  1                            Save                  "save_user"                 "Save User"                      "Saves user data to a file, and sets the current user path as that path."                                        "load,user,project,layout"       ""        }
+    {SaveProject                  0   1        1         `folder:\\"$input\\"`   FilePath    1  0  0  0  0  1  1                            Save                  "save_project"              "Save Project"                   "Saves project data to a file, and sets the current project path as that path."                                  "project,project,session"        ""        }
+    {RecordUserAsLastOpened       0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                 "record_user_as_last_opened" "Record User As Last Opened"     "Records a file path as the last opened user."                                                                   ""                               ""        }
+    {RecordProjectInUser          0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "record_project_in_user"    "Records Project In User"        "Records a file path as a recent project in user data."                                                          ""                               ""        }
+
+    // opening user/project settings
+    {UserSettings                 0   1        1              ""                 Null        0  0  0  0  0  0  0                            Gear                  "user_settings"             "User Settings"                  "Opens user settings."                                                                                           ""                               ""        }
+    {ProjectSettings              0   1        1              ""                 Null        0  0  0  0  0  0  0                            Gear                  "project_settings"          "Project Settings"               "Opens project settings."                                                                                        ""                               ""        }
+  
+
+    // meta controls
+    {Edit                         0   1        1              ""                 Null        0  0  0  0  0  0  0                            Pencil                "edit"                      "Edit"                           "Edits the current selection."                                                                                   ""                               ""        }
+    {Accept                       0   1        1              ""                 Null        0  0  0  0  0  0  0                            CheckFilled           "accept"                    "Accept"                         "Accepts current changes, or answers promps in the affirmative."                                                 ""                               ""        }
+    {Cancel                       0   1        1              ""                 Null        0  0  0  0  0  0  0                            X                     "cancel"                    "Cancel"                         "Rejects current changes, exist temporary menus, or answers prompts in the negative."                            ""                               ""        }
+    {FocusMenu                    0   1        1              ""                 Null        0  0  0  0  0  0  0                            List                  "focus_menu"                "Focus Menu"                     "Focuses the menu for the selected interface, if there is one."                                                  ""                               ""        }
+    {Lock                         0   1        1              ""                 Null        0  0  0  0  0  0  0                            Locked                "lock"                      "Lock"                           "Locks the current selection, if applicable."                                                                    ""                               ""        }
+    {Unlock                       0   1        1              ""                 Null        0  0  0  0  0  0  0                            Unlocked              "unlock"                    "Unlock"                         "Unlocks the current selection, if applicable."                                                                  ""                               ""        }
+    {ToggleLock                   0   1        1              ""                 Null        0  0  0  0  0  0  0                            Locked                "toggle_lock"               "Toggle Lock"                    "Toggles the lock state of the current selection, if applicable."                                                ""                               ""        }
+
+    //- rjf: directional movement & text controls
+    {MoveLeft                     0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_left"                 "Move Left"                      "Moves the cursor or selection left."                                                                            ""                               ""        }
+    {MoveRight                    0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_right"                "Move Right"                     "Moves the cursor or selection right."                                                                           ""                               ""        }
+    {MoveUp                       0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_up"                   "Move Up"                        "Moves the cursor or selection up."                                                                              ""                               ""        }
+    {MoveDown                     0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_down"                 "Move Down"                      "Moves the cursor or selection down."                                                                            ""                               ""        }
+    {MoveLeftSelect               0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_left_select"          "Move Left Select"               "Moves the cursor or selection left, while selecting."                                                           ""                               ""        }
+    {MoveRightSelect              0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_right_select"         "Move Right Select"              "Moves the cursor or selection right, while selecting."                                                          ""                               ""        }
+    {MoveUpSelect                 0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_up_select"            "Move Up Select"                 "Moves the cursor or selection up, while selecting."                                                             ""                               ""        }
+    {MoveDownSelect               0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_down_select"          "Move Down Select"               "Moves the cursor or selection down, while selecting."                                                           ""                               ""        }
+    {MoveLeftChunk                0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_left_chunk"           "Move Left Chunk"                "Moves the cursor or selection left one chunk."                                                                  ""                               ""        }
+    {MoveRightChunk               0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_right_chunk"          "Move Right Chunk"               "Moves the cursor or selection right one chunk."                                                                 ""                               ""        }
+    {MoveUpChunk                  0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_up_chunk"             "Move Up Chunk"                  "Moves the cursor or selection up one chunk."                                                                    ""                               ""        }
+    {MoveDownChunk                0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_down_chunk"           "Move Down Chunk"                "Moves the cursor or selection down one chunk."                                                                  ""                               ""        }
+    {MoveUpPage                   0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_up_page"              "Move Up Page"                   "Moves the cursor or selection up one page."                                                                     ""                               ""        }
+    {MoveDownPage                 0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_down_page"            "Move Down Page"                 "Moves the cursor or selection down one page."                                                                   ""                               ""        }
+    {MoveUpWhole                  0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_up_whole"             "Move Up Whole"                  "Moves the cursor or selection to the beginning of the relevant content."                                        ""                               ""        }
+    {MoveDownWhole                0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_down_whole"           "Move Down Whole"                "Moves the cursor or selection to the end of the relevant content."                                              ""                               ""        }
+    {MoveLeftChunkSelect          0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_left_chunk_select"    "Move Left Chunk Select"         "Moves the cursor or selection left one chunk."                                                                  ""                               ""        }
+    {MoveRightChunkSelect         0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_right_chunk_select"   "Move Right Chunk Select"        "Moves the cursor or selection right one chunk."                                                                 ""                               ""        }
+    {MoveUpChunkSelect            0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_up_chunk_select"      "Move Up Chunk Select"           "Moves the cursor or selection up one chunk."                                                                    ""                               ""        }
+    {MoveDownChunkSelect          0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_down_chunk_select"    "Move Down Chunk Select"         "Moves the cursor or selection down one chunk."                                                                  ""                               ""        }
+    {MoveUpPageSelect             0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_up_page_select"       "Move Up Page Select"            "Moves the cursor or selection up one page, while selecting."                                                    ""                               ""        }
+    {MoveDownPageSelect           0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_down_page_select"     "Move Down Page Select"          "Moves the cursor or selection down one page, while selecting."                                                  ""                               ""        }
+    {MoveUpWholeSelect            0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_up_whole_select"      "Move Up Whole Select"           "Moves the cursor or selection to the beginning of the relevant content, while selecting."                       ""                               ""        }
+    {MoveDownWholeSelect          0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_down_whole_select"    "Move Down Whole Select"         "Moves the cursor or selection to the end of the relevant content, while selecting."                             ""                               ""        }
+    {MoveUpReorder                0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_up_reorder"           "Move Up Reorder"                "Moves the cursor or selection up, while swapping the currently selected element with that upward."              ""                               ""        }
+    {MoveDownReorder              0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_down_reorder"         "Move Down Reorder"              "Moves the cursor or selection down, while swapping the currently selected element with that downward."          ""                               ""        }
+    {MoveHome                     0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_home"                 "Move Home"                      "Moves the cursor to the beginning of the line."                                                                 ""                               ""        }
+    {MoveEnd                      0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_end"                  "Move End"                       "Moves the cursor to the end of the line."                                                                       ""                               ""        }
+    {MoveHomeSelect               0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_home_select"          "Move Home Select"               "Moves the cursor to the beginning of the line, while selecting."                                                ""                               ""        }
+    {MoveEndSelect                0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_end_select"           "Move End Select"                "Moves the cursor to the end of the line, while selecting."                                                      ""                               ""        }
+    {SelectAll                    0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "select_all"                "Select All"                     "Selects everything possible."                                                                                   ""                               ""        }
+    {DeleteSingle                 0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "delete_single"             "Delete Single"                  "Deletes a single element to the right of the cursor, or the active selection."                                  ""                               ""        }
+    {DeleteChunk                  0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "delete_chunk"              "Delete Chunk"                   "Deletes a chunk to the right of the cursor, or the active selection."                                           ""                               ""        }
+    {BackspaceSingle              0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "backspace_single"          "Backspace Single"               "Deletes a single element to the left of the cursor, or the active selection."                                   ""                               ""        }
+    {BackspaceChunk               0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "backspace_chunk"           "Backspace Chunk"                "Deletes a chunk to the left of the cursor, or the active selection."                                            ""                               ""        }
+    {Copy                         0   1        1              ""                 Null        0  0  0  0  0  0  0                            Clipboard             "copy"                      "Copy"                           "Copies the active selection to the clipboard."                                                           "" "{text_range_commands}{disasm_range_commands}" }
+    {Cut                          0   1        1              ""                 Null        0  0  0  0  0  0  0                            Clipboard             "cut"                       "Cut"                            "Copies the active selection to the clipboard, then deletes it."                                                 ""                               ""        }
+    {Paste                        0   1        1              ""                 Null        0  0  0  0  0  0  0                            Clipboard             "paste"                     "Paste"                          "Pastes the current contents of the clipboard."                                                                  ""                               ""        }
+    {InsertText                   0   0        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "insert_text"               "Insert Text"                    "Inserts the text that was used to cause this command."                                                          ""                               ""        }
+    
+    //- rjf: directionless navigation
+    {MoveNext                     0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_next"                 "Move Next"                      "Moves the cursor or selection to the next element."                                                             ""                               ""        }
+    {MovePrev                     0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_prev"                 "Move Previous"                  "Moves the cursor or selection to the previous element."                                                         ""                               ""        }
 
     // query stack
-    {PushQuery                    0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "push_query"                "Push Query"                     "Opens a new temporary query interface."                                                                          ""                              ""        }
-    {CompleteQuery                0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "complete_query"            "Complete Query"                 "Completes and closes a query."                                                                                   ""                              ""        }
-    {CancelQuery                  0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "cancel_query"              "Cancel Query"                   "Closes a query."                                                                                                 ""                              ""        }
-    {CancelAllQueries             0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "cancel_all_queries"        "Cancel All Queries"             "Closes all queries."                                                                                             ""                              ""        }
-    {UpdateQuery                  0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "update_query"              "Update Query"                   "Updates a query input."                                                                                          ""                              ""        }
+    {PushQuery                    0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "push_query"                "Push Query"                     "Opens a new temporary query interface."                                                                         ""                               ""        }
+    {CompleteQuery                0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "complete_query"            "Complete Query"                 "Completes and closes a query."                                                                                  ""                               ""        }
+    {CancelQuery                  0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "cancel_query"              "Cancel Query"                   "Closes a query."                                                                                                ""                               ""        }
+    {CancelAllQueries             0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "cancel_all_queries"        "Cancel All Queries"             "Closes all queries."                                                                                            ""                               ""        }
+    {UpdateQuery                  0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "update_query"              "Update Query"                   "Updates a query input."                                                                                         ""                               ""        }
+
+    // developer commands
+    {ToggleDevMenu                0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "toggle_dev_menu"           "Toggle Developer Menu"          "Opens and closes the developer menu."                                                                           ""                               ""        }
 }
 
 @enum TI_CmdKind:
@@ -572,7 +652,7 @@ TI_CmdTable:    //               |   |        |              |                  
     @expand(TI_ViewTabFastPathTable a) `Open$(a.name)`,
     COUNT,
 
-    `FirstTabFastPathCmd = TI_CmdKind_OpenGeo3D`,
+    `FirstTabFastPathCmd = TI_CmdKind_OpenOutput`,
 }
 
 @struct TI_Query:
@@ -618,6 +698,9 @@ TI_DefaultBindingTable:
     { "new_panel_right"                                  P         ctrl     0         0          }
     { "new_panel_down"                                   Minus     ctrl     0         0          }
 
+    // panel rotation
+    { "rotate_panel_columns"                             2         ctrl     0         0          }
+
     // focused panel changing
     { "next_panel"                                       Comma     ctrl     0         0          }
     { "prev_panel"                                       Comma     ctrl     shift     0          }
@@ -641,6 +724,70 @@ TI_DefaultBindingTable:
     { "tab_bar_bottom"                                   Down      ctrl     shift     alt        }
     { "open_tab"                                         T         ctrl     0         0          }
     { "tab_settings"                                     T         ctrl     0         alt        }
+
+    //- rjf: setting config paths
+    { "new_project"                                      N         ctrl     shift     0          }
+    { "open_project"                                     O         ctrl     shift     0          }
+    { "save_project"                                     S         ctrl     shift     0          }
+
+    //- rjf: directional movement & text controls
+    { "move_left"                                        Left      0        0         0          }
+    { "move_right"                                       Right     0        0         0          }
+    { "move_up"                                          Up        0        0         0          }
+    { "move_down"                                        Down      0        0         0          }
+    { "move_left_select"                                 Left      0        shift     0          }
+    { "move_right_select"                                Right     0        shift     0          }
+    { "move_up_select"                                   Up        0        shift     0          }
+    { "move_down_select"                                 Down      0        shift     0          }
+    { "move_left_chunk"                                  Left      ctrl     0         0          }
+    { "move_right_chunk"                                 Right     ctrl     0         0          }
+    { "move_up_chunk"                                    Up        ctrl     0         0          }
+    { "move_down_chunk"                                  Down      ctrl     0         0          }
+    { "move_up_page"                                     PageUp    0        0         0          }
+    { "move_down_page"                                   PageDown  0        0         0          }
+    { "move_up_whole"                                    Home      ctrl     0         0          }
+    { "move_down_whole"                                  End       ctrl     0         0          }
+    { "move_left_chunk_select"                           Left      ctrl     shift     0          }
+    { "move_right_chunk_select"                          Right     ctrl     shift     0          }
+    { "move_up_chunk_select"                             Up        ctrl     shift     0          }
+    { "move_down_chunk_select"                           Down      ctrl     shift     0          }
+    { "move_up_page_select"                              PageUp    0        shift     0          }
+    { "move_down_page_select"                            PageDown  0        shift     0          }
+    { "move_up_whole_select"                             Home      ctrl     shift     0          }
+    { "move_down_whole_select"                           End       ctrl     shift     0          }
+    { "move_up_reorder"                                  Up        0        0         alt        }
+    { "move_down_reorder"                                Down      0        0         alt        }
+    { "move_home"                                        Home      0        0         0          }
+    { "move_end"                                         End       0        0         0          }
+    { "move_home_select"                                 Home      0        shift     0          }
+    { "move_end_select"                                  End       0        shift     0          }
+    { "select_all"                                       A         ctrl     0         0          }
+    { "delete_single"                                    Delete    0        0         0          }
+    { "delete_chunk"                                     Delete    ctrl     0         0          }
+    { "backspace_single"                                 Backspace 0        0         0          }
+    { "backspace_chunk"                                  Backspace ctrl     0         0          }
+    { "copy"                                             C         ctrl     0         0          }
+    { "copy"                                             Insert    ctrl     0         0          }
+    { "cut"                                              X         ctrl     0         0          }
+    { "paste"                                            V         ctrl     0         0          }
+    { "paste"                                            Insert    0        shift     0          }
+    { "insert_text"                                      Null      0        0         0          }
+  
+    // secondary navigation
+    { "move_next"                                        Tab       0        0         0          }
+    { "move_prev"                                        Tab       0        shift     0          }
+
+    // command lister
+    { "open_palette"                                     F1        0        0         0          }
+    { "open_palette"                                     P         ctrl     shift     0          }
+    
+    // developer commands
+    { "toggle_dev_menu"                                  D         ctrl     shift     alt        }
+}
+
+@data(`struct {String8 string; CFG_Binding binding;}`) @c_file ti_default_binding_table:
+{
+    @expand(TI_DefaultBindingTable a) ```{str8_lit_comp("$(a.name)"), {WM_Key_$(a.key), 0 $(a.ctrl != 0 -> `|WM_Modifier_Ctrl`) $(a.shift != 0 -> `|WM_Modifier_Shift`) $(a.alt != 0 -> `|WM_Modifier_Alt`)}}```;
 }
 
 //////////
@@ -743,83 +890,123 @@ TI_IconTable:
 @table(name_upper  name_lower  display_string  cfg)
 TI_ThemePresetTable:
 {
-    // default dark theme
+    // default waves theme
     {
-        DefaultDark default_dark "Default (Dark)",
+        DefaultWaves default_waves "Default (Waves)",
         ```theme:
         {
-            theme_color:{tags: background, value: 0x1f1f1fff}
-            theme_color:{tags: "alt background", value: 0x222222ff}       
-            theme_color:{tags: "pop background", value: 0x675331ff}
-            theme_color:{tags: "fresh background", value: 0x3d3631ff}
-            theme_color:{tags: "match background", value: 0x31393dff}
-            theme_color:{tags: border, value: 0x404040ff}
-            theme_color:{tags: text, value: 0xe5e5e5ff}
-            theme_color:{tags: "weak text", value: 0xa4a4a4ff}
-            theme_color:{tags: "good text", value: 0x32a852ff}
-            theme_color:{tags: "neutral text", value: 0x3a90bbff}
-            theme_color:{tags: "bad text", value: 0xcf5242ff}
-            theme_color:{tags: hover, value: 0xffffffff}
-            theme_color:{tags: "focus overlay", value: 0x2292eb14}
-            theme_color:{tags: "focus border", value: 0x2392ebff}
-            theme_color:{tags: cursor, value: 0x8aff00ff}
-            theme_color:{tags: selection, value: 0x99ccff0f}
-            theme_color:{tags: "inactive background", value: 0x16}
-            theme_color:{tags: drop_shadow, value: 0x0000007f}
-            theme_color:{tags: "good_pop background", value: 0x2c5b36ff}
-            theme_color:{tags: "good_pop border", value: 0x568761ff}
-            theme_color:{tags: "good_pop hover", value: 0xe3f5d3ff}
-            theme_color:{tags: "good_pop weak text", value: 0xe3f5d3ff}
-            theme_color:{tags: "bad_pop background", value: 0x803425ff}
-            theme_color:{tags: "bad_pop hover", value: 0xff825cff}
-            theme_color:{tags: code_default, value: 0xecececff}
-            theme_color:{tags: code_symbol, value: 0xceaf64ff}
-            theme_color:{tags: code_type, value: 0xceaf64ff}
-            theme_color:{tags: code_local, value: 0xa7dae8ff}
-            theme_color:{tags: code_register, value: 0xb7afd5ff}
-            theme_color:{tags: code_keyword, value: 0x838b8fff}
-            theme_color:{tags: code_delimiter_or_operator, value: 0x838b8fff}
-            theme_color:{tags: code_numeric, value: 0x9cb198ff}
-            theme_color:{tags: code_numeric_alt_digit_group, value: 0x6d8e67ff}
-            theme_color:{tags: code_string, value: 0x9cb198ff}
-            theme_color:{tags: code_meta, value: 0xb9819aff}
-            theme_color:{tags: code_comment, value: 0x627b5eff}
-            theme_color:{tags: line_info_0, value: 0x3c2d25ff}
-            theme_color:{tags: line_info_1, value: 0x3c3925ff}
-            theme_color:{tags: line_info_2, value: 0x2e4837ff}
-            theme_color:{tags: line_info_3, value: 0x2e3d48ff}
-            theme_color:{tags: line_info_4, value: 0x3c2d25ff}
-            theme_color:{tags: line_info_5, value: 0x3c3925ff}
-            theme_color:{tags: line_info_6, value: 0x2e4837ff}
-            theme_color:{tags: line_info_7, value: 0x2e3d48ff}
-            theme_color:{tags: thread_0, value: 0xebb624ff}
-            theme_color:{tags: thread_1, value: 0x26d0d2ff}
-            theme_color:{tags: thread_unwound, value: 0xb2ccd8ff}
-            theme_color:{tags: thread_error, value: 0xb23219ff}
-            theme_color:{tags: breakpoint, value: 0xa72911ff}
-            theme_color:{tags: "floating background", value: 0x1b1b1baf}
-            theme_color:{tags: "floating background alt", value: 0x0000005f}
-            theme_color:{tags: "floating background fresh", value: 0x31393d5f}
-            theme_color:{tags: "floating border", value: 0xbfbfbf1f}
-            theme_color:{tags: "floating scroll_bar background", value: 0x3b3b3b5f}
-            theme_color:{tags: "floating scroll_bar border", value: 0x5f5f5f5f}
-            theme_color:{tags: "scroll_bar background", value: 0x2b2b2bff}
-            theme_color:{tags: "scroll_bar border", value: 0x3f3f3fff}
-            theme_color:{tags: "implicit background", value: 0x00000000}
-            theme_color:{tags: "implicit border", value: 0x00000000}
-            theme_color:{tags: "hollow background", value: 0x00000000}
-            theme_color:{tags: "hollow border", value: 0xffffff1f}
-            theme_color:{tags: "tab background", value: 0x333333ff}
-            theme_color:{tags: "tab border", value: 0x2392ebff}
-            theme_color:{tags: "tab inactive background", value: 0}
-            theme_color:{tags: "tab inactive border", value: 0x42494eff}
-            theme_color:{tags: "tab auto background", value: 0x3e4d6eff}
-            theme_color:{tags: "tab auto inactive background", value: 0x3e4d6e39}
-            theme_color:{tags: "drop_site background", value: 0xffffff05}
-            theme_color:{tags: "drop_site border", value: 0xffffff0f}
+        theme_color: {tags: background, value: 0x27292bff}
+        theme_color: {tags: "alt background", value: 0x27292bff}
+        theme_color: {tags: "pop background", value: 0x006d9cff}
+        theme_color: {tags: "fresh background", value: 0x262f3bff}
+        theme_color: {tags: "match background", value: 0x19585fff}
+        theme_color: {tags: border, value: 0x40484aff}
+        theme_color: {tags: text, value: 0xc7e8ffff}
+        theme_color: {tags: "weak text", value: 0x969696ff}
+        theme_color: {tags: "good text", value: 0x5ab9dcff}
+        theme_color: {tags: "neutral text", value: 0x2878b4ff}
+        theme_color: {tags: "bad text", value: 0xff5040ff}
+        theme_color: {tags: hover, value: 0xffffffff}
+        theme_color: {tags: "focus overlay", value: 0x5ab9dc18}
+        theme_color: {tags: "focus border", value: 0x5ab9dcff}
+        theme_color: {tags: cursor, value: 0xc8ffffff}
+        theme_color: {tags: selection, value: 0x5ab9dc28}
+        theme_color: {tags: "inactive background", value: 0x0000002f}
+        theme_color: {tags: drop_shadow, value: 0x0000007f}
+        theme_color: {tags: "good_pop background", value: 0x003d5aff}
+        theme_color: {tags: "good_pop border", value: 0x006d9cff}
+        theme_color: {tags: "good_pop hover", value: 0xffffffff}
+        theme_color: {tags: "good_pop weak text", value: 0xffffffff}
+        theme_color: {tags: "bad_pop background", value: 0x6b2018ff}
+        theme_color: {tags: "bad_pop hover", value: 0xff825cff}
+        theme_color: {tags: code_default, value: 0xc7e8ffff}
+        theme_color: {tags: code_symbol, value: 0xc7e8ffff}
+        theme_color: {tags: code_type, value: 0x82daffff}
+        theme_color: {tags: code_local, value: 0xf5fbffff}
+        theme_color: {tags: code_register, value: 0x5baad8ff}
+        theme_color: {tags: code_keyword, value: 0x99ccffff}
+        theme_color: {tags: code_delimiter_or_operator, value: 0xf0f7faff}
+        theme_color: {tags: code_numeric, value: 0x82daffff}
+        theme_color: {tags: code_numeric_alt_digit_group, value: 0x60a8c8ff}
+        theme_color: {tags: code_string, value: 0x82daffff}
+        theme_color: {tags: code_meta, value: 0x739fe6ff}
+        theme_color: {tags: code_comment, value: 0x969696ff}
+        theme_color: {tags: line_info_0, value: 0x7a5227ff}
+        theme_color: {tags: line_info_1, value: 0x5f5819ff}
+        theme_color: {tags: line_info_2, value: 0x4a2912ff}
+        theme_color: {tags: line_info_3, value: 0x3b2f26ff}
+        theme_color: {tags: line_info_4, value: 0x7a5227ff}
+        theme_color: {tags: line_info_5, value: 0x5f5819ff}
+        theme_color: {tags: line_info_6, value: 0x4a2912ff}
+        theme_color: {tags: line_info_7, value: 0x3b2f26ff}
+        theme_color: {tags: thread_0, value: 0xdcb95aff}
+        theme_color: {tags: thread_1, value: 0xff8c00ff}
+        theme_color: {tags: thread_2, value: 0xffa45eff}
+        theme_color: {tags: thread_3, value: 0x6099d6ff}
+        theme_color: {tags: thread_4, value: 0xffd34fff}
+        theme_color: {tags: thread_5, value: 0xd8a861ff}
+        theme_color: {tags: thread_6, value: 0xd67171ff}
+        theme_color: {tags: thread_7, value: 0xf0c678ff}
+        theme_color: {tags: thread_unwound, value: 0x90a0b0ff}
+        theme_color: {tags: thread_error, value: 0xd67171ff}
+        theme_color: {tags: breakpoint, value: 0xff0000ff}
+        theme_color: {tags: "floating background", value: 0x141e2380}
+        theme_color: {tags: "floating background alt", value: 0x0000005f}
+        theme_color: {tags: "floating background fresh", value: 0x262f3b5f}
+        theme_color: {tags: "floating border", value: 0xffffff1f}
+        theme_color: {tags: "floating scroll_bar background", value: 0x3a3a3a5f}
+        theme_color: {tags: "floating scroll_bar border", value: 0x5050505f}
+        theme_color: {tags: "menu_bar background", value: 0x141e23ff}
+        theme_color: {tags: "menu_bar border", value: 0x465a73ff}
+        theme_color: {tags: "scroll_bar background", value: 0x2b2d2fff}
+        theme_color: {tags: "scroll_bar border", value: 0x3a3a3aff}
+        theme_color: {tags: "implicit background", value: 0x00000000}
+        theme_color: {tags: "implicit border", value: 0x00000000}
+        theme_color: {tags: "hollow background", value: 0x00000000}
+        theme_color: {tags: "hollow border", value: 0xffffff1f}
+        theme_color: {tags: "tab background", value: 0x176b9cff}
+        theme_color: {tags: "tab border", value: 0x2878b4ff}
+        theme_color: {tags: "tab inactive background", value: 0x00000000}
+        theme_color: {tags: "tab inactive border", value: 0x465353ff}
+        theme_color: {tags: "tab auto background", value: 0x27527aff}
+        theme_color: {tags: "tab auto border", value: 0x2878b4ff}
+        theme_color: {tags: "tab auto inactive background", value: 0x142a3a39}
+        theme_color: {tags: "tab auto inactive border", value: 0x284e6bff}
+        theme_color: {tags: "drop_site background", value: 0xffffff05}
+        theme_color: {tags: "drop_site border", value: 0xffffff0f}
         }
         ```
     }
+}
+
+@table(name lower_name)
+TI_CodeColorTable:
+{
+    {CodeDefault              "code_default"}
+    {CodeSymbol               "code_symbol"}
+    {CodeType                 "code_type"}
+    {CodeLocal                "code_local"}
+    {CodeRegister             "code_register"}
+    {CodeKeyword              "code_keyword"}
+    {CodeDelimiterOperator    "code_delimiter_or_operator"}
+    {CodeNumeric              "code_numeric"}
+    {CodeNumericAltDigitGroup "code_numeric_alt_digit_group"}
+    {CodeString               "code_string"}
+    {CodeMeta                 "code_meta"}
+    {CodeComment              "code_comment"}
+    {CodeLineNumbers          "code_line_numbers"}
+    {CodeLineNumbersSelected  "code_line_numbers_selected"}
+}
+
+@enum TI_CodeColorSlot:
+{
+    @expand(TI_CodeColorTable a) `$(a.name)`,
+    COUNT
+}
+
+@data(String8) ti_code_color_slot_name_table:
+{
+    @expand(TI_CodeColorTable a) `str8_lit_comp("$(a.lower_name)")`
 }
 
 @enum TI_ThemePreset:

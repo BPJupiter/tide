@@ -68,7 +68,7 @@ internal TI_Query_Item_List ti_query_items_from_string(Arena *arena, String8 str
                 for EachNonZeroEnumVal(TI_CmdKind, k)
                 {
                     TI_Cmd_Kind_Info *info = &ti_cmd_kind_info_table[k];
-                    bool32 show = ((str8_match(arg, str8_lit("commends"), 0) && info->flags & TI_CmdKindFlag_ListInUI) ||
+                    bool32 show = ((str8_match(arg, str8_lit("commands"), 0) && info->flags & TI_CmdKindFlag_ListInUI) ||
                                    (str8_find_needle(info->filter_tags, 0, collection_filter_tag, 0) < info->filter_tags.size));
                     if (!show)
                     {
@@ -158,4 +158,48 @@ internal TI_Query_Item_List ti_query_items_from_string(Arena *arena, String8 str
     }
     scratch_end(scratch);
     return out;
+}
+
+internal bool32 ti_query_item_is_cmd(TI_Query_Item *item)
+{
+    return (item->cfg == 0 &&
+            item->icon != TI_IconKind_FileOutline &&
+            item->icon != TI_IconKind_FolderClosedFilled &&
+            ti_cmd_kind_from_string(item->value) != TI_CmdKind_Null);
+}
+
+internal bool32 ti_query_item_complete(String8 cmd_name, TI_Query_Item *item)
+{
+    bool32 did_cmd = 1;
+    if (item->icon == TI_IconKind_FolderClosedFilled)
+    {
+        ti_cmd(TI_CmdKind_UpdateQuery, .string = push_str8f(ti_frame_arena(), "%S/", item->value));
+    }
+    else if (cmd_name.size != 0)
+    {
+        TI_Cmd_Kind_Info *query_info = ti_cmd_kind_info_from_string(cmd_name);
+        TI_RegsScope()
+        {
+            ti_regs_fill_slot_from_string(query_info->query.slot, str8_zero(), item->value);
+            ti_cmd(TI_CmdKind_CompleteQuery);
+        }
+    }
+    else if (ti_query_item_is_cmd(item))
+    {
+        TI_Cmd_Kind_Info *info = ti_cmd_kind_info_from_string(item->value);
+        if (!(info->query.flags & TI_QueryFlag_Required))
+        {
+            ti_push_cmd(item->value, ti_regs());
+        }
+        else
+        {
+            ti_cmd(TI_CmdKind_RunCommand, .cmd_name = item->value);
+        }
+        ti_cmd(TI_CmdKind_CompleteQuery);
+    }
+    else
+    {
+        did_cmd = 0;
+    }
+    return did_cmd;
 }

@@ -5,4 +5,3 @@
 #include "tide_query.c"
 #include "tide_widgets.c"
 #include "tide_views.c"
-#include "tide_draw.c"

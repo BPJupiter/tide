@@ -8,6 +8,5 @@
 #include "tide_query.h"
 #include "tide_widgets.h"
 #include "tide_views.h"
-#include "tide_draw.h"
 
 #endif // TIDE_H

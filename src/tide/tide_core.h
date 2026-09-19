@@ -29,7 +29,7 @@ struct TI_View_UI_Rule_Node
 typedef struct TI_View_UI_Rule_Slot TI_View_UI_Rule_Slot;
 struct TI_View_UI_Rule_Slot
 {
-    TI_View_UI_Rule_Node *next;
+    TI_View_UI_Rule_Node *first;
     TI_View_UI_Rule_Node *last;
 };
 
@@ -39,6 +39,16 @@ struct TI_View_UI_Rule_Map
     TI_View_UI_Rule_Slot *slots;
     u64 slots_count;
 };
+
+/////////////////////
+// Drag/Drop Types
+//
+typedef enum TI_DragDropState {
+    TI_DragDropState_Null,
+    TI_DragDropState_Dragging,
+    TI_DragDropState_Dropping,
+    TI_DragDropState_COUNT
+} TI_DragDropState;
 
 ////////////////////////
 // Command Kind Types
@@ -57,6 +67,19 @@ enum {
 typedef u32 TI_CmdKindFlags;
 enum {
     TI_CmdKindFlag_ListInUI            = (1 << 0),
+};
+
+////////////////////
+// Autocompletion Cursor Info Type
+
+typedef struct TI_Autocomp_Cursor_Info TI_Autocomp_Cursor_Info;
+struct TI_Autocomp_Cursor_Info
+{
+    String8 list_expr;
+    String8 filter;
+    Rng1u64 replaced_range;
+    String8 callee_expr;
+    MD_Node *arg_schema;
 };
 
 ///////////////////
@@ -193,6 +216,13 @@ typedef enum TI_FontSlot
 /////////////////////
 // Per-Window State
 
+typedef struct TI_Drop_Completion_Task TI_Drop_Completion_Task;
+struct TI_Drop_Completion_Task
+{
+    TI_Drop_Completion_Task *next;
+    String8_List paths;
+};
+
 typedef struct TI_Query_View TI_Query_View;
 struct TI_Query_View
 {
@@ -223,9 +253,13 @@ struct TI_Window_State {
 
     // theme (recomputed each frame)
     UI_Theme *theme;
+    Vec4f32 theme_code_colors[TI_CodeColorSlot_COUNT];
 
     // font raster flags (recomputed each frame)
     FNT_RasterFlags font_slot_raster_flags[TI_FontSlot_COUNT];
+
+    // dev interface state
+    bool32 dev_menu_is_open;
 
     // menu bar state
     bool32 menu_bar_focused;
@@ -233,10 +267,23 @@ struct TI_Window_State {
     bool32 menu_bar_key_held;
     bool32 menu_bar_focus_press_started;
 
+    // drop-completion state
+    Arena *drop_completion_arena;
+    CFG_ID drop_completion_panel;
+    TI_Drop_Completion_Task *top_drop_completion_task;
+
     // query stack state
     Arena *query_arena;
     CFG_ID query_last_bottom_view_id;
     TI_Query_View *query_top;
+
+    // hover eval state
+
+    // autocompletion state
+    u64 autocomp_last_frame_index;
+    Arena *autocomp_arena;
+    TI_Regs *autocomp_regs;
+    TI_Autocomp_Cursor_Info autocomp_cursor_info;
 
     // error state
     u8 error_buffer[512];
@@ -259,12 +306,23 @@ struct TI_Window_State_Slot {
 ////////////////////////////////////
 // Main Per-Process Graphical State
 
+typedef struct TI_Ambiguous_Path_Node TI_Ambiguous_Path_Node;
+struct TI_Ambiguous_Path_Node
+{
+    TI_Ambiguous_Path_Node *next;
+    String8 name;
+    String8_List paths;
+};
+
 typedef struct TI_State TI_State;
 struct TI_State {
     // basics
     Arena *arena;
     bool32 quit;
     s32 frame_depth;
+
+    // installation setting state
+    bool32 installed;
 
     // config bucket paths
     Arena *user_path_arena;
@@ -273,6 +331,10 @@ struct TI_State {
     String8 project_path;
     Arena *theme_path_arena;
     String8 theme_path;
+
+    // unpacked settings (cached, because they need to be used
+    // earlier than setting evaluation is legal in a frame)
+    bool32 alt_menu_bar_enabled;
 
     // animation rates
     f32 catchall_animation_rate;
@@ -306,6 +368,10 @@ struct TI_State {
     Access *frame_access;
     String8 last_window_title;
 
+    // ambiguous path table (constructed from-scratch each frame)
+    u64 ambiguous_path_slots_count;
+    TI_Ambiguous_Path_Node **ambiguous_path_slots;
+
     // key map (constructed from-scratch each frame)
     CFG_Key_Map *key_map;
 
@@ -319,6 +385,9 @@ struct TI_State {
     TI_Regs_Node base_regs;
     TI_Regs_Node *top_regs;
 
+    // autosave state
+    f32 seconds_until_autosave;
+
     // commands
     Arena *cmds_arenas[2];
     TI_Cmd_List cmds[2];
@@ -326,8 +395,37 @@ struct TI_State {
     Arena *cmd_output_arena;
     String8_List cmd_outputs;
 
+    // popup state
+    UI_Key popup_key;
+    bool32 popup_active;
+    f32 popup_t;
+    Arena *popup_arena;
+    TI_Cmd_List popup_cmds;
+    String8 popup_title;
+    String8 popup_desc;
+
+    // text editing mode state
+    bool32 text_edit_mode;
+    bool32 text_edit_mode_multiline;
+
+    // contextual hover info
+    TI_Regs *hover_regs;
+    TI_RegSlot hover_regs_slot;
+    TI_Regs *next_hover_regs;
+    TI_RegSlot next_hover_regs_slot;
+
     // icon texture
     R_Handle icon_texture;
+
+    // fixed ui keys
+    UI_Key drop_completion_key;
+    UI_Key ctx_menu_key;
+
+    // drag/drop state
+    Arena *drag_drop_arena;
+    TI_Regs *drag_drop_regs;
+    TI_RegSlot drag_drop_regs_slot;
+    TI_DragDropState drag_drop_state;
 
     // cfg state
     CFG_State *cfg;
@@ -386,8 +484,7 @@ global TI_State *ti_state = 0;
 
 // Dev flags
 global bool32 DEV_simulate_lag        = false;
-global bool32 DEV_draw_diag_line_test = false;
-global bool32 DEV_draw_3D_test        = false;
+global bool32 DEV_always_refresh      = false;
 global bool32 DEV_draw_ui_text_pos    = false;
 global bool32 DEV_draw_ui_focus_debug = false;
 global bool32 DEV_draw_ui_box_heatmap = false;
@@ -493,6 +590,10 @@ internal void ti_window_frame(void);
 // Colors, Fonts, Config
 
 // colors
+internal MD_Node *ti_theme_tree_from_name(Arena *arena, Access *access, String8 theme_name);
+internal Vec4f32 ti_rgba_from_code_color_slot(TI_CodeColorSlot slot);
+internal TI_CodeColorSlot ti_code_color_slot_from_txt_token_kind(TXT_TokenKind kind);
+internal TI_CodeColorSlot ti_code_color_slot_from_txt_token_kind_lookup_string(TXT_TokenKind kind, String8 string, bool32 allow_macros, bool32 is_called);
 
 // fonts
 internal f32 ti_font_size(void);
@@ -531,6 +632,7 @@ internal TI_Regs *ti_push_regs_(TI_Regs *regs);
 #define ti_push_regs(...) ti_push_regs_(&(TI_Regs){ti_regs_lit_init_top __VA_ARGS__})
 internal TI_Regs *ti_pop_regs(void);
 #define TI_RegsScope(...) DeferLoop(ti_push_regs(__VA_ARGS__), ti_pop_regs())
+internal void ti_regs_fill_slot_from_string(TI_RegSlot slot, String8 query_expr, String8 string);
 
 //////////////
 // Commands
