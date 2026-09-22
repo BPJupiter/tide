@@ -90,7 +90,7 @@ sock_async_tick(void)
             SOCK_Protocol protocol = {0};
             SOCK_Endpoint endpoint = {0};
             u64 size = 0;
-            guarded_ring_Try_read_struct(&guard, &protocol);
+            guarded_ring_try_read_struct(&guard, &protocol);
             guarded_ring_try_read_struct(&guard, &endpoint);
             guarded_ring_try_read_struct(&guard, &size);
             u8 *data = push_array(scratch.arena, u8, size);

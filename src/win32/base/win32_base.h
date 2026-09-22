@@ -12,8 +12,6 @@
 // Includes
 
 #include <winsock2.h>
-#include <ws2tcpip.h>
-#include <ws2ipdef.h>
 #include <mswsock.h>
 #include <iphlpapi.h>
 #include <windows.h>
@@ -59,8 +57,6 @@ enum {
     W32_EntityKind_RWMutex,
     W32_EntityKind_ConditionVariable,
     W32_EntityKind_Barrier,
-    // Networking
-    W32_EntityKind_Socket,
 };
 
 typedef struct W32_SYNCHRONIZATION_BARRIER W32_SYNCHRONIZATION_BARRIER;
@@ -93,8 +89,6 @@ struct W32_Entity {
         SRWLOCK rw_mutex;
         CONDITION_VARIABLE cv;
         W32_SYNCHRONIZATION_BARRIER sb;
-        // Networking
-        SOCKET socket;
     };
 };
 
