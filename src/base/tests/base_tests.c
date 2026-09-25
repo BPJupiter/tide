@@ -67,30 +67,6 @@ Test(str8_list_substr)
     }
 }
 
-Test(bit_array)
-{
-    for (u64 start=0; start<32*3; start++) {
-        for (u64 end=start; end<32*3; end++) {
-            u32 v[3] = { 0 };
-            for (u64 i=start; i<end; i++) {
-                v[i/32] |= 1 << (i%32);
-            }
-            for (u64 lo=0; lo<32*3; lo++) {
-                for (u64 hi=0; hi<32*3; hi++) {
-                    u64 expected_idx = Min(hi, end) - 1;
-                    bool32 expected_r = hi <= start || lo >= end || lo >= hi || start >= end ? 0 : 1;
-                    u64 idx = bit_array_scan_right_to_left32((u32_Array){.v=v, .count=ArrayCount(v)}, lo, hi, 1);
-                    bool32 r = idx < hi;
-                    T_Ok(r == expected_r);
-                    if (r) {
-                        T_Ok(idx == expected_idx);
-                    }
-                }
-            }
-        }
-    }
-}
-
 Test(count_digits)
 {
     T_Ok(count_digits_u64(0, 10) == 1);

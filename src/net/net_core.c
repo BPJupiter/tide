@@ -26,18 +26,27 @@ internal NET_Endpoint net_endpoint_from_string_port(String8 address, u16 port)
             {
                 u64 off = 0;
                 u64 part_start_off = 0;
+                u64 bad = 0;
+                ep.address.u8[10] = 0xff;
+                ep.address.u8[11] = 0xff;
                 for(;off < 4;)
                 {
                     u64 part_end_off = str8_find_needle(address, part_start_off+1, s("."), 0);
                     String8 part = str8_substr(address, r1u64(part_start_off, part_end_off));
                     u64 part_val = u64_from_str8(part, 10);
-                    ep.address_u8[off] = (u8)part_val;
+                    bad += (part.size == 0 || part.size > 3 || part_val > 255);
+                    ep.address.u8[12 + 3 - off] = (u8)part_val;
                     part_start_off = part_end_off+1;
                     off += 1;
                     if (part_end_off >= address.size)
                     {
                         break;
                     }
+                }
+
+                if (bad || off != 4 || part_start_off <= address.size)
+                {
+                    ep.kind = NET_EndpointKind_Null;
                 }
             }
         } break;
@@ -45,28 +54,42 @@ internal NET_Endpoint net_endpoint_from_string_port(String8 address, u16 port)
             {
                 u64 off = 0;
                 u64 part_start_off = 0;
-                u64 double_colon_off = 0;
+                u64 part_end_off = 0;
+                u64 double_colon_off = max_u64;
+                u64 double_colon_count = 0;
+                u64 bad = 0;
                 for (;off < 8;)
                 {
-                    u64 part_end_off = str8_find_needle(address, part_end_off+1, s(":"), 0);
-                    String8 part = str8_substr(address, r1u64(part_start_off, part_end_off));
-                    u64 part_val = u64_from_str8(part, 16);
-                    ep.address_u16[off] = (u16)part_val;
-                    part_start_off = part_end_off+1;
-                    if (part_end_off+1 < address.size && address.str[part_end_off+1] == ':')
+                    if (part_start_off < address.size && address.str[part_start_off] == ':')
                     {
                         double_colon_off = off;
+                        double_colon_count += 1;
+                        part_start_off = part_end_off+2;
                     }
-                    off += 1;
-                    if (part_end_off >= address.size)
+                    if (part_end_off+1 >= address.size)
                     {
                         break;
-                    }
+                    } 
+                    part_end_off = str8_find_needle(address, part_start_off+1, s(":"), 0);
+                    String8 part = str8_substr(address, r1u64(part_start_off, part_end_off));
+                    u64 part_val = u64_from_str8(part, 16);
+                    bad += (part_val > 0xffff);
+                    ep.address.u16[7 - off] = (u16)part_val;
+                    part_start_off = part_end_off+1;
+                    off += (part.size != 0);
                 }
-                if (off < 8 && double_colon_off < 8)
+                if (bad || double_colon_count > 1 || part_start_off <= address.size || (double_colon_off == max_u64 ? off != 8 : off >= 8))
+                {
+                    ep.kind = NET_EndpointKind_Null;
+                }
+                if (ep.kind != NET_EndpointKind_Null && off < 8 && double_colon_off < 8)
                 {
                     u64 shift_amt = 8 - off;
-                    MemoryCopy(&ep.address_u16[0] + double_colon_off + shift_amt, &ep.address_u16[0] + double_colon_off, sizeof(u16) * (off - double_colon_off));
+                    for (u64 move_off = 0; move_off < off - double_colon_off; move_off += 1)
+                    {
+                        ep.address.u16[move_off] = ep.address.u16[move_off+shift_amt];
+                        ep.address.u16[move_off+shift_amt] = 0;
+                    }
                 }
             }
         } break;

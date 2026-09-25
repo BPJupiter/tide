@@ -91,16 +91,44 @@ internal void *guarded_ring_push_or_wait(Ring_Guard *guard, u64 size, u64 endt_u
     for (;!write_good;)
     {
         write_good = guarded_ring_try_write(guard, size, dst);
-        if (now_time_us() >= endt_us) {
+        if (now_time_us() >= endt_us)
+        {
             break;
         }
-        if (!write_good) {
+        if (!write_good)
+        {
             cond_var_wait(guard->r->cv, guard->r->mutex, endt_us);
         }
     }
     void *result = 0;
     if (write_good) {
         result = guard->r->ring->base + guard->r->ring->write_pos - size;
+    }
+    scratch_end(scratch);
+    return result;
+}
+
+internal void *guarded_ring_pop_or_wait(Ring_Guard *guard, u64 size, u64 endt_us)
+{
+    Temp scratch = scratch_begin(0, 0);
+    void *dst = push_array(scratch.arena, u8, size);
+    bool32 read_good = false;
+    for (;!read_good;)
+    {
+        read_good = guarded_ring_try_read(guard, size, dst);
+        if (now_time_us() >= endt_us)
+        {
+            break;
+        }
+        if (!read_good)
+        {
+            cond_var_wait(guard->r->cv, guard->r->mutex, endt_us);
+        }
+    }
+    void *result = 0;
+    if (read_good)
+    {
+        result = guard->r->ring->base + guard->r->ring->read_pos - size;
     }
     scratch_end(scratch);
     return result;

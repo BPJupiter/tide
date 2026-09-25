@@ -115,9 +115,9 @@ internal void t_delete_dir(String8 path)
 internal String8 t_make_file_path(Arena *arena, String8 name)
 {
 #if OS_WINDOWS
-    return push_str8f(arena, "%S\\%S", g_wdir, name);
+    return str8f(arena, "%S\\%S", g_wdir, name);
 #else
-    return push_str8f(arena, "%S/%S", g_wdir, name);
+    return str8f(arena, "%S/%S", g_wdir, name);
 #endif
 }
 
@@ -135,7 +135,11 @@ force_inline int t_test_info_is_before(Test_Info **a, Test_Info **b)
     String8 layer_b = b[0]->layer;
     int cmp = str8_compar(layer_a, layer_b, 0);
     if (cmp == 0) {
-        cmp = u64_compar(&a[0]->decl_line, &b[0]->decl_line);
+        u64 a_u64 = *(u64 *)&a[0]->decl_line;
+        u64 b_u64 = *(u64 *)&b[0]->decl_line;
+        cmp = a_u64 < b_u64 ? -1 :
+              a_u64 > b_u64 ? +1 :
+              0;
     }
     return cmp;
 }
@@ -147,7 +151,7 @@ internal void t_errorf(char *fmt, ...)
     Temp scratch = scratch_begin(0, 0);
     va_list args;
     va_start(args, fmt);
-    String8 result = push_str8fv(scratch.arena, fmt, args);
+    String8 result = str8fv(scratch.arena, fmt, args);
     if (g_is_first_print) {
         g_is_first_print = false;
         fprintf(stderr, "\n");
@@ -302,7 +306,7 @@ internal void t_entry_point(Cmd_Line *cmdline)
     }
 
     // Handle optional -target
-    u64_List targets = {0};
+    String8_List targets = {0};
     {
         String8_List inputs = {0};
 
@@ -357,7 +361,8 @@ internal void t_entry_point(Cmd_Line *cmdline)
                     // append test when not in skipping mode
                     if (!hash_map_search_string_u64(&hm, test_name)) {
                         hash_map_push_string_u64(scratch.arena, &hm, test_name, 1);
-                        u64_list_push(scratch.arena, &targets, test_idx);
+
+                        str8_list_pushf(scratch.arena, &targets, "%I64u", test_idx);
                     }
 
                     match_count += 1;
@@ -422,12 +427,12 @@ internal void t_entry_point(Cmd_Line *cmdline)
     // ABCDEFGHIJKLMNOPQRSTUVWXYZ
     // ; @ ! == [] {} () ~ * & ^ % $ # - _ "" ? \\ // 
     {
-        u64_Array target_indices = u64_array_from_list(scratch.arena, &targets);
+        String8_Array target_indices = str8_array_from_list(scratch.arena, &targets);
 
         u64 max_label_size = 0;
         u64 max_layer_size = 0;
         for EachIndex(i, target_indices.count) {
-            u64 test_idx = target_indices.v[i];
+                u64 test_idx = u64_from_str8(target_indices.v[i], 10);
             Test_Info *test_info = g_sorted_test_infos[test_idx];
             max_label_size = Max(max_label_size, test_info->label.size);
             max_layer_size = Max(max_layer_size, test_info->layer.size);
@@ -442,12 +447,12 @@ internal void t_entry_point(Cmd_Line *cmdline)
 
         for EachElement(i, slowest) { slowest[i].target_idx = max_u64; }
 
-        u64_List skipped_tests = {0};
+        String8_List skipped_tests = {0};
 
         for EachIndex(i, target_indices.count) {
             if (i == 0) { PrintHeader("Tests"); }
 
-            u64 target_idx = target_indices.v[i];
+            u64 target_idx = u64_from_str8(target_indices.v[i], 10);
             Test_Info *test = g_sorted_test_infos[target_idx];
 
             // print run progress
@@ -548,13 +553,17 @@ internal void t_entry_point(Cmd_Line *cmdline)
             }
 
             if (result.status == TestStatus_Skip) {
-                u64_list_push(scratch.arena, &skipped_tests, target_idx);
+                str8_list_pushf(scratch.arena, &skipped_tests, "%I64u", target_idx);
             }
         }
 
         u64 total_time_end = now_time_us();
-
-        if (target_indices.count > 0 && sum_array_u64(ArrayCount(run_counters), run_counters) > 0) {
+        u64 array_sum = 0;
+        for (u64 i = 0; i < ArrayCount(run_counters); i++)
+        {
+            array_sum += run_counters[i];
+        }
+        if (target_indices.count > 0 && array_sum > 0) {
             u64     total_time_dt = total_time_end - total_time_start;
             String8 total_time_str = string_from_elapsed_time(scratch.arena, date_time_from_micro_seconds(total_time_dt));
 

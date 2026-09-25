@@ -4,17 +4,20 @@
 #ifndef NET_CORE_H
 #define NET_CORE_H
 
+#if !defined(NET_PORT)
+# define NET_PORT 13709
+#endif
+
 typedef enum NET_Protocol {
     NET_Protocol_TCP,
     NET_Protocol_UDP,
-    NET_Protocol_COUNT,
 } NET_Protocol;
 
 typedef u8 NET_EndpointKind;
-typedef enum NET_EndpointKindEnum { 
+typedef enum NET_EndpointKindEnum {
+    NET_EndpointKind_Null,
     NET_EndpointKind_IPv4,
     NET_EndpointKind_IPv6,
-    NET_EndpoitnKind_COUNT
 } NET_EndpointKindEnum;
 
 typedef struct NET_Endpoint NET_Endpoint;
@@ -56,12 +59,6 @@ struct NET_Endpoint
 internal NET_Endpoint net_endpoint_from_string_port(String8 address, u16 port);
 internal NET_Endpoint net_endpoint_from_string(String8 address_and_port);
 internal String8 net_string_from_endpoint(Arena *arena, NET_Endpoint endpoint);
-
-/////////////////////////////////////////////
-// @per_os_impl Network Listener Functions
-
-internal u16 net_listener_alloc(u16 port);
-internal u16 net_listener_close(u16 port);
 
 ///////////////////////////////
 // @per_os_impl Top-Level Layer Calls
