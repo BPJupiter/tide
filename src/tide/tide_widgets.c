@@ -165,7 +165,7 @@ internal void ti_cmd_binding_buttons(String8 name, String8 filter, u64 limit, TI
                 {
                     arena_clear(ti_state->bind_change_arena);
                     ti_state->bind_change_active = 1;
-                    ti_state->bind_change_cmd_name = push_str8_copy(ti_state->bind_change_arena, name);
+                    ti_state->bind_change_cmd_name = str8_copy(ti_state->bind_change_arena, name);
                     ti_state->bind_change_binding_id = n->v->cfg_id;
                 }
             }
@@ -238,7 +238,7 @@ internal void ti_cmd_binding_buttons(String8 name, String8 filter, u64 limit, TI
                 {
                     arena_clear(ti_state->bind_change_arena);
                     ti_state->bind_change_active = 1;
-                    ti_state->bind_change_cmd_name = push_str8_copy(ti_state->bind_change_arena, name);
+                    ti_state->bind_change_cmd_name = str8_copy(ti_state->bind_change_arena, name);
                     ti_state->bind_change_binding_id = 0;
                 }
                 else if(adding_new_binding && ui_clicked(sig))
@@ -391,7 +391,7 @@ internal UI_Signal ti_icon_buttonf(TI_IconKind kind, Fuzzy_Match_Range_List *mat
     Temp scratch = scratch_begin(0, 0);
     va_list args;
     va_start(args, fmt);
-    String8 string = push_str8fv(scratch.arena, fmt, args);
+    String8 string = str8fv(scratch.arena, fmt, args);
     va_end(args);
     UI_Signal sig = ti_icon_button(kind, matches, string);
     scratch_end(scratch);
@@ -1553,7 +1553,7 @@ internal UI_Signal ti_cell(TI_Cell_Params *params, String8 string)
         {
             String8 edit_string = str8(params->edit_buffer, params->edit_string_size_out[0]);
             UI_Line_Edit_Draw_Data *draw_data = push_array(ui_build_arena(), UI_Line_Edit_Draw_Data, 1);
-            draw_data->edited_string = push_str8_copy(ui_build_arena(), edit_string);
+            draw_data->edited_string = str8_copy(ui_build_arena(), edit_string);
             draw_data->cursor = params->cursor[0];
             draw_data->mark = params->mark[0];
             draw_data->trail = do_cursor_trail && !ui_dragging(sig);
@@ -1628,7 +1628,7 @@ internal UI_Signal ti_cellf(TI_Cell_Params *params, char *fmt, ...)
     Temp scratch = scratch_begin(0, 0);
     va_list args;
     va_start(args, fmt);
-    String8 string = push_str8fv(scratch.arena, fmt, args);
+    String8 string = str8fv(scratch.arena, fmt, args);
     va_end(args);
     UI_Signal sig = ti_cell(params, string);
     scratch_end(scratch);

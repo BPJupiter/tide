@@ -4,23 +4,30 @@
 //- GENERATED CODE
 
 C_LINKAGE_BEGIN
-String8 ti_tab_fast_path_view_name_table[3] =
+String8 ti_tab_fast_path_view_name_table[5] =
 {
+str8_lit_comp("watch"),
 str8_lit_comp("text"),
 str8_lit_comp("text"),
+str8_lit_comp("bitmap"),
 str8_lit_comp("geo3d"),
 };
 
-String8 ti_tab_fast_path_query_name_table[3] =
+String8 ti_tab_fast_path_query_name_table[5] =
 {
+str8_lit_comp("query:targets"),
 str8_lit_comp("query:output"),
+str8_lit_comp(""),
 str8_lit_comp(""),
 str8_lit_comp(""),
 };
 
-TI_Vocab_Info ti_vocab_info_table[124] =
+TI_Vocab_Info ti_vocab_info_table[154] =
 {
 {str8_lit_comp("view"), str8_lit_comp("views"), str8_lit_comp("View"), str8_lit_comp("Views"), TI_IconKind_Binoculars},
+{str8_lit_comp("target"), str8_lit_comp("targets"), str8_lit_comp("Target"), str8_lit_comp("Targets"), TI_IconKind_Target},
+{str8_lit_comp("arguments"), str8_lit_comp("arguments"), str8_lit_comp("Arguments"), str8_lit_comp("Arguments"), TI_IconKind_Null},
+{str8_lit_comp("exe"), str8_lit_comp("exes"), str8_lit_comp("Executable"), str8_lit_comp("Executables"), TI_IconKind_Module},
 {str8_lit_comp("color"), str8_lit_comp("colors"), str8_lit_comp("Color"), str8_lit_comp("Colors"), TI_IconKind_Palette},
 {str8_lit_comp("theme_color"), str8_lit_comp("theme_colors"), str8_lit_comp("Theme Color"), str8_lit_comp("Theme Colors"), TI_IconKind_Palette},
 {str8_lit_comp("window"), str8_lit_comp("windows"), str8_lit_comp("Window"), str8_lit_comp("Windows"), TI_IconKind_Window},
@@ -30,6 +37,10 @@ TI_Vocab_Info ti_vocab_info_table[124] =
 {str8_lit_comp("expression"), str8_lit_comp("expressions"), str8_lit_comp("Expression"), str8_lit_comp("Expressions"), TI_IconKind_Null},
 {str8_lit_comp("getting_started"), str8_lit_comp(""), str8_lit_comp("Getting Started"), str8_lit_comp(""), TI_IconKind_QuestionMark},
 {str8_lit_comp("text"), str8_lit_comp(""), str8_lit_comp("Text"), str8_lit_comp(""), TI_IconKind_FileOutline},
+{str8_lit_comp("user"), str8_lit_comp("users"), str8_lit_comp("User"), str8_lit_comp("Users"), TI_IconKind_Person},
+{str8_lit_comp("project"), str8_lit_comp("projects"), str8_lit_comp("Project"), str8_lit_comp("Projects"), TI_IconKind_Briefcase},
+{str8_lit_comp("recent_project"), str8_lit_comp("recent_projects"), str8_lit_comp("Recent Project"), str8_lit_comp("Recent Projects"), TI_IconKind_Briefcase},
+{str8_lit_comp("bitmap"), str8_lit_comp("bitmaps"), str8_lit_comp("Bitmap"), str8_lit_comp("Bitmaps"), TI_IconKind_Bitmap},
 {str8_lit_comp("geo3d"), str8_lit_comp(""), str8_lit_comp("Geometry (3D)"), str8_lit_comp(""), TI_IconKind_Cube},
 {str8_lit_comp("exit"), str8_lit_comp(""), str8_lit_comp("Exit"), str8_lit_comp(""), TI_IconKind_X},
 {str8_lit_comp("open_palette"), str8_lit_comp(""), str8_lit_comp("Open Palette"), str8_lit_comp(""), TI_IconKind_List},
@@ -135,14 +146,37 @@ TI_Vocab_Info ti_vocab_info_table[124] =
 {str8_lit_comp("insert_text"), str8_lit_comp(""), str8_lit_comp("Insert Text"), str8_lit_comp(""), TI_IconKind_Null},
 {str8_lit_comp("move_next"), str8_lit_comp(""), str8_lit_comp("Move Next"), str8_lit_comp(""), TI_IconKind_Null},
 {str8_lit_comp("move_prev"), str8_lit_comp(""), str8_lit_comp("Move Previous"), str8_lit_comp(""), TI_IconKind_Null},
+{str8_lit_comp("enable_cfg"), str8_lit_comp(""), str8_lit_comp("Enable"), str8_lit_comp(""), TI_IconKind_CheckHollow},
+{str8_lit_comp("disable_cfg"), str8_lit_comp(""), str8_lit_comp("Disable"), str8_lit_comp(""), TI_IconKind_CheckFilled},
+{str8_lit_comp("select_cfg"), str8_lit_comp(""), str8_lit_comp("Select"), str8_lit_comp(""), TI_IconKind_RadioHollow},
+{str8_lit_comp("deselect_cfg"), str8_lit_comp(""), str8_lit_comp("Deselect"), str8_lit_comp(""), TI_IconKind_RadioFilled},
+{str8_lit_comp("remove_cfg"), str8_lit_comp(""), str8_lit_comp("Remove"), str8_lit_comp(""), TI_IconKind_Trash},
+{str8_lit_comp("name_cfg"), str8_lit_comp(""), str8_lit_comp("Name"), str8_lit_comp(""), TI_IconKind_Null},
+{str8_lit_comp("condition_cfg"), str8_lit_comp(""), str8_lit_comp("Condition"), str8_lit_comp(""), TI_IconKind_Null},
+{str8_lit_comp("duplcate_cfg"), str8_lit_comp(""), str8_lit_comp("Duplicate"), str8_lit_comp(""), TI_IconKind_Duplicate},
+{str8_lit_comp("reloacte_cfg"), str8_lit_comp(""), str8_lit_comp("Relocate"), str8_lit_comp(""), TI_IconKind_Null},
+{str8_lit_comp("save_cfg_to_project"), str8_lit_comp(""), str8_lit_comp("Save To Project"), str8_lit_comp(""), TI_IconKind_Briefcase},
+{str8_lit_comp("edit_user_theme"), str8_lit_comp(""), str8_lit_comp("Edit User Theme"), str8_lit_comp(""), TI_IconKind_Palette},
+{str8_lit_comp("edit_project_theme"), str8_lit_comp(""), str8_lit_comp("Edit Project Theme"), str8_lit_comp(""), TI_IconKind_Palette},
+{str8_lit_comp("add_theme_color"), str8_lit_comp(""), str8_lit_comp("Add Theme Color"), str8_lit_comp(""), TI_IconKind_Palette},
+{str8_lit_comp("fork_theme"), str8_lit_comp(""), str8_lit_comp("Fork Theme"), str8_lit_comp(""), TI_IconKind_Palette},
+{str8_lit_comp("save_theme"), str8_lit_comp(""), str8_lit_comp("Save Theme"), str8_lit_comp(""), TI_IconKind_Save},
+{str8_lit_comp("save_and_set_theme"), str8_lit_comp(""), str8_lit_comp("Save And Set Theme"), str8_lit_comp(""), TI_IconKind_Save},
+{str8_lit_comp("add_target"), str8_lit_comp(""), str8_lit_comp("Add Target"), str8_lit_comp(""), TI_IconKind_Target},
+{str8_lit_comp("select_target"), str8_lit_comp(""), str8_lit_comp("Select Target"), str8_lit_comp(""), TI_IconKind_Target},
+{str8_lit_comp("enable_target"), str8_lit_comp(""), str8_lit_comp("Enable Target"), str8_lit_comp(""), TI_IconKind_CheckFilled},
+{str8_lit_comp("disable_target"), str8_lit_comp(""), str8_lit_comp("Disable Target"), str8_lit_comp(""), TI_IconKind_CheckHollow},
+{str8_lit_comp("remove_target"), str8_lit_comp(""), str8_lit_comp("Remove Target"), str8_lit_comp(""), TI_IconKind_Trash},
 {str8_lit_comp("push_query"), str8_lit_comp(""), str8_lit_comp("Push Query"), str8_lit_comp(""), TI_IconKind_Null},
 {str8_lit_comp("complete_query"), str8_lit_comp(""), str8_lit_comp("Complete Query"), str8_lit_comp(""), TI_IconKind_Null},
 {str8_lit_comp("cancel_query"), str8_lit_comp(""), str8_lit_comp("Cancel Query"), str8_lit_comp(""), TI_IconKind_Null},
 {str8_lit_comp("cancel_all_queries"), str8_lit_comp(""), str8_lit_comp("Cancel All Queries"), str8_lit_comp(""), TI_IconKind_Null},
 {str8_lit_comp("update_query"), str8_lit_comp(""), str8_lit_comp("Update Query"), str8_lit_comp(""), TI_IconKind_Null},
 {str8_lit_comp("toggle_dev_menu"), str8_lit_comp(""), str8_lit_comp("Toggle Developer Menu"), str8_lit_comp(""), TI_IconKind_Null},
+{str8_lit_comp("targets"), str8_lit_comp(""), str8_lit_comp("Targets"), str8_lit_comp(""), TI_IconKind_Target},
 {str8_lit_comp("output"), str8_lit_comp(""), str8_lit_comp("Output"), str8_lit_comp(""), TI_IconKind_List},
 {str8_lit_comp("text"), str8_lit_comp(""), str8_lit_comp("Text"), str8_lit_comp(""), TI_IconKind_FileOutline},
+{str8_lit_comp("bitmap"), str8_lit_comp(""), str8_lit_comp("Bitmap"), str8_lit_comp(""), TI_IconKind_Bitmap},
 {str8_lit_comp("geo3d"), str8_lit_comp(""), str8_lit_comp("Geometry (3D)"), str8_lit_comp(""), TI_IconKind_Cube},
 };
 
@@ -177,7 +211,7 @@ TI_Name_Schema_Info ti_name_schema_info_table[27] =
 {str8_lit_comp("machine"), 0, str8_lit_comp("x:{'label':code_string, @no_expand 'active':bool, 'unattached_processes':set, 'processes':set}")},
 };
 
-String8 ti_reg_slot_code_name_table[32] =
+String8 ti_reg_slot_code_name_table[33] =
 {
 {0},
 str8_lit_comp("window"),
@@ -195,6 +229,7 @@ str8_lit_comp("src_ui_key"),
 str8_lit_comp("off_px"),
 str8_lit_comp("reg_slot"),
 str8_lit_comp("ctx_expr"),
+str8_lit_comp("pid"),
 str8_lit_comp("force_confirm"),
 str8_lit_comp("force_focus"),
 str8_lit_comp("no_rich_tooltip"),
@@ -213,7 +248,7 @@ str8_lit_comp("cmd_name"),
 str8_lit_comp("wm_event"),
 };
 
-Rng1u64 ti_reg_slot_range_table[32] =
+Rng1u64 ti_reg_slot_range_table[33] =
 {
 {0},
 {OffsetOf(TI_Regs, window), OffsetOf(TI_Regs, window) + sizeof(CFG_ID)},
@@ -231,6 +266,7 @@ Rng1u64 ti_reg_slot_range_table[32] =
 {OffsetOf(TI_Regs, off_px), OffsetOf(TI_Regs, off_px) + sizeof(Vec2f32)},
 {OffsetOf(TI_Regs, reg_slot), OffsetOf(TI_Regs, reg_slot) + sizeof(TI_RegSlot)},
 {OffsetOf(TI_Regs, ctx_expr), OffsetOf(TI_Regs, ctx_expr) + sizeof(String8)},
+{OffsetOf(TI_Regs, pid), OffsetOf(TI_Regs, pid) + sizeof(u32)},
 {OffsetOf(TI_Regs, force_confirm), OffsetOf(TI_Regs, force_confirm) + sizeof(bool32)},
 {OffsetOf(TI_Regs, force_focus), OffsetOf(TI_Regs, force_focus) + sizeof(bool32)},
 {OffsetOf(TI_Regs, no_rich_tooltip), OffsetOf(TI_Regs, no_rich_tooltip) + sizeof(bool32)},
@@ -249,7 +285,7 @@ Rng1u64 ti_reg_slot_range_table[32] =
 {OffsetOf(TI_Regs, wm_event), OffsetOf(TI_Regs, wm_event) + sizeof(WM_Event *)},
 };
 
-TI_Cmd_Kind_Info ti_cmd_kind_info_table[114] =
+TI_Cmd_Kind_Info ti_cmd_kind_info_table[137] =
 {
 {0},
 { str8_lit_comp("exit"), str8_lit_comp("Exits the TIDE program."), str8_lit_comp("quit,close,abort"), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
@@ -356,14 +392,37 @@ TI_Cmd_Kind_Info ti_cmd_kind_info_table[114] =
 { str8_lit_comp("insert_text"), str8_lit_comp("Inserts the text that was used to cause this command."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
 { str8_lit_comp("move_next"), str8_lit_comp("Moves the cursor or selection to the next element."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
 { str8_lit_comp("move_prev"), str8_lit_comp("Moves the cursor or selection to the previous element."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("enable_cfg"), str8_lit_comp("Enables a config tree."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("disable_cfg"), str8_lit_comp("Disables a config tree."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("select_cfg"), str8_lit_comp("Selects a config tree, disabling all others of the same kind."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("deselect_cfg"), str8_lit_comp("Deselects a config tree."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("remove_cfg"), str8_lit_comp("Removes a config tree."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("name_cfg"), str8_lit_comp("Equips a config tree with a label."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("condition_cfg"), str8_lit_comp("Equips a config tree with a condition string."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("duplcate_cfg"), str8_lit_comp("Duplicates a config tree."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("reloacte_cfg"), str8_lit_comp("Relocates a config tree."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("save_cfg_to_project"), str8_lit_comp("Saves a config tree to the project."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("edit_user_theme"), str8_lit_comp("Edits the current user's theme."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_String, str8_lit_comp("query:themes")}},
+{ str8_lit_comp("edit_project_theme"), str8_lit_comp("Edits the current project's theme."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_String, str8_lit_comp("query:themes")}},
+{ str8_lit_comp("add_theme_color"), str8_lit_comp("Adds a new theme color."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("fork_theme"), str8_lit_comp("Imports all colors from the current theme so they can be individually edited."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("save_theme"), str8_lit_comp("Saves all theme colors to a new theme file."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*1)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*1)|(TI_QueryFlag_Required*1), TI_RegSlot_String, str8_lit_comp("")}},
+{ str8_lit_comp("save_and_set_theme"), str8_lit_comp("Saves all theme colors to a new theme file, and sets that theme as the selected theme."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*1)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*1)|(TI_QueryFlag_Required*1), TI_RegSlot_String, str8_lit_comp("")}},
+{ str8_lit_comp("add_target"), str8_lit_comp("Adds a new target."), str8_lit_comp("application,executable,measure"), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*1)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*1)|(TI_QueryFlag_Required*1), TI_RegSlot_FilePath, str8_lit_comp("folder:\"$input\"")}},
+{ str8_lit_comp("select_target"), str8_lit_comp("Selects a target."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*1)|(TI_QueryFlag_Required*1), TI_RegSlot_Cfg, str8_lit_comp("query:targets")}},
+{ str8_lit_comp("enable_target"), str8_lit_comp("Enables a target. In addition to all targets currently enabled."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*1)|(TI_QueryFlag_Required*1), TI_RegSlot_Cfg, str8_lit_comp("query:targets")}},
+{ str8_lit_comp("disable_target"), str8_lit_comp("Disables a target."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*1)|(TI_QueryFlag_Required*1), TI_RegSlot_Cfg, str8_lit_comp("query:targets")}},
+{ str8_lit_comp("remove_target"), str8_lit_comp("Removes a target."), str8_lit_comp("delete"), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*1)|(TI_QueryFlag_Required*1), TI_RegSlot_Cfg, str8_lit_comp("query:targets")}},
 { str8_lit_comp("push_query"), str8_lit_comp("Opens a new temporary query interface."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
 { str8_lit_comp("complete_query"), str8_lit_comp("Completes and closes a query."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
 { str8_lit_comp("cancel_query"), str8_lit_comp("Closes a query."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
 { str8_lit_comp("cancel_all_queries"), str8_lit_comp("Closes all queries."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
 { str8_lit_comp("update_query"), str8_lit_comp("Updates a query input."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
 { str8_lit_comp("toggle_dev_menu"), str8_lit_comp("Opens and closes the developer menu."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("targets"), str8_lit_comp("Opens a Targets tab."), {0}, str8_lit_comp("{tab_commands}"), TI_CmdKindFlag_ListInUI},
 { str8_lit_comp("output"), str8_lit_comp("Opens a Output tab."), {0}, str8_lit_comp("{tab_commands}"), TI_CmdKindFlag_ListInUI},
 { str8_lit_comp("text"), str8_lit_comp("Opens a Text tab."), {0}, str8_lit_comp("{tab_commands}"), TI_CmdKindFlag_ListInUI},
+{ str8_lit_comp("bitmap"), str8_lit_comp("Opens a Bitmap tab."), {0}, str8_lit_comp("{tab_commands}"), TI_CmdKindFlag_ListInUI},
 { str8_lit_comp("geo3d"), str8_lit_comp("Opens a Geometry (3D) tab."), {0}, str8_lit_comp("{tab_commands}"), TI_CmdKindFlag_ListInUI},
 };
 

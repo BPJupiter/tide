@@ -119,7 +119,7 @@ dr_fstrs_copy(Arena *arena, DR_FStr_List *src)
   for(DR_FStr_Node *src_n = src->first; src_n != 0; src_n = src_n->next)
   {
     DR_FStr fstr = src_n->v;
-    fstr.string = push_str8_copy(arena, fstr.string);
+    fstr.string = str8_copy(arena, fstr.string);
     dr_fstrs_push(arena, &dst, &fstr);
   }
   return dst;

@@ -367,7 +367,7 @@ fp_font_open(String8 path)
         status = RegEnumValueA(reg_key, 0, name, &name_size, 0, &type, (unsigned char *)data, &data_size);
         String8 user_fonts_path = str8_cstring(data);
         PathTask *task = push_array(scratch.arena, PathTask, 1);
-        task->path = push_str8f(scratch.arena, "%s/%S", user_fonts_path, path);
+        task->path = str8f(scratch.arena, "%s/%S", user_fonts_path, path);
         SLLQueuePush(first_task, last_task, task);
       }
       
@@ -376,7 +376,7 @@ fp_font_open(String8 path)
         char windows_path[256] = {0};
         GetWindowsDirectoryA(windows_path, sizeof(windows_path));
         PathTask *task = push_array(scratch.arena, PathTask, 1);
-        task->path = push_str8f(scratch.arena, "%s/Fonts/%S", windows_path, path);
+        task->path = str8f(scratch.arena, "%s/Fonts/%S", windows_path, path);
         SLLQueuePush(first_task, last_task, task);
       }
     }

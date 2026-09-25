@@ -5,21 +5,31 @@
 // Embedded Data
 
 @embed_file ti_icon_font_bytes:              "../data/icons.ttf"
+
 @embed_file ti_default_main_font_bytes:      "../data/segoeui.ttf"
+
 @embed_file ti_default_code_font_bytes:      "../data/JetBrainsMono-Regular.ttf"
+
 @embed_file ti_icon_file_bytes:              "../data/logo.ico"
-//@embed_file ti_cable_geo_json_bytes:         "../data/telegeography/cable-geo.json"
-//@embed_file ti_landing_point_geo_json_bytes: "../data/telegeography/landing-point-geo.json"
+
 @embed_file ti_test_fish_texture_bytes:      "../data/test/Fish.png"
-@embed_file ti_test_moops_texture_bytes:     "../data/test/Moops.png"
-//@embed_file ti_map_vertex_bytes:        "../data/generated/map_vertices.vb"
-//@embed_file ti_map_index_bytes:         "../data/generated/map_indices.ib"
+//@embed_file ti_test_moops_texture_bytes:     "../data/test/Moops.png"
+
+//////////////////////
+// Fixed Tab Tables
+
+@table(name   display_name    name_lower    is_query    icon    description)
+TI_WatchTabFastPathTable:
+{
+    {Targets  "Targets"       targets       1           Target  "Displays, and allows the editing of, the list of all targets."}
+}
 
 @table(name   display_name    name_lower    view    query    icon)
 TI_ViewTabFastPathTable:
 {
     {Output   "Output"        output        text    "query:output"    List           }
     {Text     "Text"          text          text    ""                FileOutline    }
+    {Bitmap   "Bitmap"        bitmap        bitmap  ""                Bitmap         }
     {Geo3D    "Geometry (3D)" geo3d         geo3d   ""                Cube           }
 }
 
@@ -32,6 +42,7 @@ TI_FixedTabTable:
 @gen
 {
     `#define TI_FixedTabXList \\`;
+    @expand(TI_WatchTabFastPathTable a) `$(a.is_query -> 'X(' .. a.name_lower .. ')') $(a.is_query == 0 -> 'Y(' .. a.name_lower .. ', watch, ""' .. ')')\\`;
     @expand(TI_ViewTabFastPathTable a) `Y($(a.name_lower), $(a.view), "$(a.query)")\\`;
     @expand(TI_FixedTabTable a) `Z($(a.name_lower))\\`;
     ``;
@@ -39,11 +50,13 @@ TI_FixedTabTable:
 
 @data(String8) ti_tab_fast_path_view_name_table:
 {
+    @expand(TI_WatchTabFastPathTable a) `str8_lit_comp("watch")`,
     @expand(TI_ViewTabFastPathTable a) `str8_lit_comp("$(a.view)")`,
 }
 
 @data(String8) ti_tab_fast_path_query_name_table:
 {
+    @expand(TI_WatchTabFastPathTable a) `str8_lit_comp("$(a.is_query -> 'query:' .. a.name_lower)")`,
     @expand(TI_ViewTabFastPathTable a) `str8_lit_comp("$(a.query)")`,
 }
 
@@ -56,6 +69,9 @@ TI_VocabTable:
 // pluralizing, you just append an `s` and so on.
 {
     {view                _                         "View"                _                           Binoculars                                              }
+    {target              _                         "Target"              _                           Target                                                  }
+    {arguments           arguments                 "Arguments"           "Arguments"                 Null                                                    }
+    {exe                 exes                      "Executable"          _                           Module                                                  }
     {color               _                         "Color"               _                           Palette                                                 }
     {theme_color         _                         "Theme Color"         _                           Palette                                                 }
     {window              _                         "Window"              _                           Window                                                  }
@@ -65,6 +81,10 @@ TI_VocabTable:
     {expression          _                         "Expression"          _                           Null                                                    }
     {getting_started     ""                        "Getting Started"     ""                          QuestionMark                                            }
     {text                ""                        "Text"                ""                          FileOutline                                             }
+    {user                _                         "User"                _                           Person                                                  }
+    {project             _                         "Project"             _                           Briefcase                                               }
+    {recent_project      _                         "Recent Project"      _                           Briefcase                                               }
+    {bitmap              _                         "Bitmap"              _                           Bitmap                                                  }
     {geo3d               ""                        "Geometry (3D)"       ""                          Cube                                                    }
 }
 
@@ -81,6 +101,7 @@ TI_VocabTable:
 {
     @expand(TI_VocabTable a)              `{str8_lit_comp("$(a.code_name)"), str8_lit_comp("$(a.code_name_plural == _ -> a.code_name .. 's')$(a.code_name_plural != _ -> a.code_name_plural)"), str8_lit_comp("$(a.display_name)"), str8_lit_comp("$(a.display_name_plural == _ -> a.display_name .. 's')$(a.display_name_plural != _ -> a.display_name_plural)"), TI_IconKind_$(a.icon_kind)}`;
     @expand(TI_CmdTable a)                `{str8_lit_comp("$(a.string)"), str8_lit_comp(""), str8_lit_comp("$(a.display_name)"), str8_lit_comp(""), TI_IconKind_$(a.canonical_icon)}`;
+    @expand(TI_WatchTabFastPathTable a)   `{str8_lit_comp("$(a.name_lower)"), str8_lit_comp(""), str8_lit_comp("$(a.display_name)"), str8_lit_comp(""), TI_IconKind_$(a.icon)}`;
     @expand(TI_ViewTabFastPathTable a)    `{str8_lit_comp("$(a.name_lower)"), str8_lit_comp(""), str8_lit_comp("$(a.display_name)"), str8_lit_comp(""), TI_IconKind_$(a.icon)}`;
 }
 
@@ -436,6 +457,7 @@ TI_RegTable:
     {String8       ctx_expr                    CtxExpr                   }
 
     // general parameters
+    {u32           pid                         PID                       }
     {bool32        force_confirm               ForceConfirm              }
     {bool32        force_focus                 ForceFocus                }
     {bool32        no_rich_tooltip             NoRichTooltip             }
@@ -634,6 +656,33 @@ TI_CmdTable:    //               |   |        |              |                  
     {MoveNext                     0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_next"                 "Move Next"                      "Moves the cursor or selection to the next element."                                                             ""                               ""        }
     {MovePrev                     0   1        1              ""                 Null        0  0  0  0  0  0  0                            Null                  "move_prev"                 "Move Previous"                  "Moves the cursor or selection to the previous element."                                                         ""                               ""        }
 
+    // general config expressions
+    {EnableCfg                    0   0        0              ""                 Null        0  0  0  0  0  0  0                            CheckHollow           "enable_cfg"                "Enable"                         "Enables a config tree."                                                                                         ""                               ""        }
+    {DisableCfg                   0   0        0              ""                 Null        0  0  0  0  0  0  0                            CheckFilled           "disable_cfg"               "Disable"                        "Disables a config tree."                                                                                        ""                               ""        }
+    {SelectCfg                    0   0        0              ""                 Null        0  0  0  0  0  0  0                            RadioHollow           "select_cfg"                "Select"                         "Selects a config tree, disabling all others of the same kind."                                                  ""                               ""        }
+    {DeselectCfg                  0   0        0              ""                 Null        0  0  0  0  0  0  0                            RadioFilled           "deselect_cfg"              "Deselect"                       "Deselects a config tree."                                                                                       ""                               ""        }
+    {RemoveCfg                    0   0        0              ""                 Null        0  0  0  0  0  0  0                            Trash                 "remove_cfg"                "Remove"                         "Removes a config tree."                                                                                         ""                               ""        }
+    {NameCfg                      0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "name_cfg"                  "Name"                           "Equips a config tree with a label."                                                                             ""                               ""        }
+    {ConditionCfg                 0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "condition_cfg"             "Condition"                      "Equips a config tree with a condition string."                                                                  ""                               ""        }
+    {DuplicateCfg                 0   0        0              ""                 Null        0  0  0  0  0  0  0                            Duplicate             "duplcate_cfg"              "Duplicate"                      "Duplicates a config tree."                                                                                      ""                               ""        }
+    {RelocateCfg                  0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "reloacte_cfg"              "Relocate"                       "Relocates a config tree."                                                                                       ""                               ""        }
+    {SaveToProject                0   0        0              ""                 Null        0  0  0  0  0  0  0                            Briefcase             "save_cfg_to_project"       "Save To Project"                "Saves a config tree to the project."                                                                            ""                               ""        }
+
+    // themes
+    {EditUserTheme                0   0        0              "query:themes"     String      0  0  0  0  0  0  0                            Palette               "edit_user_theme"           "Edit User Theme"                "Edits the current user's theme."                                                                                ""                               ""        }
+    {EditProjectTheme             0   0        0              "query:themes"     String      0  0  0  0  0  0  0                            Palette               "edit_project_theme"        "Edit Project Theme"             "Edits the current project's theme."                                                                             ""                               ""        }
+    {AddThemeColor                0   0        0              ""                 Null        0  0  0  0  0  0  0                            Palette               "add_theme_color"           "Add Theme Color"                "Adds a new theme color."                                                                                        ""                               ""        }
+    {ForkTheme                    0   0        0              ""                 Null        0  0  0  0  0  0  0                            Palette               "fork_theme"                "Fork Theme"                     "Imports all colors from the current theme so they can be individually edited."                                  ""                               ""        }
+    {SaveTheme                    0   0        0              ""                 String      1  0  0  0  0  1  1                            Save                  "save_theme"                "Save Theme"                     "Saves all theme colors to a new theme file."                                                                    ""                               ""        }
+    {SaveAndSetTheme              0   0        0              ""                 String      1  0  0  0  0  1  1                            Save                  "save_and_set_theme"        "Save And Set Theme"             "Saves all theme colors to a new theme file, and sets that theme as the selected theme."                         ""                               ""        }
+
+    // targets
+    {AddTarget                    0   1        1              `folder:\\"$input\\"` FilePath 1  0  0  0  0  1  1                            Target                "add_target"                "Add Target"                     "Adds a new target."                                                                                             "application,executable,measure" ""        }
+    {SelectTarget                 0   1        1              "query:targets"    Cfg         0  0  0  0  0  1  1                            Target                "select_target"             "Select Target"                  "Selects a target."                                                                                              ""                               ""        }
+    {EnableTarget                 0   1        1              "query:targets"    Cfg         0  0  0  0  0  1  1                            CheckFilled           "enable_target"             "Enable Target"                  "Enables a target. In addition to all targets currently enabled."                                                ""                               ""        }
+    {DisableTarget                0   1        1              "query:targets"    Cfg         0  0  0  0  0  1  1                            CheckHollow           "disable_target"            "Disable Target"                 "Disables a target."                                                                                             ""                               ""        }
+    {RemoveTarget                 0   1        1              "query:targets"    Cfg         0  0  0  0  0  1  1                            Trash                 "remove_target"             "Remove Target"                  "Removes a target."                                                                                              "delete"                         ""        }
+
     // query stack
     {PushQuery                    0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "push_query"                "Push Query"                     "Opens a new temporary query interface."                                                                         ""                               ""        }
     {CompleteQuery                0   0        0              ""                 Null        0  0  0  0  0  0  0                            Null                  "complete_query"            "Complete Query"                 "Completes and closes a query."                                                                                  ""                               ""        }
@@ -649,10 +698,11 @@ TI_CmdTable:    //               |   |        |              |                  
 {
     `Null`,
     @expand(TI_CmdTable a) `$(a.name)`,
+    @expand(TI_WatchTabFastPathTable a) `Open$(a.name)`,
     @expand(TI_ViewTabFastPathTable a) `Open$(a.name)`,
     COUNT,
 
-    `FirstTabFastPathCmd = TI_CmdKind_OpenOutput`,
+    `FirstTabFastPathCmd = TI_CmdKind_OpenTargets`,
 }
 
 @struct TI_Query:
@@ -677,6 +727,8 @@ TI_CmdTable:    //               |   |        |              |                  
     `{0}`,
     @expand(TI_CmdTable a)
         ```{ str8_lit_comp("$(a.string)"), str8_lit_comp("$(a.desc)"), str8_lit_comp("$(a.search_tags)"), str8_lit_comp("$(a.filter_tags)"),  TI_CmdKindFlag_ListInUI*$(a.ui_vis), {(TI_QueryFlag_AllowFiles*$(a.q_allow_files))|(TI_QueryFlag_AllowFolders*$(a.q_allow_folders))|(TI_QueryFlag_CodeInput*$(a.q_is_code))|(TI_QueryFlag_KeepOldInput*$(a.q_keep_oi))|(TI_QueryFlag_SelectOldInput*$(a.q_select_oi))|(TI_QueryFlag_Floating*$(a.q_floating))|(TI_QueryFlag_Required*$(a.q_required)), TI_RegSlot_$(a.q_slot), str8_lit_comp("$(a.q_expr)")}}```;
+    @expand(TI_WatchTabFastPathTable a)
+        ```{ str8_lit_comp("$(a.name_lower)"), str8_lit_comp("Opens a $(a.display_name) tab."), {0}, str8_lit_comp("{tab_commands}"), TI_CmdKindFlag_ListInUI}```;
     @expand(TI_ViewTabFastPathTable a)
         ```{ str8_lit_comp("$(a.name_lower)"), str8_lit_comp("Opens a $(a.display_name) tab."), {0}, str8_lit_comp("{tab_commands}"), TI_CmdKindFlag_ListInUI}```;
 }

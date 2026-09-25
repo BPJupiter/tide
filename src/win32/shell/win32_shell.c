@@ -39,7 +39,7 @@ internal String8 sh_pick_file(Arena *arena, String8 title, String8 initial_path)
 internal void sh_show_in_file_browser(String8 path)
 {
     Temp scratch = scratch_begin(0, 0);
-    String8 path_copy = push_str8_copy(scratch.arena, path);
+    String8 path_copy = str8_copy(scratch.arena, path);
     for (u64 idx = 0; idx < path_copy.size; idx += 1)
     {
         if (path_copy.str[idx] == '/')

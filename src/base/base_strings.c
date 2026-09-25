@@ -245,7 +245,7 @@ str16_cstring_capped(void *cstr, void *cap)
 internal String8
 upper_from_str8(Arena *arena, String8 string)
 {
-  string = push_str8_copy(arena, string);
+  string = str8_copy(arena, string);
   for(u64 idx = 0; idx < string.size; idx += 1)
   {
     string.str[idx] = upper_from_char(string.str[idx]);
@@ -256,7 +256,7 @@ upper_from_str8(Arena *arena, String8 string)
 internal String8
 lower_from_str8(Arena *arena, String8 string)
 {
-  string = push_str8_copy(arena, string);
+  string = str8_copy(arena, string);
   for(u64 idx = 0; idx < string.size; idx += 1)
   {
     string.str[idx] = lower_from_char(string.str[idx]);
@@ -267,7 +267,7 @@ lower_from_str8(Arena *arena, String8 string)
 internal String8
 backslashed_from_str8(Arena *arena, String8 string)
 {
-  string = push_str8_copy(arena, string);
+  string = str8_copy(arena, string);
   for(u64 idx = 0; idx < string.size; idx += 1)
   {
     string.str[idx] = char_is_slash(string.str[idx]) ? '\\' : string.str[idx];
@@ -645,7 +645,7 @@ str8f(Arena *arena, char *fmt, ...)
 {
   va_list args;
   va_start(args, fmt);
-  String8 result = push_str8fv(arena, fmt, args);
+  String8 result = str8fv(arena, fmt, args);
   va_end(args);
   return result;
 }
@@ -831,23 +831,23 @@ str8_from_memory_size(Arena *arena, u64 size)
   {
     if(size < Kilobytes(1))
     {
-      result = push_str8f(arena, "%llu byte%s", size, size == 1 ? "" : "s");
+      result = str8f(arena, "%llu byte%s", size, size == 1 ? "" : "s");
     }
     else if(size < Megabytes(1))
     {
-      result = push_str8f(arena, "%llu.%02llu KiB", size / Kilobytes(1), ((size * 100) / Kilobytes(1)) % 100);
+      result = str8f(arena, "%llu.%02llu KiB", size / Kilobytes(1), ((size * 100) / Kilobytes(1)) % 100);
     }
     else if(size < Gigabytes(1))
     {
-      result = push_str8f(arena, "%llu.%02llu MiB", size / Megabytes(1), ((size * 100) / Megabytes(1)) % 100);
+      result = str8f(arena, "%llu.%02llu MiB", size / Megabytes(1), ((size * 100) / Megabytes(1)) % 100);
     }
     else if(size < Terabytes(1))
     {
-      result = push_str8f(arena, "%llu.%02llu GiB", size / Gigabytes(1), ((size * 100) / Gigabytes(1)) % 100);
+      result = str8f(arena, "%llu.%02llu GiB", size / Gigabytes(1), ((size * 100) / Gigabytes(1)) % 100);
     }
     else
     {
-      result = push_str8f(arena, "%llu.%02llu TiB", size / Terabytes(1), ((size * 100) / Terabytes(1)) % 100);
+      result = str8f(arena, "%llu.%02llu TiB", size / Terabytes(1), ((size * 100) / Terabytes(1)) % 100);
     }
   }
   return result;
@@ -860,18 +860,18 @@ str8_from_count(Arena *arena, u64 count)
   {
     if(count < 1 * 1000)
     {
-      result = push_str8f(arena, "%llu", count);
+      result = str8f(arena, "%llu", count);
     }
     else if(count < 1000000)
     {
       u64 frac = ((count * 100) / 1000) % 100;
       if(frac > 0)
       {
-        result = push_str8f(arena, "%llu.%02lluK", count / 1000, frac);
+        result = str8f(arena, "%llu.%02lluK", count / 1000, frac);
       }
       else
       {
-        result = push_str8f(arena, "%lluK", count / 1000);
+        result = str8f(arena, "%lluK", count / 1000);
       }
     }
     else if(count < 1000000000)
@@ -879,11 +879,11 @@ str8_from_count(Arena *arena, u64 count)
       u64 frac = ((count * 100) / 1000000) % 100;
       if(frac > 0)
       {
-        result = push_str8f(arena, "%llu.%02lluM", count / 1000000, frac);
+        result = str8f(arena, "%llu.%02lluM", count / 1000000, frac);
       }
       else
       {
-        result = push_str8f(arena, "%lluM", count / 1000000);
+        result = str8f(arena, "%lluM", count / 1000000);
       }
     }
     else
@@ -891,11 +891,11 @@ str8_from_count(Arena *arena, u64 count)
       u64 frac = ((count * 100) * 1000000000) % 100;
       if(frac > 0)
       {
-        result = push_str8f(arena, "%llu.%02lluB", count / 1000000000, frac);
+        result = str8f(arena, "%llu.%02lluB", count / 1000000000, frac);
       }
       else
       {
-        result = push_str8f(arena, "%lluB", count / 1000000000, frac);
+        result = str8f(arena, "%lluB", count / 1000000000, frac);
       }
     }
   }
@@ -913,7 +913,7 @@ str8_from_bits_u32(Arena *arena, u32 x)
   u8 c5 = 'a' + ((x >>  8) & 0xf);
   u8 c6 = 'a' + ((x >>  4) & 0xf);
   u8 c7 = 'a' + ((x >>  0) & 0xf);
-  String8 result = push_str8f(arena, "%c%c%c%c%c%c%c%c", c0, c1, c2, c3, c4, c5, c6, c7);
+  String8 result = str8f(arena, "%c%c%c%c%c%c%c%c", c0, c1, c2, c3, c4, c5, c6, c7);
   return result;
 }
 
@@ -936,7 +936,7 @@ str8_from_bits_u64(Arena *arena, u64 x)
   u8 cd = 'a' + ((x >>  8) & 0xf);
   u8 ce = 'a' + ((x >>  4) & 0xf);
   u8 cf = 'a' + ((x >>  0) & 0xf);
-  String8 result = push_str8f(arena,
+  String8 result = str8f(arena,
                               "%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c",
                               c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, ca, cb, cc, cd, ce, cf);
   return result;
@@ -1030,7 +1030,7 @@ str8_from_s64(Arena *arena, s64 number, u32 radix, u8 min_digits, u8 digit_group
   if(number < 0) {
       Temp scratch = scratch_begin(&arena, 1);
       String8 numeric_part = str8_from_u64(scratch.arena, (u64)(-number), radix, min_digits, digit_group_separator);
-      result = push_str8f(arena, "-%S", numeric_part);
+      result = str8f(arena, "-%S", numeric_part);
       scratch_end(scratch);
   }
   else {
@@ -1223,7 +1223,7 @@ str8_list_pushf(Arena *arena, String8_List *list, char *fmt, ...)
 {
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(arena, fmt, args);
+  String8 string = str8fv(arena, fmt, args);
   String8_Node *result = str8_list_push(arena, list, string);
   va_end(args);
   return result;
@@ -1234,7 +1234,7 @@ str8_list_push_frontf(Arena *arena, String8_List *list, char *fmt, ...)
 {
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(arena, fmt, args);
+  String8 string = str8fv(arena, fmt, args);
   String8_Node *result = str8_list_push_front(arena, list, string);
   va_end(args);
   return result;
@@ -1262,7 +1262,7 @@ str8_list_copy(Arena *arena, String8_List *list)
   for(String8_Node *node = list->first; node != 0; node = node->next)
   {
     String8_Node *new_node = push_array_no_zero(arena, String8_Node, 1);
-    String8 new_string = push_str8_copy(arena, node->string);
+    String8 new_string = str8_copy(arena, node->string);
     str8_list_push_node_set_string(&result, new_node, new_string);
   }
   return result;
@@ -1449,7 +1449,7 @@ str8_array_copy(Arena *arena, String8_Array array)
   result.v = push_array(arena, String8, result.count);
   for EachIndex(idx, result.count)
   {
-    result.v[idx] = push_str8_copy(arena, array.v[idx]);
+    result.v[idx] = str8_copy(arena, array.v[idx]);
   }
   return result;
 }
@@ -1882,7 +1882,7 @@ path_absolute_dst_from_relative_dst_src(Arena *arena, String8 dst, String8 src)
   if(dst.size != 0 && dst_style == PathStyle_Relative)
   {
     Temp scratch = scratch_begin(&arena, 1);
-    String8 dst_from_src_absolute = push_str8f(scratch.arena, "%S/%S", src, dst);
+    String8 dst_from_src_absolute = str8f(scratch.arena, "%S/%S", src, dst);
     String8_List dst_from_src_absolute_parts = str8_split_path(scratch.arena, dst_from_src_absolute);
     PathStyle dst_from_src_absolute_style = path_style_from_str8(src);
     str8_path_list_resolve_dots_in_place(&dst_from_src_absolute_parts, dst_from_src_absolute_style);
@@ -2405,7 +2405,7 @@ string_from_date_time(Arena *arena, Date_Time *date_time)
   {
     ampm = "pm";
   }
-  String8 result = push_str8f(arena, "%d %s %d, %02d:%02d:%02d %s",
+  String8 result = str8f(arena, "%d %s %d, %02d:%02d:%02d %s",
                               date_time->day, mon_str, date_time->year,
                               adjusted_hour, date_time->min, date_time->sec, ampm);
   return result;
@@ -2655,7 +2655,7 @@ raw_from_escaped_str8(Arena *arena, String8 string)
         case '"': replace_byte = '"';  break;
         case '?': replace_byte = '?';  break;
       }
-      String8 replace_string = push_str8_copy(scratch.arena, str8(&replace_byte, 1));
+      String8 replace_string = str8_copy(scratch.arena, str8(&replace_byte, 1));
       str8_list_push(scratch.arena, &strs, replace_string);
       idx += 1;
       start += 1;
@@ -2703,7 +2703,7 @@ wrapped_lines_from_string(Arena *arena, String8 string, u64 first_line_max_width
       if (substr.size > width_this_line){
         String8 line = str8_substr(string, line_range);
         if (wrapped_indent_level > 0){
-          line = push_str8f(arena, "%.*s%S", wrapped_indent_level, spaces, line);
+          line = str8f(arena, "%.*s%S", wrapped_indent_level, spaces, line);
         }
         str8_list_push(arena, &list, line);
         line_range = r1u64(line_range.max+1, candidate_line_range.max);
@@ -2717,7 +2717,7 @@ wrapped_lines_from_string(Arena *arena, String8 string, u64 first_line_max_width
   if (line_range.min < string.size && line_range.max > line_range.min){
     String8 line = str8_substr(string, line_range);
     if (wrapped_indent_level > 0){
-      line = push_str8f(arena, "%.*s%S", wrapped_indent_level, spaces, line);
+      line = str8f(arena, "%.*s%S", wrapped_indent_level, spaces, line);
     }
     str8_list_push(arena, &list, line);
   }

@@ -220,6 +220,9 @@ typedef struct TI_Drop_Completion_Task TI_Drop_Completion_Task;
 struct TI_Drop_Completion_Task
 {
     TI_Drop_Completion_Task *next;
+    bool32 exe;
+    bool32 pcap;
+    bool32 pcapng;
     String8_List paths;
 };
 

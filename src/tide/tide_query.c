@@ -49,8 +49,8 @@ internal TI_Query_Item_List ti_query_items_from_string(Arena *arena, String8 str
                     }
                     TI_Query_Item *item = push_array(arena, TI_Query_Item, 1);
                     item->display = str8_copy(arena, info.name);
-                    item->value = push_str8f(arena, "%S%s%S", folder_path,
-                                             folder_path.size != 0 ? "/" : "", info.name);
+                    item->value = str8f(arena, "%S%s%S", folder_path,
+                                        folder_path.size != 0 ? "/" : "", info.name);
                     item->icon = is_folder ? TI_IconKind_FolderClosedFilled : TI_IconKind_FileOutline;
                     SLLQueuePush(out.first, out.last, item);
                     out.count += 1;
@@ -64,7 +64,7 @@ internal TI_Query_Item_List ti_query_items_from_string(Arena *arena, String8 str
             if (str8_match(arg, str8_lit("commands"), 0) ||
                 str8_match(str8_postfix(arg, 9), str8_lit("_commands"), 0))
             {
-                String8 collection_filter_tag = push_str8f(scratch.arena, "{%S}", arg);
+                String8 collection_filter_tag = str8f(scratch.arena, "{%S}", arg);
                 for EachNonZeroEnumVal(TI_CmdKind, k)
                 {
                     TI_Cmd_Kind_Info *info = &ti_cmd_kind_info_table[k];
@@ -147,7 +147,7 @@ internal TI_Query_Item_List ti_query_items_from_string(Arena *arena, String8 str
                         TI_Query_Item *item = push_array(arena, TI_Query_Item, 1);
                         item->display = str8_copy(arena, title);
                         item->cfg = n->v->id;
-                        item->value = push_str8f(arena, "$%I64x", n->v->id);
+                        item->value = str8f(arena, "$%I64x", n->v->id);
                         item->icon = ti_icon_kind_from_code_name(cfg_name);
                         SLLQueuePush(out.first, out.last, item);
                         out.count += 1;
@@ -173,7 +173,7 @@ internal bool32 ti_query_item_complete(String8 cmd_name, TI_Query_Item *item)
     bool32 did_cmd = 1;
     if (item->icon == TI_IconKind_FolderClosedFilled)
     {
-        ti_cmd(TI_CmdKind_UpdateQuery, .string = push_str8f(ti_frame_arena(), "%S/", item->value));
+        ti_cmd(TI_CmdKind_UpdateQuery, .string = str8f(ti_frame_arena(), "%S/", item->value));
     }
     else if (cmd_name.size != 0)
     {

@@ -21,7 +21,7 @@ md_msg_list_pushf(Arena *arena, MD_Msg_List *msgs, MD_Node *node, MD_MsgKind kin
 {
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(arena, fmt, args);
+  String8 string = str8fv(arena, fmt, args);
   md_msg_list_push(arena, msgs, node, kind, string);
   va_end(args);
 }
@@ -487,8 +487,8 @@ md_tree_copy(Arena *arena, MD_Node *src_root)
       dst->first_tag = dst->last_tag = &md_nil_node;
       dst->kind  = src->kind;
       dst->flags = src->flags;
-      dst->string = push_str8_copy(arena, src->string);
-      dst->raw_string = push_str8_copy(arena, src->raw_string);
+      dst->string = str8_copy(arena, src->string);
+      dst->raw_string = str8_copy(arena, src->raw_string);
       dst->src_offset = src->src_offset;
       dst->parent = dst_parent;
       if(dst_parent != &md_nil_node)
@@ -943,7 +943,7 @@ if(work_top == 0) {work_top = &broken_work;}\
         str8_match(token_string, str8_lit(":"), 0)))
     {
       MD_Node *error = md_push_node(arena, MD_NodeKind_ErrorMarker, 0, token_string, token_string, token->range.min);
-      String8 error_string = push_str8f(arena, "Unexpected reserved symbol \"%S\".", token_string);
+      String8 error_string = str8f(arena, "Unexpected reserved symbol \"%S\".", token_string);
       md_msg_list_push(arena, &msgs, error, MD_MsgKind_Error, error_string);
       token += 1;
       goto end_consume;
@@ -1081,7 +1081,7 @@ if(work_top == 0) {work_top = &broken_work;}\
       {
         MD_Node *node = work_top->parent;
         MD_Node *error = md_push_node(arena, MD_NodeKind_ErrorMarker, 0, token_string, token_string, token->range.min);
-        String8 error_string = push_str8f(arena, "More than two newlines following \"%S\", which has implicitly-delimited children, resulting in an empty list of children.", node->string);
+        String8 error_string = str8f(arena, "More than two newlines following \"%S\", which has implicitly-delimited children, resulting in an empty list of children.", node->string);
         md_msg_list_push(arena, &msgs, error, MD_MsgKind_Warning, error_string);
         MD_ParseWorkPop();
       }
@@ -1122,7 +1122,7 @@ if(work_top == 0) {work_top = &broken_work;}\
     //- rjf: no consumption -> unexpected token! we don't know what to do with this.
     {
       MD_Node *error = md_push_node(arena, MD_NodeKind_ErrorMarker, 0, token_string, token_string, token->range.min);
-      String8 error_string = push_str8f(arena, "Unexpected \"%S\" token.", token_string);
+      String8 error_string = str8f(arena, "Unexpected \"%S\" token.", token_string);
       md_msg_list_push(arena, &msgs, error, MD_MsgKind_Error, error_string);
       token += 1;
     }

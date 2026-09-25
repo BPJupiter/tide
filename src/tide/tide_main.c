@@ -22,8 +22,8 @@
 #include "win32/win32_inc.h"
 #include "artifact_cache/artifact_cache.h"
 #include "mdesk/mdesk.h"
-#include "net/net_inc.h"
-#include "dns/dns_inc.h"
+//#include "net/net_inc.h"
+//#include "dns/dns_inc.h"
 #include "window_manager/window_manager_inc.h"
 #include "shell/shell_inc.h"
 #include "config/config_inc.h"
@@ -42,8 +42,8 @@
 #include "base/base_inc.c"
 #include "artifact_cache/artifact_cache.c"
 #include "mdesk/mdesk.c"
-#include "net/net_inc.c"
-#include "dns/dns_inc.c"
+//#include "net/net_inc.c"
+//#include "dns/dns_inc.c"
 #include "window_manager/window_manager_inc.c"
 #include "shell/shell_inc.c"
 #include "config/config_inc.c"
@@ -96,7 +96,7 @@ void entry_point(Cmd_Line *cmdline)
     if (g_logs_folder.size == 0)
     {
         String8 user_program_logs_data_path = get_process_info()->user_program_logs_data_path;
-        g_logs_folder = push_str8f(scratch.arena, "%S/app/logs", user_program_logs_data_path);
+        g_logs_folder = str8f(scratch.arena, "%S/app/logs", user_program_logs_data_path);
     }
     make_directory(g_logs_folder);
 

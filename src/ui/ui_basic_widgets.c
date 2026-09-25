@@ -39,7 +39,7 @@ ui_labelf(char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   UI_Signal result = ui_label(string);
   scratch_end(scratch);
@@ -67,7 +67,7 @@ ui_label_multilinef(f32 max, char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   ui_label_multiline(max, string);
   scratch_end(scratch);
@@ -93,7 +93,7 @@ ui_buttonf(char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   UI_Signal result = ui_button(string);
   scratch_end(scratch);
@@ -118,7 +118,7 @@ ui_hover_labelf(char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   UI_Signal sig = ui_hover_label(string);
   scratch_end(scratch);
@@ -354,7 +354,7 @@ ui_line_editf(u64 *cursor, u64 *mark, u8 *edit_buffer, u64 edit_buffer_size, u64
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   UI_Signal result = ui_line_edit(cursor, mark, edit_buffer, edit_buffer_size, edit_string_size_out, pre_edit_value, string);
   scratch_end(scratch);
@@ -423,7 +423,7 @@ ui_imagef(R_Handle texture, R_Tex2DSampleKind sample_kind, Rng2f32 region, Vec4f
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   UI_Signal result = ui_image(texture, sample_kind, region, tint, blur, string);
   scratch_end(scratch);
@@ -451,7 +451,7 @@ ui_expanderf(bool32 is_expanded, char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   UI_Signal sig = ui_expander(is_expanded, string);
   scratch_end(scratch);
@@ -492,7 +492,7 @@ ui_sort_headerf(bool32 sorting, bool32 ascending, char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   UI_Signal sig = ui_sort_header(sorting, ascending, string);
   scratch_end(scratch);
@@ -694,7 +694,7 @@ ui_sat_val_pickerf(f32 hue, f32 *out_sat, f32 *out_val, char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   UI_Signal sig = ui_sat_val_picker(hue, out_sat, out_val, string);
   scratch_end(scratch);
@@ -798,7 +798,7 @@ ui_hue_pickerf(f32 *out_hue, f32 sat, f32 val, char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   UI_Signal sig = ui_hue_picker(out_hue, sat, val, string);
   scratch_end(scratch);
@@ -883,7 +883,7 @@ ui_alpha_pickerf(f32 *out_alpha, char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   UI_Signal sig = ui_alpha_picker(out_alpha, string);
   scratch_end(scratch);
@@ -953,7 +953,7 @@ ui_pane_beginf(Rng2f32 rect, char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   UI_Box *box = ui_pane_begin(rect, string);
   scratch_end(scratch);
@@ -1097,7 +1097,7 @@ ui_table_beginf(u64 column_pct_count, f32 **column_pcts, char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   ui_table_begin(column_pct_count, column_pcts, string);
   scratch_end(scratch);
@@ -1127,7 +1127,7 @@ ui_named_table_vector_beginf(char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   UI_Box *vector = ui_named_table_vector_begin(string);
   scratch_end(scratch);

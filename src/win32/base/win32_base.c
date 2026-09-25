@@ -365,7 +365,7 @@ internal void set_platform_thread_name(String8 name)
     
     // rjf: raise-exception style
     {
-        String8 name_copy = push_str8_copy(scratch.arena, name);
+        String8 name_copy = str8_copy(scratch.arena, name);
 #pragma pack(push,8)
         typedef struct THREADNAME_INFO THREADNAME_INFO;
         struct THREADNAME_INFO {
@@ -1005,7 +1005,7 @@ internal void file_map_view_close(File_Map map, void *ptr, Rng1u64 range)
 internal File_Iter *file_iter_begin(Arena *arena, String8 path, FileIterFlags flags)
 {
     Temp scratch = scratch_begin(&arena, 1);
-    String8 path_with_wildcard = push_str8_cat(scratch.arena, path, str8_lit("\\*"));
+    String8 path_with_wildcard = str8_cat(scratch.arena, path, str8_lit("\\*"));
     String16 path16 = str16_from_8(scratch.arena, path_with_wildcard);
     File_Iter *iter = push_array(arena, File_Iter, 1);
     iter->flags = flags;
@@ -1331,7 +1331,7 @@ internal Void_Proc *library_load_proc(Library lib, String8 name)
 {
     Temp scratch = scratch_begin(0, 0);
     HMODULE mod = (HMODULE)lib.u64[0];
-    name = push_str8_copy(scratch.arena, name);
+    name = str8_copy(scratch.arena, name);
     Void_Proc *result = (Void_Proc*)GetProcAddress(mod, (LPCSTR)name.str);
     scratch_end(scratch);
     return result;
@@ -1729,7 +1729,7 @@ internal void w32_entry_point_caller(int argc, WCHAR **wargv)
             u8 buffer[MAX_COMPUTERNAME_LENGTH + 1] = {0};
             DWORD size = MAX_COMPUTERNAME_LENGTH + 1;
             if (GetComputerNameA((char *)buffer, &size)) {
-                info->machine_name = push_str8_copy(arena, str8(buffer, size));
+                info->machine_name = str8_copy(arena, str8(buffer, size));
             }
         }
     }
@@ -1742,7 +1742,7 @@ internal void w32_entry_point_caller(int argc, WCHAR **wargv)
             u16 *buffer = push_array_no_zero(scratch.arena, u16, size);
             DWORD length = GetModuleFileNameW(0, (WCHAR *)buffer, size);
             String8 name8 = str8_from_16(scratch.arena, str16(buffer, length));
-            info->binary_file_path = push_str8_copy(arena, name8);
+            info->binary_file_path = str8_copy(arena, name8);
             info->binary_path = str8_chop_last_slash(info->binary_file_path);
             scratch_end(scratch);
         }

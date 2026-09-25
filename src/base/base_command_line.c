@@ -45,7 +45,7 @@ internal Cmd_Line_Opt *cmd_line_insert_opt(Arena *arena, Cmd_Line *cmdline, Stri
         var = push_array(arena, Cmd_Line_Opt, 1);
         var->hash_next = *slot;
         var->hash = u64_hash_from_str8(string);
-        var->string = push_str8_copy(arena, string);
+        var->string = str8_copy(arena, string);
         var->value_strings = values;
         String_Join join = {0};
         join.pre = str8_lit("");
@@ -146,7 +146,7 @@ internal Cmd_Line cmd_line_from_string_list(Arena *arena, String8_List command_l
     {
         u64 idx = 0;
         for (String8_Node *n = command_line.first; n != 0; n = n->next) {
-            parsed.argv[idx] = (char *)push_str8_copy(arena, n->string).str;
+            parsed.argv[idx] = (char *)str8_copy(arena, n->string).str;
             idx += 1;
         }
     }

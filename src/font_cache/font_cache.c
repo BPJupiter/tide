@@ -143,7 +143,7 @@ fnt_tag_from_path(String8 path)
     existing_node->tag = result;
     existing_node->handle = handle;
     existing_node->metrics = fp_metrics_from_font(existing_node->handle);
-    existing_node->path = push_str8_copy(fnt_state->permanent_arena, path);
+    existing_node->path = str8_copy(fnt_state->permanent_arena, path);
     SLLQueuePush_N(slot->first, slot->last, existing_node, hash_next);
   }
   
@@ -874,7 +874,7 @@ fnt_run_from_string(FNT_Tag tag, f32 size, f32 base_align_px, f32 tab_size_px, F
   {
     run_node = push_array(fnt_state->frame_arena, FNT_Run_Cache_Node, 1);
     SLLQueuePush(run_slot->first, run_slot->last, run_node);
-    run_node->string = push_str8_copy(fnt_state->frame_arena, string);
+    run_node->string = str8_copy(fnt_state->frame_arena, string);
     run_node->run = run;
   }
   

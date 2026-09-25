@@ -341,7 +341,7 @@ cfg_string_from_tree(Arena *arena, CFG_Schema_Table *schema_table, String8 root_
               String8 value = c->string;
               String8_Txt_Pt_Pair parts = str8_txt_pt_pair_from_string(value);
               String8 path_relative = path_relative_dst_from_absolute_dst_src(scratch.arena, parts.string, root_path);
-              c_serialized_string = push_str8f(arena, "%S:%I64d:%I64d", path_relative, parts.pt.line, parts.pt.column);
+              c_serialized_string = str8f(arena, "%S:%I64d:%I64d", path_relative, parts.pt.line, parts.pt.column);
             }
           }
           
@@ -695,7 +695,7 @@ cfg_node_newf(CFG_State *state, CFG_Node *parent, char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   CFG_Node *result = cfg_node_new(state, parent, string);
   va_end(args);
   scratch_end(scratch);
@@ -706,7 +706,7 @@ internal CFG_Node *
 cfg_node_new_replace(CFG_State *state, CFG_Node *parent, String8 string)
 {
   Temp scratch = scratch_begin(0, 0);
-  string = push_str8_copy(scratch.arena, string);
+  string = str8_copy(scratch.arena, string);
   for(CFG_Node *child = parent->first->next, *next = &cfg_nil_node; child != &cfg_nil_node; child = next)
   {
     next = child->next;
@@ -728,7 +728,7 @@ cfg_node_new_replacef(CFG_State *state, CFG_Node *parent, char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   CFG_Node *result = cfg_node_new_replace(state, parent, string);
   va_end(args);
   scratch_end(scratch);
@@ -775,7 +775,7 @@ cfg_node_equip_stringf(CFG_State *state, CFG_Node *node, char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   cfg_node_equip_string(state, node, string);
   va_end(args);
   scratch_end(scratch);
@@ -860,7 +860,7 @@ cfg_node_ptr_list_from_string(Arena *arena, CFG_State *state, CFG_Schema_Table *
           else if(str8_match(schema->first->string, str8_lit("path_pt"), 0))
           {
             String8_Txt_Pt_Pair parts = str8_txt_pt_pair_from_string(src_n_string__raw);
-            src_n_string__raw = push_str8f(scratch.arena, "%S:%I64d:%I64d", path_absolute_dst_from_relative_dst_src(scratch.arena, parts.string, root_path), parts.pt.line, parts.pt.column);
+            src_n_string__raw = str8f(scratch.arena, "%S:%I64d:%I64d", path_absolute_dst_from_relative_dst_src(scratch.arena, parts.string, root_path), parts.pt.line, parts.pt.column);
           }
         }
         dst_n_string = src_n_string__raw;

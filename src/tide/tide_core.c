@@ -14,10 +14,10 @@ internal void ti_regs_copy_contents(Arena *arena, TI_Regs *dst, TI_Regs *src)
 {
     MemoryCopyStruct(dst, src);
     dst->cfg_list    = cfg_id_list_copy(arena, &src->cfg_list);
-    dst->file_path   = push_str8_copy(arena, src->file_path);
-    dst->string      = push_str8_copy(arena, src->string);
-    dst->expr        = push_str8_copy(arena, src->expr);
-    dst->cmd_name    = push_str8_copy(arena, src->cmd_name);
+    dst->file_path   = str8_copy(arena, src->file_path);
+    dst->string      = str8_copy(arena, src->string);
+    dst->expr        = str8_copy(arena, src->expr);
+    dst->cmd_name    = str8_copy(arena, src->cmd_name);
     if(dst->cfg_list.count == 0 && dst->cfg != 0)
     {
         cfg_id_list_push(arena, &dst->cfg_list, dst->cfg);
@@ -38,7 +38,7 @@ ti_regs_copy(Arena *arena, TI_Regs *src)
 internal void ti_cmd_list_push_new(Arena *arena, TI_Cmd_List *cmds, String8 name, TI_Regs *regs)
 {
     TI_Cmd_Node *n = push_array(arena, TI_Cmd_Node, 1);
-    n->cmd.name = push_str8_copy(arena, name);
+    n->cmd.name = str8_copy(arena, name);
     n->cmd.regs = ti_regs_copy(arena, regs);
     DLLPushBack(cmds->first, cmds->last, n);
     cmds->count += 1;
@@ -60,7 +60,7 @@ internal void ti_view_ui_rule_map_insert(Arena *arena, TI_View_UI_Rule_Map *map,
     u64 hash = u64_hash_from_str8(string);
     u64 slot_idx = hash%map->slots_count;
     TI_View_UI_Rule_Node *n = push_array(arena, TI_View_UI_Rule_Node, 1);
-    n->v.name = push_str8_copy(arena, string);
+    n->v.name = str8_copy(arena, string);
     n->v.ui = ui;
     SLLQueuePush(map->slots[slot_idx].first, map->slots[slot_idx].last, n);
 }
@@ -409,7 +409,7 @@ internal CFG_Node *ti_immediate_cfg_from_keyf(char *fmt, ...)
     Temp scratch = scratch_begin(0, 0);
     va_list args;
     va_start(args, fmt);
-    String8 key = push_str8fv(scratch.arena, fmt, args);
+    String8 key = str8fv(scratch.arena, fmt, args);
     CFG_Node *result = ti_immediate_cfg_from_key(key);
     va_end(args);
     scratch_end(scratch);
@@ -1153,7 +1153,7 @@ internal void ti_store_view_paramf(String8 key, char *fmt, ...)
     Temp scratch = scratch_begin(0, 0);
     va_list args;
     va_start(args, fmt);
-    String8 string = push_str8fv(scratch.arena, fmt, args);
+    String8 string = str8fv(scratch.arena, fmt, args);
     ti_store_view_param(key, string);
     va_end(args);
     scratch_end(scratch);
@@ -1174,7 +1174,7 @@ internal String8 ti_push_window_title(Arena *arena)
         prof_path = str8_chop_last_dot(prof_path);
         project_name = str8_skip_last_slash(prof_path);
     }
-    String8 result = push_str8f(arena,
+    String8 result = str8f(arena,
                                 "%S%s%s",
                                 project_name,
                                 project_name.size != 0 ? " - " : "",
@@ -1846,7 +1846,6 @@ internal void ti_window_frame(void)
                 }
                 
                 // rjf: option to add EXEs as targets
-                /*
                 if(task->exe)
                 {
                     if(ui_clicked(ti_icon_buttonf(TI_IconKind_Target, 0, "Add as target%s", (task->paths.node_count > 1) ? "s" : "")))
@@ -1858,7 +1857,6 @@ internal void ti_window_frame(void)
                         done = 1;
                     }
                 }
-                */
 
                 /*
                 // rjf: option to load pcap files
@@ -2089,7 +2087,7 @@ internal void ti_window_frame(void)
                         // TODO: @hack need to escape because this is putting the user's input
                         // into a containing "folder:"..."" in all cases. but this is kinda shady
                         // and should be replaced long-term with something more solid...
-                        query_expr = push_str8f(scratch.arena, "%S%S%S", pre_insertion, input_text__escaped, post_insertion);
+                        query_expr = str8f(scratch.arena, "%S%S%S", pre_insertion, input_text__escaped, post_insertion);
                     }
                 }
 
@@ -3679,7 +3677,7 @@ internal void ti_window_frame(void)
                                                     {
                                                         ti_cmd(TI_CmdKind_PushQuery,
                                                                .ui_key       = sig.box->key,
-                                                               .expr         = push_str8f(scratch.arena, "query:config.$%I64x", tab->id));
+                                                               .expr         = str8f(scratch.arena, "query:config.$%I64x", tab->id));
                                                     } 
                                                 }
                                             }
@@ -3725,7 +3723,7 @@ internal void ti_window_frame(void)
                                             ti_cmd(TI_CmdKind_CancelAllQueries);
                                             ti_cmd(TI_CmdKind_PushQuery,
                                                    .ui_key       = sig.box->key,
-                                                   .expr         = push_str8f(scratch.arena, "query:config.$%I64x", tab->id));
+                                                   .expr         = str8f(scratch.arena, "query:config.$%I64x", tab->id));
                                         }
                                         else if (ui_middle_clicked(sig))
                                         {
@@ -4507,9 +4505,9 @@ internal void ti_window_frame(void)
             dr_rect(hover_debug_box->rect, v4f32(1, 1, 1, 0.2f), 0, 0, 0);
             R_Rect2D_Inst *border = dr_rect(hover_debug_box->rect, v4f32(1, 0, 0, 1.f), 0, 0, 0);
             MemoryCopyArray(border->corner_radii, hover_debug_box->corner_radii);
-            dr_text(font, 12.f, 0, 0, FNT_RasterFlag_Hinted, p, v4f32(1, 1, 1, 1), push_str8f(scratch.arena, "key: 0x%I64x", hover_debug_box->key.u64[0]));
+            dr_text(font, 12.f, 0, 0, FNT_RasterFlag_Hinted, p, v4f32(1, 1, 1, 1), str8f(scratch.arena, "key: 0x%I64x", hover_debug_box->key.u64[0]));
             p.y += 20.f;
-            dr_text(font, 12.f, 0, 0, FNT_RasterFlag_Hinted, p, v4f32(1, 1, 1, 1), push_str8f(scratch.arena, "string: '%S'", hover_debug_box->string));
+            dr_text(font, 12.f, 0, 0, FNT_RasterFlag_Hinted, p, v4f32(1, 1, 1, 1), str8f(scratch.arena, "string: '%S'", hover_debug_box->string));
             p.y += 20.f;
         }
 
@@ -4873,7 +4871,7 @@ internal void ti_init(Cmd_Line *cmdline)
     log_select(ti_state->log);
     {
         Temp scratch = scratch_begin(0, 0);
-        ti_state->log_path = push_str8f(ti_state->arena, "%S/ui_thread.tide_log", g_logs_folder);
+        ti_state->log_path = str8f(ti_state->arena, "%S/ui_thread.tide_log", g_logs_folder);
         write_data_to_file_path(ti_state->log_path, str8_zero());
         scratch_end(scratch);
     }
@@ -5013,7 +5011,7 @@ internal void ti_init(Cmd_Line *cmdline)
         if(project_path.size != 0)
         {
             arena_clear(ti_state->project_path_arena);
-            ti_state->project_path = push_str8_copy(ti_state->project_path_arena, project_path);
+            ti_state->project_path = str8_copy(ti_state->project_path_arena, project_path);
         }
 
         // do initial load of user/project
@@ -5668,431 +5666,413 @@ internal void ti_frame(void)
                 switch (kind)
                 {
                     // fallthrough
-                    default: {
+                    default:
+                    {
+                        // try to open tabs, if this is a tab-fastpath-opener
+                        if (kind >= TI_CmdKind_FirstTabFastPathCmd)
                         {
-                            // try to open tabs, if this is a tab-fastpath-opener
-                            if (kind >= TI_CmdKind_FirstTabFastPathCmd)
-                            {
-                                u64 fast_path_idx = (kind - TI_CmdKind_FirstTabFastPathCmd);
-                                String8 view_name = ti_tab_fast_path_view_name_table[fast_path_idx];
-                                String8 query_name = ti_tab_fast_path_query_name_table[fast_path_idx];
-                                ti_cmd(TI_CmdKind_BuildTab, .string = view_name, .expr = query_name);
-                            }
+                            u64 fast_path_idx = (kind - TI_CmdKind_FirstTabFastPathCmd);
+                            String8 view_name = ti_tab_fast_path_view_name_table[fast_path_idx];
+                            String8 query_name = ti_tab_fast_path_query_name_table[fast_path_idx];
+                            ti_cmd(TI_CmdKind_BuildTab, .string = view_name, .expr = query_name);
                         }
                     } break;
                         // open palette
-                    case TI_CmdKind_OpenPalette: {
+                    case TI_CmdKind_OpenPalette:
+                    {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
+                        CFG_Node *tab = panel_tree.focused->selected_tab;
+                        String8_List exprs = {0};
                         {
-                            CFG_Node *window = cfg_node_from_id(ti_regs()->window);
-                            CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
-                            CFG_Node *tab = panel_tree.focused->selected_tab;
-                            String8_List exprs = {0};
+                            str8_list_pushf(scratch.arena, &exprs, "query:commands");
+                            if(tab != &cfg_nil_node)
                             {
-                                str8_list_pushf(scratch.arena, &exprs, "query:commands");
-                                if(tab != &cfg_nil_node)
-                                {
-                                    str8_list_pushf(scratch.arena, &exprs, "query:config.$%I64x", tab->id);
-                                }
-                                if(window != &cfg_nil_node)
-                                {
-                                    str8_list_pushf(scratch.arena, &exprs, "query:config.$%I64x", window->id);
-                                }
-                                str8_list_pushf(scratch.arena, &exprs, "query:user_settings");
-                                str8_list_pushf(scratch.arena, &exprs, "query:project_settings");
-                                // list other query types here...
+                                str8_list_pushf(scratch.arena, &exprs, "query:config.$%I64x", tab->id);
                             }
-                            String8 expr = str8_list_join(scratch.arena, &exprs, &(String_Join){.sep = str8_lit(", ")});
-                            ti_cmd(TI_CmdKind_CancelAllQueries);
-                            ti_cmd(TI_CmdKind_PushQuery, .expr = expr, .do_implicit_root = 1, .do_lister = 1, .do_big_rows = 1, .view = tab->id, .tab = tab->id);
+                            if(window != &cfg_nil_node)
+                            {
+                                str8_list_pushf(scratch.arena, &exprs, "query:config.$%I64x", window->id);
+                            }
+                            str8_list_pushf(scratch.arena, &exprs, "query:user_settings");
+                            str8_list_pushf(scratch.arena, &exprs, "query:project_settings");
+                            // list other query types here...
                         }
+                        String8 expr = str8_list_join(scratch.arena, &exprs, &(String_Join){.sep = str8_lit(", ")});
+                        ti_cmd(TI_CmdKind_CancelAllQueries);
+                        ti_cmd(TI_CmdKind_PushQuery, .expr = expr, .do_implicit_root = 1, .do_lister = 1, .do_big_rows = 1, .view = tab->id, .tab = tab->id);
                     } break;
-                    case TI_CmdKind_OpenTab: {
-                        {
-                            ti_cmd(TI_CmdKind_CancelAllQueries);
-                            ti_cmd(TI_CmdKind_PushQuery, .expr = s("query:tab_commands"), .do_implicit_root = 1, .do_lister = 1, .prefer_new_tab = 1);
-                        }
+                    case TI_CmdKind_OpenTab:
+                    {
+                        ti_cmd(TI_CmdKind_CancelAllQueries);
+                        ti_cmd(TI_CmdKind_PushQuery, .expr = s("query:tab_commands"), .do_implicit_root = 1, .do_lister = 1, .prefer_new_tab = 1);
                     } break;
                         // command fast paths
-                    case TI_CmdKind_RunCommand: {
+                    case TI_CmdKind_RunCommand:
+                    {
+                        TI_Cmd_Kind_Info *info = ti_cmd_kind_info_from_string(cmd->regs->cmd_name);
+                        
+                        // command does not have a query - simply execute with the current registers
+                        if (!(info->query.flags & TI_QueryFlag_Required))
                         {
-                            TI_Cmd_Kind_Info *info = ti_cmd_kind_info_from_string(cmd->regs->cmd_name);
-
-                            // command does not have a query - simply execute with the current registers
-                            if (!(info->query.flags & TI_QueryFlag_Required))
+                            TI_RegsScope(.cmd_name = str8_zero()) ti_push_cmd(cmd->regs->cmd_name, ti_regs());
+                        }
+                        
+                        // command has filesystem query, user wants native filesystem UI -> get the path the run the command
+                        else if (info->query.slot == TI_RegSlot_FilePath && ti_setting_bool32_from_name(str8_lit("use_native_file_system_dialog")))
+                        {
+                            CFG_Node *user = cfg_node_child_from_string(cfg_node_root(), str8_lit("user"));
+                            CFG_Node *current_path = cfg_node_child_from_string(user, str8_lit("current_path"));
+                            String8 current_path_string = current_path->first->string;
+                            if(current_path_string.size == 0)
                             {
-                                TI_RegsScope(.cmd_name = str8_zero()) ti_push_cmd(cmd->regs->cmd_name, ti_regs());
+                                current_path_string = path_normalized_from_string(scratch.arena, get_current_path(scratch.arena));
                             }
-
-                            // command has filesystem query, user wants native filesystem UI -> get the path the run the command
-                            else if (info->query.slot == TI_RegSlot_FilePath && ti_setting_bool32_from_name(str8_lit("use_native_file_system_dialog")))
+                            String8 cmd_title = ti_display_from_code_name(info->string);
+                            if(cmd_title.size == 0)
                             {
-                                CFG_Node *user = cfg_node_child_from_string(cfg_node_root(), str8_lit("user"));
-                                CFG_Node *current_path = cfg_node_child_from_string(user, str8_lit("current_path"));
-                                String8 current_path_string = current_path->first->string;
-                                if(current_path_string.size == 0)
-                                {
-                                    current_path_string = path_normalized_from_string(scratch.arena, get_current_path(scratch.arena));
-                                }
-                                String8 cmd_title = ti_display_from_code_name(info->string);
-                                if(cmd_title.size == 0)
-                                {
-                                    cmd_title = info->string;
-                                }
-                                String8 file_path = sh_pick_file(scratch.arena, cmd_title, current_path_string);
-                                file_path = path_normalized_from_string(scratch.arena, file_path);
-                                if(file_path.size != 0)
-                                {
-                                    TI_RegsScope(.cmd_name = str8_zero(), .file_path = file_path) ti_push_cmd(cmd->regs->cmd_name, ti_regs());
-                                    //ti_cmd(TI_CmdKind_SetCurrentPath, .file_path = str8_chop_last_slash(file_path));
-                                    sh_message(0, s("TI_CmdKind_SetCurrentPath"), str8_chop_last_slash(file_path));
-                                }
+                                cmd_title = info->string;
                             }
-
-                            // command has required query -> prep query
-                            else
+                            String8 file_path = sh_pick_file(scratch.arena, cmd_title, current_path_string);
+                            file_path = path_normalized_from_string(scratch.arena, file_path);
+                            if(file_path.size != 0)
                             {
-                                ti_cmd(TI_CmdKind_PushQuery,
-                                       .do_implicit_root = 1,
-                                       .do_lister = (info->query.expr.size != 0),
-                                       .expr = info->query.expr);
+                                TI_RegsScope(.cmd_name = str8_zero(), .file_path = file_path) ti_push_cmd(cmd->regs->cmd_name, ti_regs());
+                                //ti_cmd(TI_CmdKind_SetCurrentPath, .file_path = str8_chop_last_slash(file_path));
+                                sh_message(0, s("TI_CmdKind_SetCurrentPath"), str8_chop_last_slash(file_path));
                             }
                         }
-                    } break;
-                    case TI_CmdKind_Exit: {
+                        
+                        // command has required query -> prep query
+                        else
                         {
-                            ti_state->quit = true;
+                            ti_cmd(TI_CmdKind_PushQuery,
+                                   .do_implicit_root = 1,
+                                   .do_lister = (info->query.expr.size != 0),
+                                   .expr = info->query.expr);
                         }
                     } break;
-                    case TI_CmdKind_OpenWindow: {
-                        {
-                            CFG_Node *old_window = cfg_node_from_id(ti_regs()->window);
-                            CFG_Node *bucket = old_window->parent;
-                            if (bucket == &cfg_nil_node)
-                            {
-                                bucket = cfg_node_child_from_string(cfg_node_root(), str8_lit("user"));
-                            }
-                            CFG_Node *new_window = cfg_node_new(ti_state->cfg, bucket, str8_lit("window"));
-                            CFG_Node *size = cfg_node_new(ti_state->cfg, new_window, str8_lit("size"));
-                            cfg_node_newf(ti_state->cfg, size, "1280");
-                            cfg_node_newf(ti_state->cfg, size, "720");
-                            for (CFG_Node *old_child = old_window->first;
-                                 old_child != &cfg_nil_node;
-                                 old_child = old_child->next)
-                            {
-                                if (!str8_match(old_child->string, str8_lit("panels"), 0) &&
-                                    !str8_match(old_child->string, str8_lit("size"), 0) &&
-                                    !str8_match(old_child->string, str8_lit("pos"), 0) &&
-                                    !str8_match(old_child->string, str8_lit("monitor"), 0) &&
-                                    !str8_match(old_child->string, str8_lit("fullscreen"), 0) &&
-                                    !str8_match(old_child->string, str8_lit("maximized"), 0))
-                                {
-                                    CFG_Node *new_child = cfg_node_deep_copy(ti_state->cfg, old_child);
-                                    cfg_node_insert_child(ti_state->cfg, new_window, new_window->last, new_child);
-                                }
-                            }
-                            CFG_Node *panels = cfg_node_new(ti_state->cfg, new_window, str8_lit("panels"));
-                            cfg_node_child_from_string_or_alloc(ti_state->cfg, panels, str8_lit("selected"));
-                        }
+                    case TI_CmdKind_Exit:
+                    {
+                        ti_state->quit = true;
                     } break;
-                    case TI_CmdKind_WindowSettings: {
+                    case TI_CmdKind_OpenWindow:
+                    {
+                        CFG_Node *old_window = cfg_node_from_id(ti_regs()->window);
+                        CFG_Node *bucket = old_window->parent;
+                        if (bucket == &cfg_nil_node)
                         {
-                            String8 expr = push_str8f(scratch.arena, "query:config.$%I64x", ti_regs()->window);
-                            ti_cmd(TI_CmdKind_CancelAllQueries);
-                            ti_cmd(TI_CmdKind_PushQuery, .expr = expr, .do_implicit_root = 1, .do_big_rows = 1, .do_lister = 1);
+                            bucket = cfg_node_child_from_string(cfg_node_root(), str8_lit("user"));
                         }
-                    } break;
-                    case TI_CmdKind_CloseWindow: {
+                        CFG_Node *new_window = cfg_node_new(ti_state->cfg, bucket, str8_lit("window"));
+                        CFG_Node *size = cfg_node_new(ti_state->cfg, new_window, str8_lit("size"));
+                        cfg_node_newf(ti_state->cfg, size, "1280");
+                        cfg_node_newf(ti_state->cfg, size, "720");
+                        for (CFG_Node *old_child = old_window->first;
+                             old_child != &cfg_nil_node;
+                             old_child = old_child->next)
                         {
-                            CFG_Node_Ptr_List all_windows = cfg_node_top_level_list_from_string(scratch.arena, str8_lit("window"));
-                            CFG_Node *wcfg = cfg_node_from_id(ti_regs()->window);
-                            if (all_windows.count == 1 && all_windows.first->v == wcfg)
+                            if (!str8_match(old_child->string, str8_lit("panels"), 0) &&
+                                !str8_match(old_child->string, str8_lit("size"), 0) &&
+                                !str8_match(old_child->string, str8_lit("pos"), 0) &&
+                                !str8_match(old_child->string, str8_lit("monitor"), 0) &&
+                                !str8_match(old_child->string, str8_lit("fullscreen"), 0) &&
+                                !str8_match(old_child->string, str8_lit("maximized"), 0))
                             {
-                                ti_cmd(TI_CmdKind_Exit);
-                            }
-                            else
-                            {
-                                cfg_node_release(ti_state->cfg, wcfg);
+                                CFG_Node *new_child = cfg_node_deep_copy(ti_state->cfg, old_child);
+                                cfg_node_insert_child(ti_state->cfg, new_window, new_window->last, new_child);
                             }
                         }
+                        CFG_Node *panels = cfg_node_new(ti_state->cfg, new_window, str8_lit("panels"));
+                        cfg_node_child_from_string_or_alloc(ti_state->cfg, panels, str8_lit("selected"));
                     } break;
-                    case TI_CmdKind_ToggleFullscreen: {
+                    case TI_CmdKind_WindowSettings:
+                    {
+                        String8 expr = str8f(scratch.arena, "query:config.$%I64x", ti_regs()->window);
+                        ti_cmd(TI_CmdKind_CancelAllQueries);
+                        ti_cmd(TI_CmdKind_PushQuery, .expr = expr, .do_implicit_root = 1, .do_big_rows = 1, .do_lister = 1);
+                    } break;
+                    case TI_CmdKind_CloseWindow:
+                    {
+                        CFG_Node_Ptr_List all_windows = cfg_node_top_level_list_from_string(scratch.arena, str8_lit("window"));
+                        CFG_Node *wcfg = cfg_node_from_id(ti_regs()->window);
+                        if (all_windows.count == 1 && all_windows.first->v == wcfg)
                         {
-                            CFG_Node *wcfg = cfg_node_from_id(ti_regs()->window);
-                            TI_Window_State *ws = ti_window_state_from_cfg(wcfg);
-                            if (ws != &ti_nil_window_state)
-                            {
-                                wm_window_set_fullscreen(ws->os, !wm_window_is_fullscreen(ws->os));
-                            }
+                            ti_cmd(TI_CmdKind_Exit);
+                        }
+                        else
+                        {
+                            cfg_node_release(ti_state->cfg, wcfg);
                         }
                     } break;
-                    case TI_CmdKind_BringToFont: {
+                    case TI_CmdKind_ToggleFullscreen:
+                    {
+                        CFG_Node *wcfg = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(wcfg);
+                        if (ws != &ti_nil_window_state)
                         {
-                            CFG_Node *last_focused_wcfg = cfg_node_from_id(ti_state->last_focused_window);
-                            TI_Window_State *last_focused_ws = ti_window_state_from_cfg(last_focused_wcfg);
-                            if(last_focused_ws == &ti_nil_window_state)
-                            {
-                                last_focused_ws = ti_state->first_window_state;
-                            }
-                            if(last_focused_ws != &ti_nil_window_state)
-                            {
-                                wm_window_set_minimized(last_focused_ws->os, 0);
-                                wm_window_focus(last_focused_ws->os);
-                            }
+                            wm_window_set_fullscreen(ws->os, !wm_window_is_fullscreen(ws->os));
+                        }
+                    } break;
+                    case TI_CmdKind_BringToFont:
+                    {
+                        CFG_Node *last_focused_wcfg = cfg_node_from_id(ti_state->last_focused_window);
+                        TI_Window_State *last_focused_ws = ti_window_state_from_cfg(last_focused_wcfg);
+                        if(last_focused_ws == &ti_nil_window_state)
+                        {
+                            last_focused_ws = ti_state->first_window_state;
+                        }
+                        if(last_focused_ws != &ti_nil_window_state)
+                        {
+                            wm_window_set_minimized(last_focused_ws->os, 0);
+                            wm_window_focus(last_focused_ws->os);
                         }
                     } break;
                         // confirmations
-                    case TI_CmdKind_PopupAccept: {
+                    case TI_CmdKind_PopupAccept:
+                    {
+                        ti_state->popup_active = 0;
+                        ti_state->popup_key = ui_key_zero();
+                        for(TI_Cmd_Node *n = ti_state->popup_cmds.first; n != 0; n = n->next)
                         {
-                            ti_state->popup_active = 0;
-                            ti_state->popup_key = ui_key_zero();
-                            for(TI_Cmd_Node *n = ti_state->popup_cmds.first; n != 0; n = n->next)
-                            {
-                                ti_push_cmd(n->cmd.name, n->cmd.regs);
-                            }
+                            ti_push_cmd(n->cmd.name, n->cmd.regs);
                         }
                     } break;
-                    case TI_CmdKind_PopupCancel: {
-                        {
-                            ti_state->popup_active = 0;
-                            ti_state->popup_key = ui_key_zero();
-                        }
+                    case TI_CmdKind_PopupCancel:
+                    {
+                        ti_state->popup_active = 0;
+                        ti_state->popup_key = ui_key_zero();
                     } break;
                         // keybindings
-                    case TI_CmdKind_ResetToDefaultBindings: {
+                    case TI_CmdKind_ResetToDefaultBindings:
+                    {
+                        CFG_Node *user = cfg_node_child_from_string(cfg_node_root(), str8_lit("user"));
+                        CFG_Node_Ptr_List all_keybindings = cfg_node_child_list_from_string(scratch.arena, user, str8_lit("keybindings"));
+                        for(CFG_Node_Ptr_Node *n = all_keybindings.first; n != 0; n = n->next)
                         {
-                            CFG_Node *user = cfg_node_child_from_string(cfg_node_root(), str8_lit("user"));
-                            CFG_Node_Ptr_List all_keybindings = cfg_node_child_list_from_string(scratch.arena, user, str8_lit("keybindings"));
-                            for(CFG_Node_Ptr_Node *n = all_keybindings.first; n != 0; n = n->next)
-                            {
-                                cfg_node_release(ti_state->cfg, n->v);
-                            }
-                            CFG_Node *keybindings = cfg_node_new(ti_state->cfg, user, str8_lit("keybindings"));
-                            for EachElement(idx, ti_default_binding_table)
-                            {
-                                String8 name = ti_default_binding_table[idx].string;
-                                CFG_Binding binding = ti_default_binding_table[idx].binding;
-                                CFG_Node *binding_root = cfg_node_new(ti_state->cfg, keybindings, str8_zero());
-                                cfg_node_new(ti_state->cfg, binding_root, name);
-                                cfg_node_new(ti_state->cfg, binding_root, wm_key_cfg_name_table[binding.key]);
-                                if(binding.modifiers & WM_Modifier_Ctrl)  {cfg_node_newf(ti_state->cfg, binding_root, "ctrl");}
-                                if(binding.modifiers & WM_Modifier_Shift) {cfg_node_newf(ti_state->cfg, binding_root, "shift");}
-                                if(binding.modifiers & WM_Modifier_Alt)   {cfg_node_newf(ti_state->cfg, binding_root, "alt");}
-                            }
+                            cfg_node_release(ti_state->cfg, n->v);
+                        }
+                        CFG_Node *keybindings = cfg_node_new(ti_state->cfg, user, str8_lit("keybindings"));
+                        for EachElement(idx, ti_default_binding_table)
+                        {
+                            String8 name = ti_default_binding_table[idx].string;
+                            CFG_Binding binding = ti_default_binding_table[idx].binding;
+                            CFG_Node *binding_root = cfg_node_new(ti_state->cfg, keybindings, str8_zero());
+                            cfg_node_new(ti_state->cfg, binding_root, name);
+                            cfg_node_new(ti_state->cfg, binding_root, wm_key_cfg_name_table[binding.key]);
+                            if(binding.modifiers & WM_Modifier_Ctrl)  {cfg_node_newf(ti_state->cfg, binding_root, "ctrl");}
+                            if(binding.modifiers & WM_Modifier_Shift) {cfg_node_newf(ti_state->cfg, binding_root, "shift");}
+                            if(binding.modifiers & WM_Modifier_Alt)   {cfg_node_newf(ti_state->cfg, binding_root, "alt");}
                         }
                     } break;
                         // config path saving/loading/applying
-                    case TI_CmdKind_OpenRecentProject: {
+                    case TI_CmdKind_OpenRecentProject:
+                    {
+                        CFG_Node *cfg = cfg_node_from_id(ti_regs()->cfg);
+                        CFG_Node *path = cfg_node_child_from_string(cfg, str8_lit("path"));
+                        if(str8_match(cfg->string, str8_lit("recent_project"), 0) &&
+                           path->first->string.size != 0)
                         {
-                            CFG_Node *cfg = cfg_node_from_id(ti_regs()->cfg);
-                            CFG_Node *path = cfg_node_child_from_string(cfg, str8_lit("path"));
-                            if(str8_match(cfg->string, str8_lit("recent_project"), 0) &&
-                               path->first->string.size != 0)
-                            {
-                                ti_cmd(TI_CmdKind_OpenProject, .file_path = path->first->string);
-                            }
+                            ti_cmd(TI_CmdKind_OpenProject, .file_path = path->first->string);
                         }
                     } break;
                     case TI_CmdKind_OpenUser:
-                    case TI_CmdKind_OpenProject: {
+                    case TI_CmdKind_OpenProject:
+                    {
+                        String8 file_root_key = (kind == TI_CmdKind_OpenUser    ? str8_lit("user") :
+                                                 kind == TI_CmdKind_OpenProject ? str8_lit("project") :
+                                                 str8_lit("other"));
+                        CFG_Node *file_root = cfg_node_child_from_string(cfg_node_root(), file_root_key);
+                        
+                        // load the new file's data
+                        String8 file_path = ti_regs()->file_path;
+                        String8 file_data = data_from_file_path(scratch.arena, file_path);
+                        File_Properties file_props = properties_from_file_path(file_path);
+                        
+                        // determine if the file is good
+                        bool32 file_is_okay = (file_data.size == 0 || str8_match(str8_prefix(file_data, 7), s("// tide"), 0));
+
+                        // determine file's version
+                        String8 file_version = {0};
+                        if (file_is_okay && file_props.size != 0)
                         {
-                            String8 file_root_key = (kind == TI_CmdKind_OpenUser    ? str8_lit("user") :
-                                                     kind == TI_CmdKind_OpenProject ? str8_lit("project") :
-                                                     str8_lit("other"));
-                            CFG_Node *file_root = cfg_node_child_from_string(cfg_node_root(), file_root_key);
-
-                            // load the new file's data
-                            String8 file_path = ti_regs()->file_path;
-                            String8 file_data = data_from_file_path(scratch.arena, file_path);
-                            File_Properties file_props = properties_from_file_path(file_path);
-
-                            // determine if the file is good
-                            bool32 file_is_okay = (file_data.size == 0 || str8_match(str8_prefix(file_data, 7), s("// tide"), 0));
-
-                            // determine file's version
-                            String8 file_version = {0};
-                            if (file_is_okay && file_props.size != 0)
-                            {
-                                file_version = str8_skip(file_data, 10);
-                                u64 line_end = str8_find_needle(file_version, 0, str8_lit("\n"), 0);
-                                file_version = str8_prefix(file_version, line_end);
-                                u64 first_space = str8_find_needle(file_version, 0, str8_lit(" "), 0);
-                                file_version = str8_prefix(file_version, first_space);
-                                file_version = str8_skip_chop_whitespace(file_version);
-                            }
-
-                            // bad file -> alert user
-                            if (!file_is_okay)
-                            {
-                                log_user_errorf("\"%S\" appears to refer to an existing file which is not a TIDE config file. This would overwrite the file.", file_path);
-                            }
-
-                            // eliminate all old state under this file tree
-                            if (file_is_okay)
-                            {
-                                cfg_node_release_all_children(ti_state->cfg, file_root);
-                            }
-
-                            // parse the new file, generate cfg entities for it
-                            CFG_Node_Ptr_List file_cfg_list = {0};
-                            if (file_is_okay)
-                            {
-                                u64 file_version_code = version_from_str8(file_version);
-                                // legacy file handling when applicable
-                                file_cfg_list = cfg_node_ptr_list_from_string(scratch.arena, ti_state->cfg, ti_state->cfg_schema_table, str8_chop_last_slash(file_path), file_data);
-                            }
-
-                            // store path
-                            if (file_is_okay)
-                            {
-                                switch(kind)
-                                {
-                                    default:{}break;
-                                    case TI_CmdKind_OpenUser: {
-                                        arena_clear(ti_state->user_path_arena);
-                                        ti_state->user_path = str8_copy(ti_state->user_path_arena, file_path);
-                                    } break;
-                                    case TI_CmdKind_OpenProject: {
-                                        arena_clear(ti_state->project_path_arena);
-                                        ti_state->project_path = str8_copy(ti_state->project_path_arena, file_path);
-                                    } break;
-                                }
-                            }
-                            
-                            // insert the new cfg entities into this file tree
-                            if (file_is_okay)
-                            {
-                                for (CFG_Node_Ptr_Node *n = file_cfg_list.first; n != 0; n = n->next)
-                                {
-                                    cfg_node_insert_child(ti_state->cfg, file_root, file_root->last, n->v);
-                                }
-                            }
-                            
-                            // if config did not open any windows for the user, then we need to open a sensible default
-                            if (file_is_okay && kind == TI_CmdKind_OpenUser)
-                            {
-                                CFG_Node_Ptr_List all_user_windows = cfg_node_child_list_from_string(scratch.arena, file_root, str8_lit("window"));
-                                if (all_user_windows.count == 0)
-                                {
-                                    WM_Monitor monitor   = wm_primary_monitor();
-                                    String8 monitor_name = wm_name_from_monitor(scratch.arena, monitor);
-                                    Vec2f32 monitor_dim  = wm_dim_from_monitor(monitor);
-                                    f32 monitor_dpi      = wm_dpi_from_monitor(monitor);
-                                    Vec2f32 window_dim   = v2f32(monitor_dim.x*4/5, monitor_dim.y*4/5);
-                                    if (window_dim.x == 0 || window_dim.y == 0)
-                                    {
-                                        window_dim = v2f32(1280, 720);
-                                    }
-                                    CFG_Node *new_window = cfg_node_new(ti_state->cfg, file_root, str8_lit("window"));
-                                    CFG_Node *size = cfg_node_new(ti_state->cfg, new_window, str8_lit("size"));
-                                    cfg_node_newf(ti_state->cfg, size, "%f", window_dim.x);
-                                    cfg_node_newf(ti_state->cfg, size, "%f", window_dim.y);
-                                    ti_cmd(TI_CmdKind_ResetToDefaultPanels, .window = new_window->id);
-                                }
-                            }
-                            
-                            // if config did not define any keybindings for the user, then we need to build a sensible default
-                            if (file_is_okay && kind == TI_CmdKind_OpenUser)
-                            {
-                                CFG_Node_Ptr_List all_keybindings = cfg_node_child_list_from_string(scratch.arena, file_root, str8_lit("keybindings"));
-                                if (all_keybindings.count == 0)
-                                {
-                                    ti_cmd(TI_CmdKind_ResetToDefaultBindings);
-                                }
-                            }
-                            
-                            // record last-opened user in config directory
-                            
-                            // record recently-opened projects in the user
-                            
-                            // eliminate all project-filtered tab focuses
-                            if(file_is_okay && kind == TI_CmdKind_OpenProject)
-                            {
-                                CFG_Node_Ptr_List windows = cfg_node_top_level_list_from_string(scratch.arena, str8_lit("window"));
-                                for(CFG_Node_Ptr_Node *n = windows.first; n != 0; n = n->next)
-                                {
-                                    CFG_Panel_Tree panels = cfg_panel_tree_from_cfg(scratch.arena, n->v);
-                                    for(CFG_Panel_Node *panel = panels.root; panel != &cfg_nil_panel_node; panel = cfg_panel_node_rec__depth_first_pre(panels.root, panel).next)
-                                    {
-                                        if(ti_cfg_is_project_filtered(panel->selected_tab))
-                                        {
-                                            CFG_Node *fallback_tab = &cfg_nil_node;
-                                            for(CFG_Node_Ptr_Node *tab_n = panel->tabs.first; tab_n != 0; tab_n = tab_n->next)
-                                            {
-                                                CFG_Node *tab = tab_n->v;
-                                                if(!ti_cfg_is_project_filtered(tab))
-                                                {
-                                                    fallback_tab = tab;
-                                                    break;
-                                                }
-                                            }
-                                            ti_cmd(TI_CmdKind_FocusTab, .panel = panel->cfg->id, .tab = fallback_tab->id);
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            // if just opened project -> set new current path
-                            if(kind == TI_CmdKind_OpenProject)
-                            {
-                                String8 new_current_dir = str8_chop_last_slash(ti_regs()->file_path);
-                                if(new_current_dir.size != 0)
-                                {
-                                    //ti_cmd(TI_CmdKind_SetCurrentPath, .file_path = new_current_dir);
-                                    sh_message(0, s("TI_CmdKind_SetCurrentPath"), new_current_dir);
-                                }
-                            }
-                            
-                            // if just oepned user -> load last project, is enabled
+                            file_version = str8_skip(file_data, 10);
+                            u64 line_end = str8_find_needle(file_version, 0, str8_lit("\n"), 0);
+                            file_version = str8_prefix(file_version, line_end);
+                            u64 first_space = str8_find_needle(file_version, 0, str8_lit(" "), 0);
+                            file_version = str8_prefix(file_version, first_space);
+                            file_version = str8_skip_chop_whitespace(file_version);
                         }
-                    } break;
-                    case TI_CmdKind_NewUser: {
+                        
+                        // bad file -> alert user
+                        if (!file_is_okay)
                         {
-                            ti_cmd(TI_CmdKind_OpenUser, .file_path = str8_zero());
+                            log_user_errorf("\"%S\" appears to refer to an existing file which is not a TIDE config file. This would overwrite the file.", file_path);
                         }
-                    } break;
-                    case TI_CmdKind_NewProject: {
+                        
+                        // eliminate all old state under this file tree
+                        if (file_is_okay)
                         {
-                            ti_cmd(TI_CmdKind_OpenProject, .file_path = str8_zero());
+                            cfg_node_release_all_children(ti_state->cfg, file_root);
                         }
-                    } break;
-                    case TI_CmdKind_SaveUser:
-                    case TI_CmdKind_SaveProject: {
+                        
+                        // parse the new file, generate cfg entities for it
+                        CFG_Node_Ptr_List file_cfg_list = {0};
+                        if (file_is_okay)
                         {
-                            String8 new_path = ti_regs()->file_path;
-                            bool32 file_will_be_overwritten = (properties_from_file_path(new_path).created != 0);
-                            UI_Key key = ui_key_from_string(ui_key_zero(), str8_lit("save_config_overwrite_confirm"));
-                            if(file_will_be_overwritten && !ti_regs()->force_confirm && !ui_key_match(ti_state->popup_key, key))
-                            {
-                                ti_state->popup_key = key;
-                                ti_state->popup_active = 1;
-                                arena_clear(ti_state->popup_arena);
-                                MemoryZeroStruct(&ti_state->popup_cmds);
-                                ti_state->popup_title = push_str8f(ti_state->popup_arena, "Are you sure you want to save to this path?");
-                                ti_state->popup_desc  = push_str8f(ti_state->popup_arena, "The existing file at '%S' will be overwritten.", new_path);
-                                TI_Regs *regs = ti_regs_copy(ti_frame_arena(), ti_regs());
-                                regs->force_confirm = 1;
-                                ti_cmd_list_push_new(ti_state->popup_arena, &ti_state->popup_cmds, ti_cmd_kind_info_table[kind].string, regs);
-                            }
-                            else switch(kind)
+                            u64 file_version_code = version_from_str8(file_version);
+                            // legacy file handling when applicable
+                            file_cfg_list = cfg_node_ptr_list_from_string(scratch.arena, ti_state->cfg, ti_state->cfg_schema_table, str8_chop_last_slash(file_path), file_data);
+                        }
+                        
+                        // store path
+                        if (file_is_okay)
+                        {
+                            switch(kind)
                             {
                                 default:{}break;
-                                case TI_CmdKind_SaveUser: {
-                                    {
-                                        arena_clear(ti_state->user_path_arena);
-                                        ti_state->user_path = push_str8_copy(ti_state->user_path_arena, new_path);
-                                        //ti_cmd(TI_CmdKind_WriteUserData);
-                                        //ti_cmd(TI_CmdKind_RecordUserAsLastOpened);
-                                    }
+                                case TI_CmdKind_OpenUser:
+                                {
+                                    arena_clear(ti_state->user_path_arena);
+                                    ti_state->user_path = str8_copy(ti_state->user_path_arena, file_path);
                                 } break;
-                                case TI_CmdKind_SaveProject: {
-                                    {
-                                        arena_clear(ti_state->project_path_arena);
-                                        ti_state->project_path = push_str8_copy(ti_state->project_path_arena, new_path);
-                                        //ti_cmd(TI_CmdKind_WriteProjectData);
-                                        //ti_cmd(TI_CmdKind_RecordProjectInUser);
-                                    }
+                                case TI_CmdKind_OpenProject:
+                                {
+                                    arena_clear(ti_state->project_path_arena);
+                                    ti_state->project_path = str8_copy(ti_state->project_path_arena, file_path);
                                 } break;
                             }
+                        }
+                            
+                        // insert the new cfg entities into this file tree
+                        if (file_is_okay)
+                        {
+                            for (CFG_Node_Ptr_Node *n = file_cfg_list.first; n != 0; n = n->next)
+                            {
+                                cfg_node_insert_child(ti_state->cfg, file_root, file_root->last, n->v);
+                            }
+                        }
+                        
+                        // if config did not open any windows for the user, then we need to open a sensible default
+                        if (file_is_okay && kind == TI_CmdKind_OpenUser)
+                        {
+                            CFG_Node_Ptr_List all_user_windows = cfg_node_child_list_from_string(scratch.arena, file_root, str8_lit("window"));
+                            if (all_user_windows.count == 0)
+                            {
+                                WM_Monitor monitor   = wm_primary_monitor();
+                                String8 monitor_name = wm_name_from_monitor(scratch.arena, monitor);
+                                Vec2f32 monitor_dim  = wm_dim_from_monitor(monitor);
+                                f32 monitor_dpi      = wm_dpi_from_monitor(monitor);
+                                Vec2f32 window_dim   = v2f32(monitor_dim.x*4/5, monitor_dim.y*4/5);
+                                if (window_dim.x == 0 || window_dim.y == 0)
+                                {
+                                    window_dim = v2f32(1280, 720);
+                                }
+                                CFG_Node *new_window = cfg_node_new(ti_state->cfg, file_root, str8_lit("window"));
+                                CFG_Node *size = cfg_node_new(ti_state->cfg, new_window, str8_lit("size"));
+                                cfg_node_newf(ti_state->cfg, size, "%f", window_dim.x);
+                                cfg_node_newf(ti_state->cfg, size, "%f", window_dim.y);
+                                ti_cmd(TI_CmdKind_ResetToDefaultPanels, .window = new_window->id);
+                            }
+                        }
+                        
+                        // if config did not define any keybindings for the user, then we need to build a sensible default
+                        if (file_is_okay && kind == TI_CmdKind_OpenUser)
+                        {
+                            CFG_Node_Ptr_List all_keybindings = cfg_node_child_list_from_string(scratch.arena, file_root, str8_lit("keybindings"));
+                            if (all_keybindings.count == 0)
+                            {
+                                ti_cmd(TI_CmdKind_ResetToDefaultBindings);
+                            }
+                        }
+                        
+                        // record last-opened user in config directory
+                        
+                        // record recently-opened projects in the user
+                        
+                        // eliminate all project-filtered tab focuses
+                        if(file_is_okay && kind == TI_CmdKind_OpenProject)
+                        {
+                            CFG_Node_Ptr_List windows = cfg_node_top_level_list_from_string(scratch.arena, str8_lit("window"));
+                            for(CFG_Node_Ptr_Node *n = windows.first; n != 0; n = n->next)
+                            {
+                                CFG_Panel_Tree panels = cfg_panel_tree_from_cfg(scratch.arena, n->v);
+                                for(CFG_Panel_Node *panel = panels.root; panel != &cfg_nil_panel_node; panel = cfg_panel_node_rec__depth_first_pre(panels.root, panel).next)
+                                {
+                                    if(ti_cfg_is_project_filtered(panel->selected_tab))
+                                    {
+                                        CFG_Node *fallback_tab = &cfg_nil_node;
+                                        for(CFG_Node_Ptr_Node *tab_n = panel->tabs.first; tab_n != 0; tab_n = tab_n->next)
+                                        {
+                                            CFG_Node *tab = tab_n->v;
+                                            if(!ti_cfg_is_project_filtered(tab))
+                                            {
+                                                fallback_tab = tab;
+                                                break;
+                                            }
+                                        }
+                                        ti_cmd(TI_CmdKind_FocusTab, .panel = panel->cfg->id, .tab = fallback_tab->id);
+                                    }
+                                }
+                            }
+                        }
+                            
+                        // if just opened project -> set new current path
+                        if(kind == TI_CmdKind_OpenProject)
+                        {
+                            String8 new_current_dir = str8_chop_last_slash(ti_regs()->file_path);
+                            if(new_current_dir.size != 0)
+                            {
+                                //ti_cmd(TI_CmdKind_SetCurrentPath, .file_path = new_current_dir);
+                                sh_message(0, s("TI_CmdKind_SetCurrentPath"), new_current_dir);
+                            }
+                        }
+                            
+                        // if just oepned user -> load last project, is enabled
+                    } break;
+                    case TI_CmdKind_NewUser:
+                    {
+                        ti_cmd(TI_CmdKind_OpenUser, .file_path = str8_zero());
+                    } break;
+                    case TI_CmdKind_NewProject:
+                    {
+                        ti_cmd(TI_CmdKind_OpenProject, .file_path = str8_zero());
+                    } break;
+                    case TI_CmdKind_SaveUser:
+                    case TI_CmdKind_SaveProject:
+                    {
+                        String8 new_path = ti_regs()->file_path;
+                        bool32 file_will_be_overwritten = (properties_from_file_path(new_path).created != 0);
+                        UI_Key key = ui_key_from_string(ui_key_zero(), str8_lit("save_config_overwrite_confirm"));
+                        if(file_will_be_overwritten && !ti_regs()->force_confirm && !ui_key_match(ti_state->popup_key, key))
+                        {
+                            ti_state->popup_key = key;
+                            ti_state->popup_active = 1;
+                            arena_clear(ti_state->popup_arena);
+                            MemoryZeroStruct(&ti_state->popup_cmds);
+                            ti_state->popup_title = str8f(ti_state->popup_arena, "Are you sure you want to save to this path?");
+                            ti_state->popup_desc  = str8f(ti_state->popup_arena, "The existing file at '%S' will be overwritten.", new_path);
+                            TI_Regs *regs = ti_regs_copy(ti_frame_arena(), ti_regs());
+                            regs->force_confirm = 1;
+                            ti_cmd_list_push_new(ti_state->popup_arena, &ti_state->popup_cmds, ti_cmd_kind_info_table[kind].string, regs);
+                        }
+                        else switch(kind)
+                        {
+                            default:{}break;
+                            case TI_CmdKind_SaveUser:
+                            {
+                                arena_clear(ti_state->user_path_arena);
+                                ti_state->user_path = str8_copy(ti_state->user_path_arena, new_path);
+                                //ti_cmd(TI_CmdKind_WriteUserData);
+                                //ti_cmd(TI_CmdKind_RecordUserAsLastOpened);
+                            } break;
+                            case TI_CmdKind_SaveProject:
+                            {
+                                arena_clear(ti_state->project_path_arena);
+                                ti_state->project_path = str8_copy(ti_state->project_path_arena, new_path);
+                                //ti_cmd(TI_CmdKind_WriteProjectData);
+                                //ti_cmd(TI_CmdKind_RecordProjectInUser);
+                            } break;
                         }
                     } break;
                         // font sizes
@@ -6126,10 +6106,10 @@ internal void ti_frame(void)
                     case TI_CmdKind_NewPanelRight:{split_dir = Dir2_Right;}goto split;
                     case TI_CmdKind_NewPanelDown: {split_dir = Dir2_Down;}goto split;
                     case TI_CmdKind_SplitPanel:
-                        {
-                            split_dir = ti_regs()->dir2;
-                            split_panel = cfg_node_from_id(ti_regs()->dst_panel);
-                        } goto split;
+                    {
+                        split_dir = ti_regs()->dir2;
+                        split_panel = cfg_node_from_id(ti_regs()->dst_panel);
+                    } goto split;
                     split:;
                     if (split_dir != Dir2_Invalid)
                     {
@@ -6295,26 +6275,25 @@ internal void ti_frame(void)
                         }
                     } break;
                     // panel rotation
-                    case TI_CmdKind_RotatePanelColumns: {
+                    case TI_CmdKind_RotatePanelColumns:
+                    {
+                        CFG_Node *panel_cfg = cfg_node_from_id(ti_regs()->panel);
+                        CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, panel_cfg);
+                        CFG_Panel_Node *panel = cfg_panel_node_from_tree_cfg(panel_tree.root, panel_cfg);
+                        CFG_Panel_Node *parent = &cfg_nil_panel_node;
+                        for(CFG_Panel_Node *p = panel->parent; p != &cfg_nil_panel_node; p = p->parent)
                         {
-                            CFG_Node *panel_cfg = cfg_node_from_id(ti_regs()->panel);
-                            CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, panel_cfg);
-                            CFG_Panel_Node *panel = cfg_panel_node_from_tree_cfg(panel_tree.root, panel_cfg);
-                            CFG_Panel_Node *parent = &cfg_nil_panel_node;
-                            for(CFG_Panel_Node *p = panel->parent; p != &cfg_nil_panel_node; p = p->parent)
+                            if(p->split_axis == Axis2_X)
                             {
-                                if(p->split_axis == Axis2_X)
-                                {
-                                    parent = p;
-                                    break;
-                                }
+                                parent = p;
+                                break;
                             }
-                            if(parent != &cfg_nil_panel_node && parent->child_count > 1)
-                            {
-                                CFG_Node *rotated = parent->first->cfg;
-                                cfg_node_unhook(ti_state->cfg, parent->cfg, parent->first->cfg);
-                                cfg_node_insert_child(ti_state->cfg, parent->cfg, parent->last->cfg, rotated);
-                            }
+                        }
+                        if(parent != &cfg_nil_panel_node && parent->child_count > 1)
+                        {
+                            CFG_Node *rotated = parent->first->cfg;
+                            cfg_node_unhook(ti_state->cfg, parent->cfg, parent->first->cfg);
+                            cfg_node_insert_child(ti_state->cfg, parent->cfg, parent->last->cfg, rotated);
                         }
                     } break;
                         // panel focusing
@@ -6349,38 +6328,37 @@ internal void ti_frame(void)
                         }
                         ti_cmd(TI_CmdKind_FocusPanel, .panel = next_focused->cfg->id);
                     } break;
-                    case TI_CmdKind_FocusPanel: {
+                    case TI_CmdKind_FocusPanel:
+                    {
+                        CFG_Node *panel = cfg_node_from_id(ti_regs()->panel);
+                        CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, panel);
+                        CFG_Node *selection_cfg = &cfg_nil_node;
+                        for (CFG_Panel_Node *p = panel_tree.root;
+                             p != &cfg_nil_panel_node;
+                             p = cfg_panel_node_rec__depth_first_pre(panel_tree.root, p).next)
                         {
-                            CFG_Node *panel = cfg_node_from_id(ti_regs()->panel);
-                            CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, panel);
-                            CFG_Node *selection_cfg = &cfg_nil_node;
-                            for (CFG_Panel_Node *p = panel_tree.root;
-                                 p != &cfg_nil_panel_node;
-                                 p = cfg_panel_node_rec__depth_first_pre(panel_tree.root, p).next)
-                            {
-                                CFG_Node *p_cfg = p->cfg;
-                                CFG_Node *p_selection = cfg_node_child_from_string(p_cfg, str8_lit("selected"));
-                                if (selection_cfg == &cfg_nil_node)
-                                {
-                                    selection_cfg = p_selection;
-                                }
-                                else for (CFG_Node *s = p_selection; s != &cfg_nil_node; s = cfg_node_child_from_string(p_cfg, str8_lit("selected")))
-                                {
-                                    cfg_node_release(ti_state->cfg, s);
-                                }
-                            }
+                            CFG_Node *p_cfg = p->cfg;
+                            CFG_Node *p_selection = cfg_node_child_from_string(p_cfg, str8_lit("selected"));
                             if (selection_cfg == &cfg_nil_node)
                             {
-                                selection_cfg = cfg_node_alloc(ti_state->cfg);
-                                cfg_node_equip_string(ti_state->cfg, selection_cfg, str8_lit("selected"));
+                                selection_cfg = p_selection;
                             }
-                            if (panel != &cfg_nil_node)
+                            else for (CFG_Node *s = p_selection; s != &cfg_nil_node; s = cfg_node_child_from_string(p_cfg, str8_lit("selected")))
                             {
-                                cfg_node_insert_child(ti_state->cfg, panel, &cfg_nil_node, selection_cfg);
-                                CFG_Node *window = ti_window_from_cfg(panel);
-                                TI_Window_State *ws = ti_window_state_from_cfg(window);
-                                ws->menu_bar_focused = 0;
+                                cfg_node_release(ti_state->cfg, s);
                             }
+                        }
+                        if (selection_cfg == &cfg_nil_node)
+                        {
+                            selection_cfg = cfg_node_alloc(ti_state->cfg);
+                            cfg_node_equip_string(ti_state->cfg, selection_cfg, str8_lit("selected"));
+                        }
+                        if (panel != &cfg_nil_node)
+                        {
+                            cfg_node_insert_child(ti_state->cfg, panel, &cfg_nil_node, selection_cfg);
+                            CFG_Node *window = ti_window_from_cfg(panel);
+                            TI_Window_State *ws = ti_window_state_from_cfg(window);
+                            ws->menu_bar_focused = 0;
                         }
                     } break;
 
@@ -6428,450 +6406,437 @@ internal void ti_frame(void)
                         }
                     } break;
                     // panel removal
-                    case TI_CmdKind_ClosePanel: {
+                    case TI_CmdKind_ClosePanel:
+                    {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
+                        CFG_Panel_Node *panel = cfg_panel_node_from_tree_cfg(panel_tree.root, cfg_node_from_id(ti_regs()->panel));
+                        CFG_Panel_Node *parent = panel->parent;
+                        if(parent != &cfg_nil_panel_node)
                         {
-                            CFG_Node *window = cfg_node_from_id(ti_regs()->window);
-                            CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
-                            CFG_Panel_Node *panel = cfg_panel_node_from_tree_cfg(panel_tree.root, cfg_node_from_id(ti_regs()->panel));
-                            CFG_Panel_Node *parent = panel->parent;
-                            if(parent != &cfg_nil_panel_node)
+                            Axis2 split_axis = parent->split_axis;
+                            
+                            // NOTE(rjf): If we're removing all but the last child of this parent,
+                            // we should just remove both children.
+                            if(parent->child_count == 2)
                             {
-                                Axis2 split_axis = parent->split_axis;
+                                CFG_Panel_Node *discard_child = panel;
+                                CFG_Panel_Node *keep_child = (panel == parent->first ? parent->last : parent->first);
+                                CFG_Panel_Node *grandparent = parent->parent;
+                                CFG_Panel_Node *parent_prev = parent->prev;
+                                f32 pct_of_parent = parent->pct_of_parent;
                                 
-                                // NOTE(rjf): If we're removing all but the last child of this parent,
-                                // we should just remove both children.
-                                if(parent->child_count == 2)
+                                // rjf: unhook kept child
+                                cfg_node_unhook(ti_state->cfg, parent->cfg, keep_child->cfg);
+                                
+                                // rjf: unhook this subtree
+                                if(grandparent != &cfg_nil_panel_node)
                                 {
-                                    CFG_Panel_Node *discard_child = panel;
-                                    CFG_Panel_Node *keep_child = (panel == parent->first ? parent->last : parent->first);
-                                    CFG_Panel_Node *grandparent = parent->parent;
-                                    CFG_Panel_Node *parent_prev = parent->prev;
-                                    f32 pct_of_parent = parent->pct_of_parent;
-                                    
-                                    // rjf: unhook kept child
-                                    cfg_node_unhook(ti_state->cfg, parent->cfg, keep_child->cfg);
-                                    
-                                    // rjf: unhook this subtree
-                                    if(grandparent != &cfg_nil_panel_node)
+                                    cfg_node_unhook(ti_state->cfg, grandparent->cfg, parent->cfg);
+                                }
+                                
+                                // rjf: release the containing tree
+                                {
+                                    cfg_node_release(ti_state->cfg, parent->cfg);
+                                }
+                                
+                                // rjf: re-hook our kept child into the overall tree
+                                if(grandparent == &cfg_nil_panel_node)
+                                {
+                                    if(keep_child->split_axis == Axis2_X)
                                     {
-                                        cfg_node_unhook(ti_state->cfg, grandparent->cfg, parent->cfg);
-                                    }
-                                    
-                                    // rjf: release the containing tree
-                                    {
-                                        cfg_node_release(ti_state->cfg, parent->cfg);
-                                    }
-                                    
-                                    // rjf: re-hook our kept child into the overall tree
-                                    if(grandparent == &cfg_nil_panel_node)
-                                    {
-                                        if(keep_child->split_axis == Axis2_X)
-                                        {
-                                            cfg_node_child_from_string_or_alloc(ti_state->cfg, window, str8_lit("split_x"));
-                                        }
-                                        else
-                                        {
-                                            cfg_node_release(ti_state->cfg, cfg_node_child_from_string(window, str8_lit("split_x")));
-                                        }
-                                        cfg_node_equip_string(ti_state->cfg, keep_child->cfg, str8_lit("panels"));
-                                        cfg_node_insert_child(ti_state->cfg, window, window->last, keep_child->cfg);
+                                        cfg_node_child_from_string_or_alloc(ti_state->cfg, window, str8_lit("split_x"));
                                     }
                                     else
                                     {
-                                        cfg_node_insert_child(ti_state->cfg, grandparent->cfg, parent_prev->cfg, keep_child->cfg);
-                                        cfg_node_equip_stringf(ti_state->cfg, keep_child->cfg, "%f", pct_of_parent);
+                                        cfg_node_release(ti_state->cfg, cfg_node_child_from_string(window, str8_lit("split_x")));
                                     }
-                                    
-                                    // rjf: keep-child split-axis == grandparent split-axis? bubble keep-child up into grandparent's children
-                                    if(grandparent != &cfg_nil_panel_node && grandparent->split_axis == keep_child->split_axis && keep_child->first != &cfg_nil_panel_node)
-                                    {
-                                        cfg_node_unhook(ti_state->cfg, grandparent->cfg, keep_child->cfg);
-                                        CFG_Node *prev = parent_prev->cfg;
-                                        for(CFG_Panel_Node *child = keep_child->first, *next = &cfg_nil_panel_node; child != &cfg_nil_panel_node; child = next)
-                                        {
-                                            next = child->next;
-                                            cfg_node_unhook(ti_state->cfg, keep_child->cfg, child->cfg);
-                                            cfg_node_insert_child(ti_state->cfg, grandparent->cfg, prev, child->cfg);
-                                            prev = child->cfg;
-                                            f32 old_pct = child->pct_of_parent;
-                                            f32 new_pct = old_pct * pct_of_parent;
-                                            cfg_node_equip_stringf(ti_state->cfg, child->cfg, "%f", new_pct);
-                                        }
-                                        cfg_node_release(ti_state->cfg, keep_child->cfg);
-                                    }
-                                    
-                                    // rjf: reset focus, if needed
-                                    if(panel_tree.focused == discard_child)
-                                    {
-                                        CFG_Panel_Tree new_panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
-                                        CFG_Panel_Node *new_focused = cfg_panel_node_from_tree_cfg(panel_tree.root, keep_child->cfg);
-                                        for(CFG_Panel_Node *grandchild = new_focused; grandchild != &cfg_nil_panel_node; grandchild = grandchild->first)
-                                        {
-                                            new_focused = grandchild;
-                                        }
-                                        ti_cmd(TI_CmdKind_FocusPanel, .panel = new_focused->cfg->id);
-                                    }
+                                    cfg_node_equip_string(ti_state->cfg, keep_child->cfg, str8_lit("panels"));
+                                    cfg_node_insert_child(ti_state->cfg, window, window->last, keep_child->cfg);
                                 }
-                                // NOTE(rjf): Otherwise we can just remove this child.
                                 else
                                 {
-                                    // rjf: remove
-                                    CFG_Panel_Node *next = &cfg_nil_panel_node;
-                                    f32 removed_size_pct = panel->pct_of_parent;
-                                    if(next == &cfg_nil_panel_node) { next = panel->prev; }
-                                    if(next == &cfg_nil_panel_node) { next = panel->next; }
-                                    cfg_node_unhook(ti_state->cfg, parent->cfg, panel->cfg);
-                                    cfg_node_release(ti_state->cfg, panel->cfg);
-                                    
-                                    // rjf: resize siblings to this node
-                                    {
-                                        CFG_Panel_Tree new_panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
-                                        CFG_Panel_Node *new_parent = cfg_panel_node_from_tree_cfg(new_panel_tree.root, parent->cfg);
-                                        for(CFG_Panel_Node *child = new_parent->first; child != &cfg_nil_panel_node; child = child->next)
-                                        {
-                                            CFG_Node *cfg = child->cfg;
-                                            f32 old_pct = child->pct_of_parent;
-                                            f32 new_pct = old_pct / (1.f-removed_size_pct);
-                                            cfg_node_equip_stringf(ti_state->cfg, cfg, "%f", new_pct);
-                                        }
-                                    }
-                                    
-                                    // rjf: reset focus, if needed
-                                    if(panel_tree.focused == panel)
-                                    {
-                                        CFG_Panel_Tree new_panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
-                                        CFG_Panel_Node *new_focused = cfg_panel_node_from_tree_cfg(panel_tree.root, next->cfg);
-                                        for(CFG_Panel_Node *grandchild = new_focused; grandchild != &cfg_nil_panel_node; grandchild = grandchild->first)
-                                        {
-                                            new_focused = grandchild;
-                                        }
-                                        ti_cmd(TI_CmdKind_FocusPanel, .panel = new_focused->cfg->id);
-                                    }
+                                    cfg_node_insert_child(ti_state->cfg, grandparent->cfg, parent_prev->cfg, keep_child->cfg);
+                                    cfg_node_equip_stringf(ti_state->cfg, keep_child->cfg, "%f", pct_of_parent);
                                 }
-                            }
-                        }
-                    } break;
-                    case TI_CmdKind_FocusTab: {
-                        {
-                            CFG_Node *tab = cfg_node_from_id(ti_regs()->tab);
-                            CFG_Node *panel = tab->parent;
-                            if(panel == &cfg_nil_node)
-                            {
-                                panel = cfg_node_from_id(ti_regs()->panel);
-                            }
-                            CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, panel);
-                            CFG_Panel_Node *panel_node = cfg_panel_node_from_tree_cfg(panel_tree.root, panel);
-                            CFG_Node *selection_cfg = &cfg_nil_node;
-                            for(CFG_Node_Ptr_Node *n = panel_node->tabs.first; n != 0; n = n->next)
-                            {
-                                CFG_Node *tab_selection_cfg = cfg_node_child_from_string(n->v, str8_lit("selected"));
-                                if(selection_cfg == &cfg_nil_node)
+                                
+                                // rjf: keep-child split-axis == grandparent split-axis? bubble keep-child up into grandparent's children
+                                if(grandparent != &cfg_nil_panel_node && grandparent->split_axis == keep_child->split_axis && keep_child->first != &cfg_nil_panel_node)
                                 {
-                                    selection_cfg = tab_selection_cfg;
-                                    cfg_node_unhook(ti_state->cfg, n->v, selection_cfg);
+                                    cfg_node_unhook(ti_state->cfg, grandparent->cfg, keep_child->cfg);
+                                    CFG_Node *prev = parent_prev->cfg;
+                                    for(CFG_Panel_Node *child = keep_child->first, *next = &cfg_nil_panel_node; child != &cfg_nil_panel_node; child = next)
+                                    {
+                                        next = child->next;
+                                        cfg_node_unhook(ti_state->cfg, keep_child->cfg, child->cfg);
+                                        cfg_node_insert_child(ti_state->cfg, grandparent->cfg, prev, child->cfg);
+                                        prev = child->cfg;
+                                        f32 old_pct = child->pct_of_parent;
+                                        f32 new_pct = old_pct * pct_of_parent;
+                                        cfg_node_equip_stringf(ti_state->cfg, child->cfg, "%f", new_pct);
+                                    }
+                                    cfg_node_release(ti_state->cfg, keep_child->cfg);
                                 }
-                                else for(CFG_Node *s = tab_selection_cfg; s != &cfg_nil_node; s = cfg_node_child_from_string(n->v, str8_lit("selected")))
-                                     {
-                                         cfg_node_release(ti_state->cfg, s);
-                                     }
+                                
+                                // rjf: reset focus, if needed
+                                if(panel_tree.focused == discard_child)
+                                {
+                                    CFG_Panel_Tree new_panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
+                                    CFG_Panel_Node *new_focused = cfg_panel_node_from_tree_cfg(panel_tree.root, keep_child->cfg);
+                                    for(CFG_Panel_Node *grandchild = new_focused; grandchild != &cfg_nil_panel_node; grandchild = grandchild->first)
+                                    {
+                                        new_focused = grandchild;
+                                    }
+                                    ti_cmd(TI_CmdKind_FocusPanel, .panel = new_focused->cfg->id);
+                                }
                             }
-                            if(selection_cfg == &cfg_nil_node)
-                            {
-                                selection_cfg = cfg_node_alloc(ti_state->cfg);
-                                cfg_node_equip_string(ti_state->cfg, selection_cfg, str8_lit("selected"));
-                            }
-                            if(tab != &cfg_nil_node)
-                            {
-                                cfg_node_insert_child(ti_state->cfg, tab, &cfg_nil_node, selection_cfg);
-                            }
+                            // NOTE(rjf): Otherwise we can just remove this child.
                             else
                             {
-                                cfg_node_release(ti_state->cfg, selection_cfg);
+                                // rjf: remove
+                                CFG_Panel_Node *next = &cfg_nil_panel_node;
+                                f32 removed_size_pct = panel->pct_of_parent;
+                                if(next == &cfg_nil_panel_node) { next = panel->prev; }
+                                if(next == &cfg_nil_panel_node) { next = panel->next; }
+                                cfg_node_unhook(ti_state->cfg, parent->cfg, panel->cfg);
+                                cfg_node_release(ti_state->cfg, panel->cfg);
+                                
+                                // rjf: resize siblings to this node
+                                {
+                                    CFG_Panel_Tree new_panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
+                                    CFG_Panel_Node *new_parent = cfg_panel_node_from_tree_cfg(new_panel_tree.root, parent->cfg);
+                                    for(CFG_Panel_Node *child = new_parent->first; child != &cfg_nil_panel_node; child = child->next)
+                                    {
+                                        CFG_Node *cfg = child->cfg;
+                                        f32 old_pct = child->pct_of_parent;
+                                        f32 new_pct = old_pct / (1.f-removed_size_pct);
+                                        cfg_node_equip_stringf(ti_state->cfg, cfg, "%f", new_pct);
+                                    }
+                                }
+                                
+                                // rjf: reset focus, if needed
+                                if(panel_tree.focused == panel)
+                                {
+                                    CFG_Panel_Tree new_panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
+                                    CFG_Panel_Node *new_focused = cfg_panel_node_from_tree_cfg(panel_tree.root, next->cfg);
+                                    for(CFG_Panel_Node *grandchild = new_focused; grandchild != &cfg_nil_panel_node; grandchild = grandchild->first)
+                                    {
+                                        new_focused = grandchild;
+                                    }
+                                    ti_cmd(TI_CmdKind_FocusPanel, .panel = new_focused->cfg->id);
+                                }
                             }
                         }
                     } break;
-                    case TI_CmdKind_NextTab: {
+                    case TI_CmdKind_FocusTab:
+                    {
+                        CFG_Node *tab = cfg_node_from_id(ti_regs()->tab);
+                        CFG_Node *panel = tab->parent;
+                        if(panel == &cfg_nil_node)
                         {
-                            CFG_Node *window = cfg_node_from_id(ti_regs()->window);
-                            CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
-                            CFG_Panel_Node *focused = panel_tree.focused;
-                            CFG_Node_Ptr_Node *selected_tab_n = 0;
-                            for(CFG_Node_Ptr_Node *n = focused->tabs.first; n != 0; n = n->next)
+                            panel = cfg_node_from_id(ti_regs()->panel);
+                        }
+                        CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, panel);
+                        CFG_Panel_Node *panel_node = cfg_panel_node_from_tree_cfg(panel_tree.root, panel);
+                        CFG_Node *selection_cfg = &cfg_nil_node;
+                        for(CFG_Node_Ptr_Node *n = panel_node->tabs.first; n != 0; n = n->next)
+                        {
+                            CFG_Node *tab_selection_cfg = cfg_node_child_from_string(n->v, str8_lit("selected"));
+                            if(selection_cfg == &cfg_nil_node)
                             {
-                                if(n->v == focused->selected_tab)
-                                {
-                                    selected_tab_n = n;
-                                    break;
-                                }
+                                selection_cfg = tab_selection_cfg;
+                                cfg_node_unhook(ti_state->cfg, n->v, selection_cfg);
                             }
-                            CFG_Node *next_selected_tab = &cfg_nil_node;
-                            u64 idx = 0;
-                            for(CFG_Node_Ptr_Node *tab_n = selected_tab_n;
-                                tab_n != 0 && (tab_n != selected_tab_n || idx == 0);
-                                ((tab_n->next == 0) ? (tab_n = focused->tabs.first) : (tab_n = tab_n->next)), idx += 1)
+                            else for(CFG_Node *s = tab_selection_cfg; s != &cfg_nil_node; s = cfg_node_child_from_string(n->v, str8_lit("selected")))
                             {
-                                if(!ti_cfg_is_project_filtered(tab_n->v) && tab_n != selected_tab_n)
-                                {
-                                    next_selected_tab = tab_n->v;
-                                    break;
-                                }
-                            }
-                            if(next_selected_tab != &cfg_nil_node)
-                            {
-                                ti_cmd(TI_CmdKind_FocusTab, .tab = next_selected_tab->id);
+                                cfg_node_release(ti_state->cfg, s);
                             }
                         }
-                    } break;
-                    case TI_CmdKind_PrevTab: {
+                        if(selection_cfg == &cfg_nil_node)
                         {
-                            CFG_Node *window = cfg_node_from_id(ti_regs()->window);
-                            CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
-                            CFG_Panel_Node *focused = panel_tree.focused;
-                            CFG_Node_Ptr_Node *selected_tab_n = 0;
-                            for(CFG_Node_Ptr_Node *n = focused->tabs.last; n != 0; n = n->prev)
+                            selection_cfg = cfg_node_alloc(ti_state->cfg);
+                            cfg_node_equip_string(ti_state->cfg, selection_cfg, str8_lit("selected"));
+                        }
+                        if(tab != &cfg_nil_node)
+                        {
+                            cfg_node_insert_child(ti_state->cfg, tab, &cfg_nil_node, selection_cfg);
+                        }
+                        else
+                        {
+                            cfg_node_release(ti_state->cfg, selection_cfg);
+                        }
+                    } break;
+                    case TI_CmdKind_NextTab:
+                    {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
+                        CFG_Panel_Node *focused = panel_tree.focused;
+                        CFG_Node_Ptr_Node *selected_tab_n = 0;
+                        for(CFG_Node_Ptr_Node *n = focused->tabs.first; n != 0; n = n->next)
+                        {
+                            if(n->v == focused->selected_tab)
                             {
-                                if(n->v == focused->selected_tab)
-                                {
-                                    selected_tab_n = n;
-                                    break;
-                                }
+                                selected_tab_n = n;
+                                break;
                             }
-                            CFG_Node *next_selected_tab = &cfg_nil_node;
-                            u64 idx = 0;
-                            for(CFG_Node_Ptr_Node *tab_n = selected_tab_n;
-                                tab_n != 0 && (tab_n != selected_tab_n || idx == 0);
-                                ((tab_n->prev == 0) ? (tab_n = focused->tabs.last) : (tab_n = tab_n->prev)), idx += 1)
+                        }
+                        CFG_Node *next_selected_tab = &cfg_nil_node;
+                        u64 idx = 0;
+                        for(CFG_Node_Ptr_Node *tab_n = selected_tab_n;
+                            tab_n != 0 && (tab_n != selected_tab_n || idx == 0);
+                            ((tab_n->next == 0) ? (tab_n = focused->tabs.first) : (tab_n = tab_n->next)), idx += 1)
+                        {
+                            if(!ti_cfg_is_project_filtered(tab_n->v) && tab_n != selected_tab_n)
                             {
-                                if(!ti_cfg_is_project_filtered(tab_n->v) && tab_n != selected_tab_n)
-                                {
-                                    next_selected_tab = tab_n->v;
-                                    break;
-                                }
+                                next_selected_tab = tab_n->v;
+                                break;
                             }
-                            if(next_selected_tab != &cfg_nil_node)
+                        }
+                        if(next_selected_tab != &cfg_nil_node)
+                        {
+                            ti_cmd(TI_CmdKind_FocusTab, .tab = next_selected_tab->id);
+                        }
+                    } break;
+                    case TI_CmdKind_PrevTab:
+                    {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
+                        CFG_Panel_Node *focused = panel_tree.focused;
+                        CFG_Node_Ptr_Node *selected_tab_n = 0;
+                        for(CFG_Node_Ptr_Node *n = focused->tabs.last; n != 0; n = n->prev)
+                        {
+                            if(n->v == focused->selected_tab)
                             {
-                                ti_cmd(TI_CmdKind_FocusTab, .tab = next_selected_tab->id);
+                                selected_tab_n = n;
+                                break;
                             }
+                        }
+                        CFG_Node *next_selected_tab = &cfg_nil_node;
+                        u64 idx = 0;
+                        for(CFG_Node_Ptr_Node *tab_n = selected_tab_n;
+                            tab_n != 0 && (tab_n != selected_tab_n || idx == 0);
+                            ((tab_n->prev == 0) ? (tab_n = focused->tabs.last) : (tab_n = tab_n->prev)), idx += 1)
+                        {
+                            if(!ti_cfg_is_project_filtered(tab_n->v) && tab_n != selected_tab_n)
+                            {
+                                next_selected_tab = tab_n->v;
+                                break;
+                            }
+                        }
+                        if(next_selected_tab != &cfg_nil_node)
+                        {
+                            ti_cmd(TI_CmdKind_FocusTab, .tab = next_selected_tab->id);
                         }
                     } break;
                     case TI_CmdKind_MoveTabRight:
-                    case TI_CmdKind_MoveTabLeft: {
+                    case TI_CmdKind_MoveTabLeft:
+                    {
+                        CFG_Node *tab = cfg_node_from_id(ti_regs()->tab);
+                        CFG_Node *window = ti_window_from_cfg(tab);
+                        CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
+                        CFG_Panel_Node *panel = cfg_panel_node_from_tree_cfg(panel_tree.root, tab->parent);
+                        CFG_Node_Ptr_List filtered_tabs = {0};
+                        for(CFG_Node_Ptr_Node *n = panel->tabs.first; n != 0; n = n->next)
                         {
-                            CFG_Node *tab = cfg_node_from_id(ti_regs()->tab);
-                            CFG_Node *window = ti_window_from_cfg(tab);
-                            CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
-                            CFG_Panel_Node *panel = cfg_panel_node_from_tree_cfg(panel_tree.root, tab->parent);
-                            CFG_Node_Ptr_List filtered_tabs = {0};
-                            for(CFG_Node_Ptr_Node *n = panel->tabs.first; n != 0; n = n->next)
+                            if(ti_cfg_is_project_filtered(n->v))
                             {
-                                if(ti_cfg_is_project_filtered(n->v))
-                                {
-                                    continue;
-                                }
-                                cfg_node_ptr_list_push(scratch.arena, &filtered_tabs, n->v);
+                                continue;
                             }
-                            CFG_Node *tab_prev2 = &cfg_nil_node;
-                            CFG_Node *tab_prev = &cfg_nil_node;
-                            CFG_Node *tab_next = &cfg_nil_node;
+                            cfg_node_ptr_list_push(scratch.arena, &filtered_tabs, n->v);
+                        }
+                        CFG_Node *tab_prev2 = &cfg_nil_node;
+                        CFG_Node *tab_prev = &cfg_nil_node;
+                        CFG_Node *tab_next = &cfg_nil_node;
+                        {
+                            CFG_Node *prev2 = &cfg_nil_node;
+                            CFG_Node *prev = &cfg_nil_node;
+                            CFG_Node *next = &cfg_nil_node;
+                            for(CFG_Node_Ptr_Node *n = filtered_tabs.first; n != 0; (prev2 = prev, prev = n->v, n = n->next))
                             {
-                                CFG_Node *prev2 = &cfg_nil_node;
-                                CFG_Node *prev = &cfg_nil_node;
-                                CFG_Node *next = &cfg_nil_node;
-                                for(CFG_Node_Ptr_Node *n = filtered_tabs.first; n != 0; (prev2 = prev, prev = n->v, n = n->next))
+                                next = n->next ? n->next->v : &cfg_nil_node;
+                                if(n->v == tab)
                                 {
-                                    next = n->next ? n->next->v : &cfg_nil_node;
-                                    if(n->v == tab)
+                                    tab_prev2 = prev2;
+                                    tab_prev = prev;
+                                    tab_next = next;
+                                    break;
+                                }
+                            }
+                        }
+                        CFG_Node *new_prev = (kind == TI_CmdKind_MoveTabRight ? tab_next : tab_prev2);
+                        if(new_prev == tab_prev && filtered_tabs.last)
+                        {
+                            new_prev = filtered_tabs.last->v;
+                        }
+                        ti_cmd(TI_CmdKind_MoveView,
+                               .dst_panel = panel->cfg->id,
+                               .view     = tab->id,
+                               .prev_tab  = new_prev->id);
+                    } break;
+                    case TI_CmdKind_BuildTab:
+                    {
+                        String8 expr_file_path = s("test tab");
+                        CFG_Node *panel = cfg_node_from_id(ti_regs()->panel);
+                        CFG_Node *tab = cfg_node_new(ti_state->cfg, panel, ti_regs()->string);
+                        CFG_Node *expr = cfg_node_new(ti_state->cfg, tab, str8_lit("expression"));
+                        cfg_node_new(ti_state->cfg, expr, s("test tab"));
+                        if (expr_file_path.size != 0)
+                        {
+                            CFG_Node *project = cfg_node_new(ti_state->cfg, tab, str8_lit("project"));
+                            cfg_node_new(ti_state->cfg, project, ti_state->project_path);
+                        }
+                        ti_cmd(TI_CmdKind_FocusTab, .tab = tab->id);
+                    } break;
+                    case TI_CmdKind_DuplicateTab:
+                    {
+                        CFG_Node *src = cfg_node_from_id(ti_regs()->tab);
+                        CFG_Node *dst = cfg_node_deep_copy(ti_state->cfg, src);
+                        cfg_node_insert_child(ti_state->cfg, src->parent, src, dst);
+                        ti_cmd(TI_CmdKind_FocusTab, .tab = dst->id);
+                    } break;
+                    case TI_CmdKind_CopyTabFullPath:
+                    {
+                        CFG_Node *tab = cfg_node_from_id(ti_regs()->tab);
+                        String8 expr = s("test expr");
+                        String8 full_path = s("test expr full path");
+                        wm_set_clipboard_text(full_path);
+                    } break;
+                    case TI_CmdKind_CloseTab:
+                    {
+                        CFG_Node *tab = cfg_node_from_id(ti_regs()->tab);
+                        CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, tab);
+                        CFG_Panel_Node *panel = cfg_panel_node_from_tree_cfg(panel_tree.root, tab->parent);
+                        if (panel->selected_tab == tab)
+                        {
+                            bool32 found_selected = false;
+                            CFG_Node *next_selected_tab = &cfg_nil_node;
+                            for (CFG_Node_Ptr_Node *n = panel->tabs.first; n != 0; n = n->next)
+                            {
+                                if (n->v == panel->selected_tab)
+                                {
+                                    found_selected = true;
+                                }
+                                else if (!ti_cfg_is_project_filtered(n->v))
+                                {
+                                    next_selected_tab = n->v;
+                                    if (found_selected)
                                     {
-                                        tab_prev2 = prev2;
-                                        tab_prev = prev;
-                                        tab_next = next;
                                         break;
                                     }
                                 }
                             }
-                            CFG_Node *new_prev = (kind == TI_CmdKind_MoveTabRight ? tab_next : tab_prev2);
-                            if(new_prev == tab_prev && filtered_tabs.last)
+                            ti_cmd(TI_CmdKind_FocusTab, .tab = next_selected_tab->id);
+                        }
+                        cfg_node_release(ti_state->cfg, tab);
+                    } break;
+                    case TI_CmdKind_MoveView:
+                    {
+                        CFG_Node *view = cfg_node_from_id(ti_regs()->view);
+                        CFG_Node *prev_tab = cfg_node_from_id(ti_regs()->prev_tab);
+                        CFG_Node *src_panel = view->parent;
+                        CFG_Node *dst_panel = cfg_node_from_id(ti_regs()->dst_panel);
+                        if(dst_panel != &cfg_nil_node && prev_tab != view)
+                        {
+                            cfg_node_unhook(ti_state->cfg, src_panel, view);
+                            cfg_node_insert_child(ti_state->cfg, dst_panel, prev_tab, view);
+                            ti_cmd(TI_CmdKind_FocusTab, .panel = dst_panel->id, .tab = view->id);
+                            ti_cmd(TI_CmdKind_FocusPanel, .panel = dst_panel->id);
+                            CFG_Panel_Tree src_panel_tree = cfg_panel_tree_from_cfg(scratch.arena, src_panel);
+                            CFG_Panel_Node *src_panel_node = cfg_panel_node_from_tree_cfg(src_panel_tree.root, src_panel);
+                            bool32 src_panel_is_empty = 0;
+                            if(src_panel != dst_panel)
                             {
-                                new_prev = filtered_tabs.last->v;
-                            }
-                            ti_cmd(TI_CmdKind_MoveView,
-                                   .dst_panel = panel->cfg->id,
-                                   .view     = tab->id,
-                                   .prev_tab  = new_prev->id);
-                        }
-                    } break;
-                    case TI_CmdKind_BuildTab: {
-                        {
-                            String8 expr_file_path = s("test tab");
-                            CFG_Node *panel = cfg_node_from_id(ti_regs()->panel);
-                            CFG_Node *tab = cfg_node_new(ti_state->cfg, panel, ti_regs()->string);
-                            CFG_Node *expr = cfg_node_new(ti_state->cfg, tab, str8_lit("expression"));
-                            cfg_node_new(ti_state->cfg, expr, s("test tab"));
-                            if (expr_file_path.size != 0)
-                            {
-                                CFG_Node *project = cfg_node_new(ti_state->cfg, tab, str8_lit("project"));
-                                cfg_node_new(ti_state->cfg, project, ti_state->project_path);
-                            }
-                            ti_cmd(TI_CmdKind_FocusTab, .tab = tab->id);
-                        }
-                    } break;
-                    case TI_CmdKind_DuplicateTab: {
-                        {
-                            CFG_Node *src = cfg_node_from_id(ti_regs()->tab);
-                            CFG_Node *dst = cfg_node_deep_copy(ti_state->cfg, src);
-                            cfg_node_insert_child(ti_state->cfg, src->parent, src, dst);
-                            ti_cmd(TI_CmdKind_FocusTab, .tab = dst->id);
-                        }
-                    } break;
-                    case TI_CmdKind_CopyTabFullPath: {
-                        {
-                            CFG_Node *tab = cfg_node_from_id(ti_regs()->tab);
-                            String8 expr = s("test expr");
-                            String8 full_path = s("test expr full path");
-                            wm_set_clipboard_text(full_path);
-                        }
-                    } break;
-                    case TI_CmdKind_CloseTab: {
-                        {
-                            CFG_Node *tab = cfg_node_from_id(ti_regs()->tab);
-                            CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, tab);
-                            CFG_Panel_Node *panel = cfg_panel_node_from_tree_cfg(panel_tree.root, tab->parent);
-                            if (panel->selected_tab == tab)
-                            {
-                                bool32 found_selected = false;
-                                CFG_Node *next_selected_tab = &cfg_nil_node;
-                                for (CFG_Node_Ptr_Node *n = panel->tabs.first; n != 0; n = n->next)
+                                src_panel_is_empty = 1;
+                                for(CFG_Node_Ptr_Node *n = src_panel_node->tabs.first; n != 0; n = n->next)
                                 {
-                                    if (n->v == panel->selected_tab)
+                                    if(!ti_cfg_is_project_filtered(n->v))
                                     {
-                                        found_selected = true;
-                                    }
-                                    else if (!ti_cfg_is_project_filtered(n->v))
-                                    {
-                                        next_selected_tab = n->v;
-                                        if (found_selected)
-                                        {
-                                            break;
-                                        }
+                                        ti_cmd(TI_CmdKind_FocusTab, .panel = src_panel->id, .tab = n->v->id);
+                                        src_panel_is_empty = 0;
+                                        break;
                                     }
                                 }
-                                ti_cmd(TI_CmdKind_FocusTab, .tab = next_selected_tab->id);
                             }
-                            cfg_node_release(ti_state->cfg, tab);
-                        }
-                    } break;
-                    case TI_CmdKind_MoveView: {
-                        {
-                            CFG_Node *view = cfg_node_from_id(ti_regs()->view);
-                            CFG_Node *prev_tab = cfg_node_from_id(ti_regs()->prev_tab);
-                            CFG_Node *src_panel = view->parent;
-                            CFG_Node *dst_panel = cfg_node_from_id(ti_regs()->dst_panel);
-                            if(dst_panel != &cfg_nil_node && prev_tab != view)
+                            if(src_panel_is_empty)
                             {
-                                cfg_node_unhook(ti_state->cfg, src_panel, view);
-                                cfg_node_insert_child(ti_state->cfg, dst_panel, prev_tab, view);
-                                ti_cmd(TI_CmdKind_FocusTab, .panel = dst_panel->id, .tab = view->id);
-                                ti_cmd(TI_CmdKind_FocusPanel, .panel = dst_panel->id);
-                                CFG_Panel_Tree src_panel_tree = cfg_panel_tree_from_cfg(scratch.arena, src_panel);
-                                CFG_Panel_Node *src_panel_node = cfg_panel_node_from_tree_cfg(src_panel_tree.root, src_panel);
-                                bool32 src_panel_is_empty = 0;
-                                if(src_panel != dst_panel)
-                                {
-                                    src_panel_is_empty = 1;
-                                    for(CFG_Node_Ptr_Node *n = src_panel_node->tabs.first; n != 0; n = n->next)
-                                    {
-                                        if(!ti_cfg_is_project_filtered(n->v))
-                                        {
-                                            ti_cmd(TI_CmdKind_FocusTab, .panel = src_panel->id, .tab = n->v->id);
-                                            src_panel_is_empty = 0;
-                                            break;
-                                        }
-                                    }
-                                }
-                                if(src_panel_is_empty)
-                                {
-                                    ti_cmd(TI_CmdKind_ClosePanel, .panel = src_panel->id);
-                                }
+                                ti_cmd(TI_CmdKind_ClosePanel, .panel = src_panel->id);
                             }
                         }
                     } break;
-                    case TI_CmdKind_TabBarTop: {
-                        {
-                            CFG_Node *panel = cfg_node_from_id(ti_regs()->panel);
-                            cfg_node_release(ti_state->cfg, cfg_node_child_from_string(panel, str8_lit("tabs_on_bottom")));
-                        }
+                    case TI_CmdKind_TabBarTop:
+                    {
+                        CFG_Node *panel = cfg_node_from_id(ti_regs()->panel);
+                        cfg_node_release(ti_state->cfg, cfg_node_child_from_string(panel, str8_lit("tabs_on_bottom")));
                     } break;
-                    case TI_CmdKind_TabBarBottom: {
-                        {
-                            CFG_Node *panel = cfg_node_from_id(ti_regs()->panel);
-                            cfg_node_child_from_string_or_alloc(ti_state->cfg, panel, str8_lit("tabs_on_bottom"));
-                        }
+                    case TI_CmdKind_TabBarBottom:
+                    {
+                        CFG_Node *panel = cfg_node_from_id(ti_regs()->panel);
+                        cfg_node_child_from_string_or_alloc(ti_state->cfg, panel, str8_lit("tabs_on_bottom"));
                     } break;
-                    case TI_CmdKind_TabSettings: {
-                        {
-                            String8 expr = str8f(scratch.arena, "query:config.$%I64x", ti_regs()->tab);
-                            ti_cmd(TI_CmdKind_CancelAllQueries);
-                            ti_cmd(TI_CmdKind_PushQuery, .expr = expr, .do_implicit_root = 1, .do_big_rows = 1, .do_lister = 1);
-                        }
+                    case TI_CmdKind_TabSettings:
+                    {
+                        String8 expr = str8f(scratch.arena, "query:config.$%I64x", ti_regs()->tab);
+                        ti_cmd(TI_CmdKind_CancelAllQueries);
+                        ti_cmd(TI_CmdKind_PushQuery, .expr = expr, .do_implicit_root = 1, .do_big_rows = 1, .do_lister = 1);
                     } break;
-                    case TI_CmdKind_ResetToDefaultPanels: {
-                        {
-                            CFG_Node *window = cfg_node_from_id(ti_regs()->window);
-                            CFG_Node *panels = cfg_node_child_from_string(window, str8_lit("panels"));
-                            CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
+                    case TI_CmdKind_ResetToDefaultPanels:
+                    {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        CFG_Node *panels = cfg_node_child_from_string(window, str8_lit("panels"));
+                        CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
                             
                             //- rjf: define all of the "fixed" tabs we care about
 #define X(name) CFG_Node *name = &cfg_nil_node;
 #define Y(name, rule, expr) CFG_Node *name = &cfg_nil_node;
 #define Z(name) CFG_Node *name = &cfg_nil_node;
-                            TI_FixedTabXList
+                        TI_FixedTabXList
 #undef X
 #undef Y
 #undef Z
             
-                            //- rjf: find all the fixed tabs, and all text viewers
-                            bool32 any_fixed_tabs_found = 0;
-                            CFG_Node_Ptr_List texts = {0};
-                            for(CFG_Panel_Node *panel = panel_tree.root;
-                                panel != &cfg_nil_panel_node;
-                                panel = cfg_panel_node_rec__depth_first_pre(panel_tree.root, panel).next)
+                        //- rjf: find all the fixed tabs, and all text viewers
+                        bool32 any_fixed_tabs_found = 0;
+                        CFG_Node_Ptr_List texts = {0};
+                        for(CFG_Panel_Node *panel = panel_tree.root;
+                            panel != &cfg_nil_panel_node;
+                            panel = cfg_panel_node_rec__depth_first_pre(panel_tree.root, panel).next)
+                        {
+                            for(CFG_Node_Ptr_Node *n = panel->tabs.first; n != 0; n = n->next)
                             {
-                                for(CFG_Node_Ptr_Node *n = panel->tabs.first; n != 0; n = n->next)
-                                {
-                                    CFG_Node *tab = n->v;
-                                    bool32 need_unhook = 1;
-                                    if(0){}
+                                CFG_Node *tab = n->v;
+                                bool32 need_unhook = 1;
+                                if(0){}
 #define X(name) else if(str8_match(tab->string, str8_lit("watch"), 0) && str8_match(ti_expr_from_cfg(tab), str8_lit("query:" #name), 0)) {name = tab;}
 #define Y(name, rule, expr) else if(str8_match(tab->string, str8_lit(#rule), 0) && str8_match(ti_expr_from_cfg(tab), str8_lit(expr), 0)) {name = tab;}
 #define Z(name) else if(str8_match(tab->string, str8_lit(#name), 0)) {name = tab;}
-                                    TI_FixedTabXList
+                                TI_FixedTabXList
 #undef X
 #undef Y
 #undef Z
-                                    else if(str8_match(tab->string, str8_lit("text"), 0)) {cfg_node_ptr_list_push(scratch.arena, &texts, tab);}
-                                    else
-                                    {
-                                        need_unhook = 0;
-                                    }
-                                    if(need_unhook)
-                                    {
-                                        cfg_node_equip_string(ti_state->cfg, tab, str8_lit("geo3d"));
-                                        cfg_node_release(ti_state->cfg, cfg_node_child_from_string(tab, str8_lit("expression")));
-                                        cfg_node_release(ti_state->cfg, cfg_node_child_from_string(tab, str8_lit("project")));
-                                        cfg_node_unhook(ti_state->cfg, panel->cfg, tab);
-                                        any_fixed_tabs_found = 1;
-                                    }
+                                else if(str8_match(tab->string, str8_lit("text"), 0)) {cfg_node_ptr_list_push(scratch.arena, &texts, tab);}
+                                else
+                                {
+                                    need_unhook = 0;
+                                }
+                                if(need_unhook)
+                                {
+                                    cfg_node_equip_string(ti_state->cfg, tab, str8_lit("geo3d"));
+                                    cfg_node_release(ti_state->cfg, cfg_node_child_from_string(tab, str8_lit("expression")));
+                                    cfg_node_release(ti_state->cfg, cfg_node_child_from_string(tab, str8_lit("project")));
+                                    cfg_node_unhook(ti_state->cfg, panel->cfg, tab);
+                                    any_fixed_tabs_found = 1;
                                 }
                             }
-            
-                            //- rjf: release the old panel tree
-                            cfg_node_release(ti_state->cfg, panels);
-                            
-                            //- rjf: allocate any missing tabs
+                        }
+                        
+                        //- rjf: release the old panel tree
+                        cfg_node_release(ti_state->cfg, panels);
+                        
+                        //- rjf: allocate any missing tabs
 #define X(name) if(name == &cfg_nil_node) {name = cfg_node_alloc(ti_state->cfg); cfg_node_equip_string(ti_state->cfg, name, str8_lit("geo3d"));}
 #define Y(name, rule, expr) if(name == &cfg_nil_node) {name = cfg_node_alloc(ti_state->cfg); cfg_node_equip_string(ti_state->cfg, name, str8_lit("geo3d"));}
 #define Z(name) if(name == &cfg_nil_node && !any_fixed_tabs_found) {name = cfg_node_alloc(ti_state->cfg); cfg_node_equip_string(ti_state->cfg, name, str8_lit("geo3d"));}
-                            TI_FixedTabXList
+                        TI_FixedTabXList
 #undef X
 #undef Y
 #undef Z
@@ -6880,338 +6845,538 @@ internal void ti_frame(void)
 #define X(name) if(name != &cfg_nil_node) {cfg_node_release(ti_state->cfg, cfg_node_child_from_string(name, str8_lit("selected")));}
 #define Y(name, rule, expr) if(name != &cfg_nil_node) {cfg_node_release(ti_state->cfg, cfg_node_child_from_string(name, str8_lit("selected")));}
 #define Z(name) if(name != &cfg_nil_node) {cfg_node_release(ti_state->cfg, cfg_node_child_from_string(name, str8_lit("selected")));}
-                            TI_FixedTabXList
+                        TI_FixedTabXList
 #undef X
 #undef Y
 #undef Z
-                            for(CFG_Node_Ptr_Node *n = texts.first; n != 0; n = n->next)
+                        for(CFG_Node_Ptr_Node *n = texts.first; n != 0; n = n->next)
+                        {
+                            cfg_node_equip_string(ti_state->cfg, n->v, str8_lit("geo3d"));
+                            cfg_node_release(ti_state->cfg, cfg_node_child_from_string(n->v, str8_lit("selected")));
+                        }
+                        
+                        //- rjf: create the panel root
+                        panels = cfg_node_new(ti_state->cfg, window, str8_lit("panels"));
+                        
+                        //- rjf: rebuild the new panel tree
+                        switch(kind)
+                        {
+                            default:{}break;
+                                
+                            //- rjf: (default layout)
+                            case TI_CmdKind_ResetToDefaultPanels:
                             {
-                                cfg_node_equip_string(ti_state->cfg, n->v, str8_lit("geo3d"));
-                                cfg_node_release(ti_state->cfg, cfg_node_child_from_string(n->v, str8_lit("selected")));
-                            }
-                            
-                            //- rjf: create the panel root
-                            panels = cfg_node_new(ti_state->cfg, window, str8_lit("panels"));
-                            
-                            //- rjf: rebuild the new panel tree
-                            switch(kind)
-                            {
-                                default:{}break;
-                                    
-                                    //- rjf: (default layout)
-                                case TI_CmdKind_ResetToDefaultPanels:
-                                    {
-                                        // rjf: root split
-                                        cfg_node_child_from_string_or_alloc(ti_state->cfg, window, s("split_x"));
-                                        CFG_Node *root_0 = cfg_node_new(ti_state->cfg, panels, s("0.70"));
-                                        CFG_Node *root_1 = cfg_node_new(ti_state->cfg, panels, s("0.30"));
-                                        
-                                        // rjf: root 0 gets 'getting started' and source
-                                        if(getting_started != &cfg_nil_node)
-                                        {
-                                            cfg_node_insert_child(ti_state->cfg, root_0, root_0->last, getting_started);
-                                            cfg_node_new(ti_state->cfg, getting_started, s("selected"));
-                                        }
-                                        else if(texts.first)
-                                        {
-                                            cfg_node_new(ti_state->cfg, texts.first->v, s("selected"));
-                                        }
-                                        for(CFG_Node_Ptr_Node *n = texts.first; n != 0; n = n->next)
-                                        {
-                                            cfg_node_insert_child(ti_state->cfg, root_0, root_0->last, n->v);
-                                        }
-                                        cfg_node_new(ti_state->cfg, root_0, s("selected"));
-                                        
-                                        // rjf: root 1 split
-                                        CFG_Node *root_1_0 = cfg_node_new(ti_state->cfg, root_1, s("0.25"));
-                                        CFG_Node *root_1_1 = cfg_node_new(ti_state->cfg, root_1, s("0.50"));
-                                        CFG_Node *root_1_2 = cfg_node_new(ti_state->cfg, root_1, s("0.25"));
-                                        cfg_node_insert_child(ti_state->cfg, root_1_1, root_1_1->last, output);
-                                    }break;
-                            }
-                            
-                            //- rjf: release any unused views from the previous layout
+                                // rjf: root split
+                                cfg_node_child_from_string_or_alloc(ti_state->cfg, window, s("split_x"));
+                                CFG_Node *root_0 = cfg_node_new(ti_state->cfg, panels, s("0.70"));
+                                CFG_Node *root_1 = cfg_node_new(ti_state->cfg, panels, s("0.30"));
+                                
+                                // rjf: root 0 gets 'getting started' and source
+                                if(getting_started != &cfg_nil_node)
+                                {
+                                    cfg_node_insert_child(ti_state->cfg, root_0, root_0->last, getting_started);
+                                    cfg_node_new(ti_state->cfg, getting_started, s("selected"));
+                                }
+                                else if(texts.first)
+                                {
+                                    cfg_node_new(ti_state->cfg, texts.first->v, s("selected"));
+                                }
+                                for(CFG_Node_Ptr_Node *n = texts.first; n != 0; n = n->next)
+                                {
+                                    cfg_node_insert_child(ti_state->cfg, root_0, root_0->last, n->v);
+                                }
+                                cfg_node_new(ti_state->cfg, root_0, s("selected"));
+                                
+                                // rjf: root 1 split
+                                CFG_Node *root_1_0 = cfg_node_new(ti_state->cfg, root_1, s("0.25"));
+                                CFG_Node *root_1_1 = cfg_node_new(ti_state->cfg, root_1, s("0.50"));
+                                CFG_Node *root_1_2 = cfg_node_new(ti_state->cfg, root_1, s("0.25"));
+                                cfg_node_insert_child(ti_state->cfg, root_1_1, root_1_1->last, output);
+                            }break;
+                        }
+                        
+                        //- rjf: release any unused views from the previous layout
 #define X(name) if(name->parent == &cfg_nil_node) {cfg_node_release(ti_state->cfg, name);}
 #define Y(name, rule, expr) if(name->parent == &cfg_nil_node) {cfg_node_release(ti_state->cfg, name);}
 #define Z(name) if(name->parent == &cfg_nil_node) {cfg_node_release(ti_state->cfg, name);}
-                            TI_FixedTabXList
+                        TI_FixedTabXList
 #undef X
 #undef Y
 #undef Z
             
-                            //- rjf: remember that we reset the panel layouts
-                            TI_Window_State *ws = ti_window_state_from_cfg(window);
-                            if(ws != &ti_nil_window_state)
-                            {
-                                ws->window_layout_reset = 1;
-                            }
-                        }
-                    } break;
-                        // queries
-                    case TI_CmdKind_PushQuery: {
+                        //- rjf: remember that we reset the panel layouts
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        if(ws != &ti_nil_window_state)
                         {
-                            String8 cmd_name = ti_regs()->cmd_name;
-                            TI_Cmd_Kind_Info *cmd_kind_info = ti_cmd_kind_info_from_string(cmd_name);
-
-                            // close existing context menus
-                            {
-                                CFG_Node *window = cfg_node_from_id(ti_regs()->window);
-                                TI_Window_State *ws = ti_window_state_from_cfg(window);
-                                ui_ctx_menu_close();
-                                ws->menu_bar_focused = 0;
-                            }
-
-                            // floating queries -> set up window to build immediate-mode top-level query
-                            CFG_Node *view = &cfg_nil_node;
-                            bool32 is_floating = (cmd_name.size == 0 || cmd_kind_info->query.flags & TI_QueryFlag_Floating);
-                            if (is_floating)
-                            {
-                                CFG_Node *window = cfg_node_from_id(ti_regs()->window);
-                                TI_Window_State *ws = ti_window_state_from_cfg(window);
-                                if (ws != &ti_nil_window_state)
-                                {
-                                    // push onto window's query stack
-                                    u64 pre_query_arena_pos = arena_pos(ws->query_arena);
-                                    TI_Query_View *query_view = push_array(ws->query_arena, TI_Query_View, 1);
-                                    SLLStackPush(ws->query_top, query_view);
-                                    query_view->q_arena_pos = pre_query_arena_pos;
-                                    query_view->regs = ti_regs_copy(ws->query_arena, ti_regs());
-
-                                    // init cfg tree for query view
-                                    CFG_Node *window_query = ti_immediate_cfg_from_keyf("window_query_%p_%I64u", window, query_view->q_arena_pos);
-                                    cfg_node_release_all_children(ti_state->cfg, window_query);
-                                    view = cfg_node_child_from_string_or_alloc(ti_state->cfg, window_query, s("watch"));
-                                    CFG_Node *expr = cfg_node_child_from_string_or_alloc(ti_state->cfg, view, s("expression"));
-                                    cfg_node_new_replace(ti_state->cfg, expr, ti_regs()->expr);
-                                    CFG_Node *ctx_expr = cfg_node_child_from_string_or_alloc(ti_state->cfg, view, s("context_expression"));
-                                    cfg_node_new_replace(ti_state->cfg, ctx_expr, ti_regs()->ctx_expr);
-                                }
-                            }
-
-                            // non-floating -> embed in view
-                            else
-                            {
-                                view = cfg_node_from_id(ti_regs()->view);
-                            }
-
-                            // determine if the target view is a lister (and thus already has a command)
-                            bool32 view_is_lister = (cfg_node_child_from_string(view, s("lister")) != &cfg_nil_node);
-
-                            // target view is a lister -> do not do anything - cannot replace the command
-                            if (!view_is_lister)
-                            {
-                                // unpack view's query info
-                                CFG_Node *query = cfg_node_child_from_string_or_alloc(ti_state->cfg, view, s("query"));
-                                CFG_Node *cmd = cfg_node_child_from_string_or_alloc(ti_state->cfg, query, s("cmd"));
-                                CFG_Node *input = cfg_node_child_from_string_or_alloc(ti_state->cfg, query, s("input"));
-                                if (is_floating)
-                                {
-#define Opt(cnd, key) if(!(cnd)) { cfg_node_release(ti_state->cfg, cfg_node_child_from_string(view, s(key))); } else { cfg_node_child_from_string_or_alloc(ti_state->cfg, view, s(key)); }
-                                    Opt(!ti_regs()->do_implicit_root, "explicit_root");
-                                    Opt(ti_regs()->do_lister, "lister");
-                                    Opt(ti_regs()->small_size, "small");
-                                    Opt(ti_regs()->activate_with_single_click, "activate_with_single_click");
-                                    Opt(ti_regs()->prefer_new_tab, "prefer_new_tab");
-                                    Opt(ti_regs()->create_new, "create_new");
-#undef Opt
-                                }
-
-                                // choose initial input string
-                                String8 initial_input = {0};
-                                if (cmd_name.size != 0)
-                                {
-                                    if (cmd_kind_info->query.slot = TI_RegSlot_FilePath)
-                                    {
-                                        CFG_Node *user = cfg_node_child_from_string(cfg_node_root(), str8_lit("user"));
-                                        CFG_Node *current_path = cfg_node_child_from_string(user, str8_lit("current_path"));
-                                        String8 current_path_string = current_path->first->string;
-                                        if (current_path_string.size == 0)
-                                        {
-                                            current_path_string = path_normalized_from_string(scratch.arena, get_current_path(scratch.arena));
-                                        }
-                                        initial_input = current_path_string;
-                                        initial_input = push_str8f(scratch.arena, "%S/", initial_input);
-                                    }
-                                    else if (cmd_kind_info->query.flags & TI_QueryFlag_KeepOldInput)
-                                    {
-                                        initial_input = input->first->string;
-                                    }
-                                }
-
-                                // build query state
-                                String8 current_query_cmd_name = cmd->first->string;
-                                cfg_node_new_replace(ti_state->cfg, input, initial_input);
-                                cfg_node_new_replace(ti_state->cfg, cmd, cmd_name);
-                                TI_View_State *vs = ti_view_state_from_cfg(view);
-                                if (cmd_name.size != 0)
-                                {
-                                    if (!vs->query_is_open && cmd_kind_info->query.flags & TI_QueryFlag_SelectOldInput)
-                                    {
-                                        vs->query_cursor = input->first->string.size;
-                                        vs->query_mark = 0;
-                                    }
-                                    else
-                                    {
-                                        vs->query_cursor = input->first->string.size;
-                                        vs->query_mark = vs->query_cursor;
-                                    }
-                                    if (!str8_match(current_query_cmd_name, cmd_name, 0))
-                                    {
-                                        vs->query_is_open = 1;
-                                    }
-                                    else
-                                    {
-                                        vs->query_is_open ^= 1;
-                                    }
-                                }
-                                if (ti_regs()->do_lister)
-                                {
-                                    vs->query_is_open = 1;
-                                }
-                                vs->contents_are_focused = 0;
-                            }
+                            ws->window_layout_reset = 1;
                         }
                     } break;
-                    case TI_CmdKind_CompleteQuery: {
-                        {
-                            // unpack params
-                            CFG_Node *window = cfg_node_from_id(ti_regs()->window);
-                            TI_Window_State *ws = ti_window_state_from_cfg(window);
-                            CFG_Node *view = cfg_node_from_id(ti_regs()->view);
-                            String8 cmd_name = ti_view_query_cmd();
-                            TI_Query_View *qv = ws->query_top;
-
-                            // find out if this view is a lister
-                            bool32 is_lister = (cfg_node_child_from_string(view, s("lister")) != &cfg_nil_node);
-
-                            // push command
-                            if (cmd_name.size != 0) TI_RegsScope()
-                            {
-                                if (is_lister && qv)
-                                {
-                                    ti_regs()->view = qv->regs->view;
-                                }
-                                ti_push_cmd(cmd_name, ti_regs());
-                            }
-
-                            // complete query, either by closing the query popup, or closing the
-                            // tab-embedded query edit
-                            TI_Cmd_Kind_Info *cmd_kind_info = ti_cmd_kind_info_from_string(cmd_name);
-                            if (is_lister && qv && ws != &ti_nil_window_state)
-                            {
-                                u64 pop_pos = ws->query_top->q_arena_pos;
-                                SLLStackPop(ws->query_top);
-                                arena_pop_to(ws->query_arena, pop_pos);
-                            }
-                            else if (!(cmd_kind_info->query.flags & TI_QueryFlag_KeepOldInput))
-                            {
-                                TI_View_State *vs = ti_view_state_from_cfg(view);
-                                vs->query_is_open = 0;
-                                vs->query_string_size = 0;
-                            }
-                        }
-                    } break;
-                    case TI_CmdKind_CancelQuery: {
+                    // queries
+                    case TI_CmdKind_PushQuery:
+                    {
+                        String8 cmd_name = ti_regs()->cmd_name;
+                        TI_Cmd_Kind_Info *cmd_kind_info = ti_cmd_kind_info_from_string(cmd_name);
+                        
+                        // close existing context menus
                         {
                             CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                             TI_Window_State *ws = ti_window_state_from_cfg(window);
-                            if (ws != &ti_nil_window_state && ws->query_top != 0)
-                            {
-                                u64 pop_pos = ws->query_top->q_arena_pos;
-                                SLLStackPop(ws->query_top);
-                                arena_pop_to(ws->query_arena, pop_pos);
-                            }
+                            ui_ctx_menu_close();
+                            ws->menu_bar_focused = 0;
                         }
-                    } break;
-                    case TI_CmdKind_CancelAllQueries: {
+                        
+                        // floating queries -> set up window to build immediate-mode top-level query
+                        CFG_Node *view = &cfg_nil_node;
+                        bool32 is_floating = (cmd_name.size == 0 || cmd_kind_info->query.flags & TI_QueryFlag_Floating);
+                        if (is_floating)
                         {
                             CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                             TI_Window_State *ws = ti_window_state_from_cfg(window);
                             if (ws != &ti_nil_window_state)
                             {
-                                arena_clear(ws->query_arena);
-                                ws->query_top = 0;
+                                // push onto window's query stack
+                                u64 pre_query_arena_pos = arena_pos(ws->query_arena);
+                                TI_Query_View *query_view = push_array(ws->query_arena, TI_Query_View, 1);
+                                SLLStackPush(ws->query_top, query_view);
+                                query_view->q_arena_pos = pre_query_arena_pos;
+                                query_view->regs = ti_regs_copy(ws->query_arena, ti_regs());
+                                
+                                // init cfg tree for query view
+                                CFG_Node *window_query = ti_immediate_cfg_from_keyf("window_query_%p_%I64u", window, query_view->q_arena_pos);
+                                cfg_node_release_all_children(ti_state->cfg, window_query);
+                                view = cfg_node_child_from_string_or_alloc(ti_state->cfg, window_query, s("watch"));
+                                CFG_Node *expr = cfg_node_child_from_string_or_alloc(ti_state->cfg, view, s("expression"));
+                                cfg_node_new_replace(ti_state->cfg, expr, ti_regs()->expr);
+                                CFG_Node *ctx_expr = cfg_node_child_from_string_or_alloc(ti_state->cfg, view, s("context_expression"));
+                                cfg_node_new_replace(ti_state->cfg, ctx_expr, ti_regs()->ctx_expr);
                             }
                         }
-                    } break;
-                    case TI_CmdKind_UpdateQuery: {
+                        
+                        // non-floating -> embed in view
+                        else
                         {
-                            CFG_Node *view = cfg_node_from_id(ti_regs()->view);
-                            CFG_Node *query = cfg_node_child_from_string_or_alloc(ti_state->cfg, view, str8_lit("query"));
-                            CFG_Node *input = cfg_node_child_from_string_or_alloc(ti_state->cfg, query, str8_lit("input"));
-                            cfg_node_new_replace(ti_state->cfg, input, ti_regs()->string);
-                            TI_View_State *vs = ti_view_state_from_cfg(view);
-                            vs->query_string_size = Min(sizeof(vs->query_buffer), ti_regs()->string.size);
-                            vs->query_cursor = vs->query_mark = vs->query_string_size;
-                            MemoryCopy(vs->query_buffer, ti_regs()->string.str, vs->query_string_size);
+                            view = cfg_node_from_id(ti_regs()->view);
                         }
-                    } break;
-                        // developer commands
-                    case TI_CmdKind_ToggleDevMenu: {
+                        
+                        // determine if the target view is a lister (and thus already has a command)
+                        bool32 view_is_lister = (cfg_node_child_from_string(view, s("lister")) != &cfg_nil_node);
+                        
+                        // target view is a lister -> do not do anything - cannot replace the command
+                        if (!view_is_lister)
                         {
-                            CFG_Node *window = cfg_node_from_id(ti_regs()->window);
-                            TI_Window_State *ws = ti_window_state_from_cfg(window);
-                            ws->dev_menu_is_open ^= 1;
-                        }
-                    } break;
-                    case TI_CmdKind_WMEvent: {
-                        {
-                            WM_Event *wm_event = ti_regs()->wm_event;
-                            TI_Window_State *ws = ti_window_state_from_os_handle(wm_event->window);
-                            if (wm_event != 0 && ws != &ti_nil_window_state)
+                            // unpack view's query info
+                            CFG_Node *query = cfg_node_child_from_string_or_alloc(ti_state->cfg, view, s("query"));
+                            CFG_Node *cmd = cfg_node_child_from_string_or_alloc(ti_state->cfg, query, s("cmd"));
+                            CFG_Node *input = cfg_node_child_from_string_or_alloc(ti_state->cfg, query, s("input"));
+                            if (is_floating)
                             {
-                                UI_Event ui_event = zero_struct;
-                                UI_EventKind kind = UI_EventKind_Null;
+#define Opt(cnd, key) if(!(cnd)) { cfg_node_release(ti_state->cfg, cfg_node_child_from_string(view, s(key))); } else { cfg_node_child_from_string_or_alloc(ti_state->cfg, view, s(key)); }
+                                Opt(!ti_regs()->do_implicit_root, "explicit_root");
+                                Opt(ti_regs()->do_lister, "lister");
+                                Opt(ti_regs()->small_size, "small");
+                                Opt(ti_regs()->activate_with_single_click, "activate_with_single_click");
+                                Opt(ti_regs()->prefer_new_tab, "prefer_new_tab");
+                                Opt(ti_regs()->create_new, "create_new");
+#undef Opt
+                            }
+                            
+                            // choose initial input string
+                            String8 initial_input = {0};
+                            if (cmd_name.size != 0)
+                            {
+                                if (cmd_kind_info->query.slot = TI_RegSlot_FilePath)
                                 {
-                                    switch (wm_event->kind)
+                                    CFG_Node *user = cfg_node_child_from_string(cfg_node_root(), str8_lit("user"));
+                                    CFG_Node *current_path = cfg_node_child_from_string(user, str8_lit("current_path"));
+                                    String8 current_path_string = current_path->first->string;
+                                    if (current_path_string.size == 0)
                                     {
-                                        default:{}break;
-                                        case WM_EventKind_Press:     {kind = UI_EventKind_Press;}break;
-                                        case WM_EventKind_Release:   {kind = UI_EventKind_Release;}break;
-                                        case WM_EventKind_MouseMove: {kind = UI_EventKind_MouseMove;}break;
-                                        case WM_EventKind_Text:      {kind = UI_EventKind_Text;}break;
-                                        case WM_EventKind_Scroll:    {kind = UI_EventKind_Scroll;}break;
-                                        case WM_EventKind_FileDrop:  {kind = UI_EventKind_FileDrop;}break;
+                                        current_path_string = path_normalized_from_string(scratch.arena, get_current_path(scratch.arena));
+                                    }
+                                    initial_input = current_path_string;
+                                    initial_input = str8f(scratch.arena, "%S/", initial_input);
+                                }
+                                else if (cmd_kind_info->query.flags & TI_QueryFlag_KeepOldInput)
+                                {
+                                    initial_input = input->first->string;
+                                }
+                            }
+                            
+                            // build query state
+                            String8 current_query_cmd_name = cmd->first->string;
+                            cfg_node_new_replace(ti_state->cfg, input, initial_input);
+                            cfg_node_new_replace(ti_state->cfg, cmd, cmd_name);
+                            TI_View_State *vs = ti_view_state_from_cfg(view);
+                            if (cmd_name.size != 0)
+                            {
+                                if (!vs->query_is_open && cmd_kind_info->query.flags & TI_QueryFlag_SelectOldInput)
+                                {
+                                    vs->query_cursor = input->first->string.size;
+                                    vs->query_mark = 0;
+                                }
+                                else
+                                {
+                                    vs->query_cursor = input->first->string.size;
+                                    vs->query_mark = vs->query_cursor;
+                                }
+                                if (!str8_match(current_query_cmd_name, cmd_name, 0))
+                                {
+                                    vs->query_is_open = 1;
+                                }
+                                else
+                                {
+                                    vs->query_is_open ^= 1;
+                                }
+                            }
+                            if (ti_regs()->do_lister)
+                            {
+                                vs->query_is_open = 1;
+                            }
+                            vs->contents_are_focused = 0;
+                        }
+                    } break;
+                    case TI_CmdKind_CompleteQuery:
+                    {
+                        // unpack params
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        CFG_Node *view = cfg_node_from_id(ti_regs()->view);
+                        String8 cmd_name = ti_view_query_cmd();
+                        TI_Query_View *qv = ws->query_top;
+
+                        // find out if this view is a lister
+                        bool32 is_lister = (cfg_node_child_from_string(view, s("lister")) != &cfg_nil_node);
+
+                        // push command
+                        if (cmd_name.size != 0) TI_RegsScope()
+                                                {
+                                                    if (is_lister && qv)
+                                                    {
+                                                        ti_regs()->view = qv->regs->view;
+                                                    }
+                                                    ti_push_cmd(cmd_name, ti_regs());
+                                                }
+
+                        // complete query, either by closing the query popup, or closing the
+                        // tab-embedded query edit
+                        TI_Cmd_Kind_Info *cmd_kind_info = ti_cmd_kind_info_from_string(cmd_name);
+                        if (is_lister && qv && ws != &ti_nil_window_state)
+                        {
+                            u64 pop_pos = ws->query_top->q_arena_pos;
+                            SLLStackPop(ws->query_top);
+                            arena_pop_to(ws->query_arena, pop_pos);
+                        }
+                        else if (!(cmd_kind_info->query.flags & TI_QueryFlag_KeepOldInput))
+                        {
+                            TI_View_State *vs = ti_view_state_from_cfg(view);
+                            vs->query_is_open = 0;
+                            vs->query_string_size = 0;
+                        }
+                    } break;
+                    case TI_CmdKind_CancelQuery:
+                    {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        if (ws != &ti_nil_window_state && ws->query_top != 0)
+                        {
+                            u64 pop_pos = ws->query_top->q_arena_pos;
+                            SLLStackPop(ws->query_top);
+                            arena_pop_to(ws->query_arena, pop_pos);
+                        }
+                    } break;
+                    case TI_CmdKind_CancelAllQueries:
+                    {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        if (ws != &ti_nil_window_state)
+                        {
+                            arena_clear(ws->query_arena);
+                            ws->query_top = 0;
+                        }
+                    } break;
+                    case TI_CmdKind_UpdateQuery:
+                    {
+                        CFG_Node *view = cfg_node_from_id(ti_regs()->view);
+                        CFG_Node *query = cfg_node_child_from_string_or_alloc(ti_state->cfg, view, str8_lit("query"));
+                        CFG_Node *input = cfg_node_child_from_string_or_alloc(ti_state->cfg, query, str8_lit("input"));
+                        cfg_node_new_replace(ti_state->cfg, input, ti_regs()->string);
+                        TI_View_State *vs = ti_view_state_from_cfg(view);
+                        vs->query_string_size = Min(sizeof(vs->query_buffer), ti_regs()->string.size);
+                        vs->query_cursor = vs->query_mark = vs->query_string_size;
+                        MemoryCopy(vs->query_buffer, ti_regs()->string.str, vs->query_string_size);
+                    } break;
+                    // developer commands
+                    case TI_CmdKind_ToggleDevMenu:
+                    {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        ws->dev_menu_is_open ^= 1;
+                    } break;
+                    // general entity operations
+                    case TI_CmdKind_SelectCfg:
+                    case TI_CmdKind_SelectTarget:
+                    {
+                        CFG_Node *cfg = cfg_node_from_id(ti_regs()->cfg);
+                        CFG_Node_Ptr_List all_of_the_same_kind = cfg_node_top_level_list_from_string(scratch.arena, cfg->string);
+                        bool32 is_selected = !ti_disabled_from_cfg(cfg);
+                        for(CFG_Node_Ptr_Node *n = all_of_the_same_kind.first; n != 0; n = n->next)
+                        {
+                            CFG_Node *c = n->v;
+                            cfg_node_release(ti_state->cfg, cfg_node_child_from_string(c, str8_lit("enabled")));
+                        }
+                        CFG_Node *enabled_root = cfg_node_child_from_string_or_alloc(ti_state->cfg, cfg, str8_lit("enabled"));
+                        cfg_node_new_replace(ti_state->cfg, enabled_root, str8_lit("1"));
+                    } break;
+                    case TI_CmdKind_EnableCfg:
+                    case TI_CmdKind_EnableTarget:
+                    {
+                        CFG_Node *cfg = cfg_node_from_id(ti_regs()->cfg);
+                        CFG_Node *enabled_root = cfg_node_child_from_string_or_alloc(ti_state->cfg, cfg, str8_lit("enabled"));
+                        cfg_node_new_replacef(ti_state->cfg, enabled_root, "1");
+                    } break;
+                    case TI_CmdKind_DisableCfg:
+                    case TI_CmdKind_DisableTarget:
+                    case TI_CmdKind_DeselectCfg:
+                    {
+                        CFG_Node *cfg = cfg_node_from_id(ti_regs()->cfg);
+                        CFG_Node *enabled_root = cfg_node_child_from_string_or_alloc(ti_state->cfg, cfg, str8_lit("enabled"));
+                        cfg_node_new_replacef(ti_state->cfg, enabled_root, "0");
+                    } break;
+                    case TI_CmdKind_RemoveCfg:
+                    case TI_CmdKind_RemoveTarget:
+                    {
+                        CFG_Node *cfg = cfg_node_from_id(ti_regs()->cfg);
+                        cfg_node_release(ti_state->cfg, cfg);
+                    } break;
+                    case TI_CmdKind_NameCfg:
+                    {
+                        CFG_Node *cfg = cfg_node_from_id(ti_regs()->cfg);
+                        if(ti_regs()->string.size != 0)
+                        {
+                            CFG_Node *label = cfg_node_child_from_string_or_alloc(ti_state->cfg, cfg, str8_lit("label"));
+                            cfg_node_new(ti_state->cfg, label, ti_regs()->string);
+                        }
+                        else
+                        {
+                            cfg_node_release(ti_state->cfg, cfg_node_child_from_string(cfg, str8_lit("label")));
+                        }
+                    } break;
+                    case TI_CmdKind_ConditionCfg:
+                    {
+                        CFG_Node *cfg = cfg_node_from_id(ti_regs()->cfg);
+                        if(ti_regs()->string.size != 0)
+                        {
+                            CFG_Node *cnd = cfg_node_child_from_string_or_alloc(ti_state->cfg, cfg, str8_lit("condition"));
+                            cfg_node_new(ti_state->cfg, cnd, ti_regs()->string);
+                        }
+                        else
+                        {
+                            cfg_node_release(ti_state->cfg, cfg_node_child_from_string(cfg, str8_lit("condition")));
+                        }
+                    } break;
+                    case TI_CmdKind_DuplicateCfg:
+                    {
+                        CFG_Node *src = cfg_node_from_id(ti_regs()->cfg);
+                        CFG_Node *dst = cfg_node_deep_copy(ti_state->cfg, src);
+                        cfg_node_insert_child(ti_state->cfg, src->parent, src, dst);
+                    }break;
+                    case TI_CmdKind_RelocateCfg:
+                    {
+                        CFG_Node *cfg = cfg_node_from_id(ti_regs()->cfg);
+
+                        // not sure if this command is meaningful yet?
+                        // @TODO
+                        
+                        // release old location info
+                        {
+                        }
+
+                        // attach new location info
+                        {
+                        }
+                    }break;
+                    case TI_CmdKind_SaveToProject:
+                    {
+                        CFG_Node *cfg = cfg_node_from_id(ti_regs()->cfg);
+                        cfg_node_unhook(ti_state->cfg, cfg->parent, cfg);
+                        CFG_Node *project = cfg_node_child_from_string(cfg_node_root(), str8_lit("project"));
+                        cfg_node_insert_child(ti_state->cfg, project, project->last, cfg);
+                    }break;
+                    
+                    // themes
+                    case TI_CmdKind_EditUserTheme:
+                    {
+                        CFG_Node *parent = cfg_node_child_from_string(cfg_node_root(), str8_lit("user"));
+                        ti_cmd(TI_CmdKind_CancelAllQueries);
+                        ti_cmd(TI_CmdKind_PushQuery, .expr = str8f(scratch.arena, "query:config.$I64x.theme_colors", parent->id));
+                    }break;
+                    case TI_CmdKind_EditProjectTheme:
+                    {
+                        CFG_Node *parent = cfg_node_child_from_string(cfg_node_root(), str8_lit("project"));
+                        ti_cmd(TI_CmdKind_CancelAllQueries);
+                        ti_cmd(TI_CmdKind_PushQuery, .expr = str8f(scratch.arena, "query:config.$I64x.theme_colors", parent->id));
+                    }break;
+                    case TI_CmdKind_AddThemeColor:
+                    {
+                        Access *access = access_open();
+                        CFG_Node *parent = cfg_node_from_id(ti_regs()->cfg);
+                        CFG_Node *theme = cfg_node_child_from_string_or_alloc(ti_state->cfg, parent, str8_lit("theme"));
+                        MD_Node *theme_tree = ti_theme_tree_from_name(scratch.arena, access, theme->first->string);
+                        if(theme_tree == &md_nil_node)
+                        {
+                            cfg_node_new_replace(ti_state->cfg, theme, ti_theme_preset_display_string_table[TI_ThemePreset_DefaultWaves]);
+                        }
+                        CFG_Node *color = cfg_node_new(ti_state->cfg, parent, str8_lit("theme_color"));
+                        cfg_node_new(ti_state->cfg, color, str8_lit("tags"));
+                        CFG_Node *value = cfg_node_new(ti_state->cfg, color, str8_lit("value"));
+                        cfg_node_new(ti_state->cfg, value, str8_lit("0xffffffff"));
+                        access_close(access);
+                    }break;
+                    case TI_CmdKind_ForkTheme:
+                    {
+                        Access *access = access_open();
+                        CFG_Node *parent = cfg_node_from_id(ti_regs()->cfg);
+                        CFG_Node_Ptr_List colors = cfg_node_child_list_from_string(scratch.arena, parent, str8_lit("theme_color"));
+                        for(CFG_Node_Ptr_Node *n = colors.first; n != 0; n = n->next)
+                        {
+                            cfg_node_release(ti_state->cfg, n->v);
+                        }
+                        CFG_Node *theme_cfg = cfg_node_child_from_string(parent, str8_lit("theme"));
+                        String8 theme_name = theme_cfg->first->string;
+                        MD_Node *theme_tree = ti_theme_tree_from_name(scratch.arena, access, theme_name);
+                        if(theme_tree == &md_nil_node)
+                        {
+                            theme_tree = ti_state->theme_preset_trees[TI_ThemePreset_DefaultWaves];
+                        }
+                        for(MD_Node *n = theme_tree; !md_node_is_nil(n); n = md_node_rec_depth_first_pre(n, theme_tree).next)
+                        {
+                            if(str8_match(n->string, str8_lit("theme_color"), 0))
+                            {
+                                CFG_Node *color = cfg_node_new(ti_state->cfg, parent, str8_lit("theme_color"));
+                                CFG_Node *tags  = cfg_node_new(ti_state->cfg, color, str8_lit("tags"));
+                                CFG_Node *value = cfg_node_new(ti_state->cfg, color, str8_lit("value"));
+                                cfg_node_new(ti_state->cfg, tags, md_child_from_string(n, str8_lit("tags"), 0)->first->string);
+                                cfg_node_new(ti_state->cfg, value, md_child_from_string(n, str8_lit("value"), 0)->first->string);
+                            }
+                        }
+                        cfg_node_release(ti_state->cfg, theme_cfg);
+                        access_close(access);
+                    }break;
+                    case TI_CmdKind_SaveTheme:
+                    case TI_CmdKind_SaveAndSetTheme:
+                    {
+                        String8 name = ti_regs()->string;
+                        if(name.size != 0)
+                        {
+                            String8 themes_folder = str8f(scratch.arena, "%S/tide/themes", get_process_info()->user_program_config_data_path);
+                            if(make_directory(themes_folder))
+                            {
+                                String8 dst_path = str8f(scratch.arena, "%S/%S", themes_folder, name);
+                                CFG_Node *parent = cfg_node_from_id(ti_regs()->cfg);
+                                CFG_Node_Ptr_List colors = cfg_node_child_list_from_string(scratch.arena, parent, str8_lit("theme_color"));
+                                String8_List strings = {0};
+                                for(CFG_Node_Ptr_Node *n = colors.first; n != 0; n = n->next)
+                                {
+                                    str8_list_push(scratch.arena, &strings, cfg_string_from_tree(scratch.arena, ti_state->cfg_schema_table, str8_chop_last_slash(dst_path), n->v));
+                                }
+                                String8 data = str8_list_join(scratch.arena, &strings, 0);
+                                if(write_data_to_file_path(dst_path, data))
+                                {
+                                    if(kind == TI_CmdKind_SaveAndSetTheme)
+                                    {
+                                        for(CFG_Node_Ptr_Node *n = colors.first; n != 0; n = n->next)
+                                        {
+                                            cfg_node_release(ti_state->cfg, n->v);
+                                        }
+                                        CFG_Node *theme = cfg_node_child_from_string_or_alloc(ti_state->cfg, parent, str8_lit("theme"));
+                                        cfg_node_new_replace(ti_state->cfg, theme, name);
                                     }
                                 }
-                                ui_event.kind         = kind;
-                                ui_event.key          = wm_event->key;
-                                ui_event.modifiers    = wm_event->modifiers;
-                                ui_event.string       = wm_event->character ? str8_from_32(ui_build_arena(), str32(&wm_event->character, 1)) : str8_zero();
-                                ui_event.paths        = str8_list_copy(ui_build_arena(), &wm_event->strings);
-                                ui_event.pos          = wm_event->pos;
-                                ui_event.delta_2f32   = wm_event->delta;
-                                ui_event.timestamp_us = wm_event->timestamp_us;
-                                ui_event_list_push(scratch.arena, &ws->ui_events, &ui_event);
+                                else
+                                {
+                                    log_user_errorf("Could not successfully write to '%S'.", dst_path);
+                                }
                             }
                         }
+                    }break;
+                    
+                    case TI_CmdKind_AddTarget:
+                    {
+                        String8 file_path = ti_regs()->file_path;
+                        CFG_Node *project = cfg_node_child_from_string(cfg_node_root(), str8_lit("project"));
+                        CFG_Node *target = cfg_node_new(ti_state->cfg, project, str8_lit("target"));
+                        CFG_Node *exe = cfg_node_new(ti_state->cfg, target, str8_lit("executable"));
+                        cfg_node_new(ti_state->cfg, exe, file_path);
+                        String8 working_directory = str8_chop_last_slash(file_path);
+                        if(working_directory.size != 0)
+                        {
+                            CFG_Node *wdir = cfg_node_new(ti_state->cfg, target, str8_lit("working_directory"));
+                            cfg_node_newf(ti_state->cfg, wdir, "%S/", working_directory);
+                        }
+                        ti_cmd(TI_CmdKind_SelectTarget, .cfg = target->id);
+                        if(!ti_regs()->non_graphical)
+                        {
+                            ti_cmd(TI_CmdKind_CancelAllQueries);
+                            ti_cmd(TI_CmdKind_PushQuery, .expr = str8f(scratch.arena, "query:config.$%I64x", target->id));
+                        }
+                        str8_list_pushf(ti_state->cmd_output_arena, &ti_state->cmd_outputs, "$%I64x", target->id);
                     } break;
-                        // meta controls
+                    case TI_CmdKind_WMEvent:
+                    {
+                        WM_Event *wm_event = ti_regs()->wm_event;
+                        TI_Window_State *ws = ti_window_state_from_os_handle(wm_event->window);
+                        if (wm_event != 0 && ws != &ti_nil_window_state)
+                        {
+                            UI_Event ui_event = zero_struct;
+                            UI_EventKind kind = UI_EventKind_Null;
+                            {
+                                switch (wm_event->kind)
+                                {
+                                    default:{}break;
+                                    case WM_EventKind_Press:     {kind = UI_EventKind_Press;}break;
+                                    case WM_EventKind_Release:   {kind = UI_EventKind_Release;}break;
+                                    case WM_EventKind_MouseMove: {kind = UI_EventKind_MouseMove;}break;
+                                    case WM_EventKind_Text:      {kind = UI_EventKind_Text;}break;
+                                    case WM_EventKind_Scroll:    {kind = UI_EventKind_Scroll;}break;
+                                    case WM_EventKind_FileDrop:  {kind = UI_EventKind_FileDrop;}break;
+                                }
+                            }
+                            ui_event.kind         = kind;
+                            ui_event.key          = wm_event->key;
+                            ui_event.modifiers    = wm_event->modifiers;
+                            ui_event.string       = wm_event->character ? str8_from_32(ui_build_arena(), str32(&wm_event->character, 1)) : str8_zero();
+                            ui_event.paths        = str8_list_copy(ui_build_arena(), &wm_event->strings);
+                            ui_event.pos          = wm_event->pos;
+                            ui_event.delta_2f32   = wm_event->delta;
+                            ui_event.timestamp_us = wm_event->timestamp_us;
+                            ui_event_list_push(scratch.arena, &ws->ui_events, &ui_event);
+                        }
+                    } break;
+                    // meta controls
                     case TI_CmdKind_Edit:
                     case TI_CmdKind_Accept:
                     case TI_CmdKind_Cancel:
                     case TI_CmdKind_FocusMenu:
                     case TI_CmdKind_Lock:
                     case TI_CmdKind_Unlock:
-                    case TI_CmdKind_ToggleLock: {
+                    case TI_CmdKind_ToggleLock:
+                    {
+                        CFG_Node *window = cfg_node_from_id(ti_regs()->window);
+                        TI_Window_State *ws = ti_window_state_from_cfg(window);
+                        UI_Event evt = zero_struct;
+                        evt.kind     = UI_EventKind_Press;
+                        switch (kind)
                         {
-                            CFG_Node *window = cfg_node_from_id(ti_regs()->window);
-                            TI_Window_State *ws = ti_window_state_from_cfg(window);
-                            UI_Event evt = zero_struct;
-                            evt.kind     = UI_EventKind_Press;
-                            switch (kind)
-                            {
-                                default:{}break;
-                                case TI_CmdKind_Edit:      { evt.slot = UI_EventActionSlot_Edit; }break;
-                                case TI_CmdKind_Accept:    { evt.slot = UI_EventActionSlot_Accept; }break;
-                                case TI_CmdKind_Cancel:    { evt.slot = UI_EventActionSlot_Cancel; }break;
-                                case TI_CmdKind_FocusMenu: { evt.slot = UI_EventActionSlot_FocusMenu; }break;
-                                case TI_CmdKind_Lock:      { evt.slot = UI_EventActionSlot_Lock; }break;
-                                case TI_CmdKind_Unlock:    { evt.slot = UI_EventActionSlot_Unlock; }break;
-                                case TI_CmdKind_ToggleLock:{ evt.slot = UI_EventActionSlot_ToggleLock; }break;
-                            }
-                            ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
+                            default:{}break;
+                            case TI_CmdKind_Edit:      { evt.slot = UI_EventActionSlot_Edit; }break;
+                            case TI_CmdKind_Accept:    { evt.slot = UI_EventActionSlot_Accept; }break;
+                            case TI_CmdKind_Cancel:    { evt.slot = UI_EventActionSlot_Cancel; }break;
+                            case TI_CmdKind_FocusMenu: { evt.slot = UI_EventActionSlot_FocusMenu; }break;
+                            case TI_CmdKind_Lock:      { evt.slot = UI_EventActionSlot_Lock; }break;
+                            case TI_CmdKind_Unlock:    { evt.slot = UI_EventActionSlot_Unlock; }break;
+                            case TI_CmdKind_ToggleLock:{ evt.slot = UI_EventActionSlot_ToggleLock; }break;
                         }
+                        ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     } break;
                     //- rjf: directional movement & text controls
                     //
@@ -7219,7 +7384,8 @@ internal void ti_frame(void)
                     // can be used by the UI build phase for navigation and stuff, as well
                     // as builder codepaths that want to use these controls to modify text.
                     //
-                    case TI_CmdKind_MoveLeft: {
+                    case TI_CmdKind_MoveLeft:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7229,7 +7395,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(-1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveRight: {
+                    case TI_CmdKind_MoveRight:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7239,7 +7406,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveUp: {
+                    case TI_CmdKind_MoveUp:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7249,7 +7417,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, -1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveDown: {
+                    case TI_CmdKind_MoveDown:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7259,7 +7428,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, +1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveLeftSelect: {
+                    case TI_CmdKind_MoveLeftSelect:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7269,7 +7439,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(-1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveRightSelect: {
+                    case TI_CmdKind_MoveRightSelect:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7279,7 +7450,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveUpSelect: {
+                    case TI_CmdKind_MoveUpSelect:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7289,7 +7461,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, -1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveDownSelect: {
+                    case TI_CmdKind_MoveDownSelect:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7299,7 +7472,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, +1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveLeftChunk: {
+                    case TI_CmdKind_MoveLeftChunk:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7309,7 +7483,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(-1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveRightChunk: {
+                    case TI_CmdKind_MoveRightChunk:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7319,7 +7494,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveUpChunk: {
+                    case TI_CmdKind_MoveUpChunk:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7329,7 +7505,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, -1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveDownChunk: {
+                    case TI_CmdKind_MoveDownChunk:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7339,7 +7516,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, +1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveUpPage: {
+                    case TI_CmdKind_MoveUpPage:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7349,7 +7527,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, -1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveDownPage: {
+                    case TI_CmdKind_MoveDownPage:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7359,7 +7538,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, +1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveUpWhole: {
+                    case TI_CmdKind_MoveUpWhole:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7369,7 +7549,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, -1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveDownWhole: {
+                    case TI_CmdKind_MoveDownWhole:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7379,7 +7560,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, +1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveLeftChunkSelect: {
+                    case TI_CmdKind_MoveLeftChunkSelect:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7389,7 +7571,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(-1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveRightChunkSelect: {
+                    case TI_CmdKind_MoveRightChunkSelect:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7399,7 +7582,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveUpChunkSelect: {
+                    case TI_CmdKind_MoveUpChunkSelect:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7409,7 +7593,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, -1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveDownChunkSelect: {
+                    case TI_CmdKind_MoveDownChunkSelect:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7419,7 +7604,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, +1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveUpPageSelect: {
+                    case TI_CmdKind_MoveUpPageSelect:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7429,7 +7615,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, -1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveDownPageSelect: {
+                    case TI_CmdKind_MoveDownPageSelect:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7439,7 +7626,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, +1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveUpWholeSelect: {
+                    case TI_CmdKind_MoveUpWholeSelect:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7449,7 +7637,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, -1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveDownWholeSelect: {
+                    case TI_CmdKind_MoveDownWholeSelect:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7459,7 +7648,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, +1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveUpReorder: {
+                    case TI_CmdKind_MoveUpReorder:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7469,7 +7659,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, -1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveDownReorder: {
+                    case TI_CmdKind_MoveDownReorder:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7479,7 +7670,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, +1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveHome: {
+                    case TI_CmdKind_MoveHome:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7488,7 +7680,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(-1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveEnd: {
+                    case TI_CmdKind_MoveEnd:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7497,7 +7690,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveHomeSelect: {
+                    case TI_CmdKind_MoveHomeSelect:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7507,7 +7701,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(-1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MoveEndSelect: {
+                    case TI_CmdKind_MoveEndSelect:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7517,7 +7712,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_SelectAll: {
+                    case TI_CmdKind_SelectAll:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt1 = zero_struct;
@@ -7532,7 +7728,8 @@ internal void ti_frame(void)
                         evt2.delta_2s32 = v2s32(+1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt2);
                     }break;
-                    case TI_CmdKind_DeleteSingle: {
+                    case TI_CmdKind_DeleteSingle:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7542,7 +7739,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_DeleteChunk: {
+                    case TI_CmdKind_DeleteChunk:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7552,7 +7750,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_BackspaceSingle: {
+                    case TI_CmdKind_BackspaceSingle:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7562,7 +7761,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(-1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_BackspaceChunk: {
+                    case TI_CmdKind_BackspaceChunk:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7572,7 +7772,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(-1, +0);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_Copy: {
+                    case TI_CmdKind_Copy:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7580,7 +7781,8 @@ internal void ti_frame(void)
                         evt.flags = UI_EventFlag_Copy|UI_EventFlag_KeepMark;
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_Cut: {
+                    case TI_CmdKind_Cut:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7588,7 +7790,8 @@ internal void ti_frame(void)
                         evt.flags = UI_EventFlag_Copy|UI_EventFlag_Delete;
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_Paste: {
+                    case TI_CmdKind_Paste:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7597,7 +7800,8 @@ internal void ti_frame(void)
                         evt.string = wm_get_clipboard_text(scratch.arena);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_InsertText: {
+                    case TI_CmdKind_InsertText:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7605,8 +7809,9 @@ internal void ti_frame(void)
                         evt.string = ti_regs()->string;
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                        //- rjf: directionless navigation
-                    case TI_CmdKind_MoveNext: {
+                    //- rjf: directionless navigation
+                    case TI_CmdKind_MoveNext:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7616,7 +7821,8 @@ internal void ti_frame(void)
                         evt.delta_2s32 = v2s32(+0, +1);
                         ui_event_list_push(scratch.arena, &ws->ui_events, &evt);
                     }break;
-                    case TI_CmdKind_MovePrev: {
+                    case TI_CmdKind_MovePrev:
+                    {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         TI_Window_State *ws = ti_window_state_from_cfg(window);
                         UI_Event evt = zero_struct;
@@ -7793,9 +7999,9 @@ internal void ti_frame(void)
                             {
                                 node = push_array(ti_frame_arena(), TI_Ambiguous_Path_Node, 1);
                                 SLLStackPush(ti_state->ambiguous_path_slots[slot_idx], node);
-                                node->name = push_str8_copy(ti_frame_arena(), name);
+                                node->name = str8_copy(ti_frame_arena(), name);
                             }
-                            str8_list_push(ti_frame_arena(), &node->paths, push_str8_copy(ti_frame_arena(), file_path));
+                            str8_list_push(ti_frame_arena(), &node->paths, str8_copy(ti_frame_arena(), file_path));
                         }
                     }
                 }

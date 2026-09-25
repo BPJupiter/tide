@@ -38,7 +38,7 @@ internal void log_select(Log *log)
 internal void log_msg(LogMsgKind kind, String8 string)
 {
     if(log_active != 0 && log_active->top_scope != 0) {
-        String8 string_copy = push_str8_copy(log_active->arena, string);
+        String8 string_copy = str8_copy(log_active->arena, string);
         str8_list_push(log_active->arena, &log_active->top_scope->strings[kind], string_copy);
     }
 }
@@ -49,7 +49,7 @@ internal void log_msgf(LogMsgKind kind, char *fmt, ...)
         Temp scratch = scratch_begin(0, 0);
         va_list args;
         va_start(args, fmt);
-        String8 string = push_str8fv(scratch.arena, fmt, args);
+        String8 string = str8fv(scratch.arena, fmt, args);
         log_msg(kind, string);
         va_end(args);
         scratch_end(scratch);

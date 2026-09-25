@@ -56,7 +56,7 @@ cfg_key_map_from_cfg(Arena *arena)
           u64 binding_slot_idx = binding_hash%key_map->binding_slots_count;
           CFG_Key_Map_Node *n = push_array(arena, CFG_Key_Map_Node, 1);
           n->cfg_id = keybinding->id;
-          n->name = push_str8_copy(arena, name);
+          n->name = str8_copy(arena, name);
           n->binding = binding;
           SLLQueuePush_N(key_map->name_slots[name_slot_idx].first, key_map->name_slots[name_slot_idx].last, n, name_hash_next);
           SLLQueuePush_N(key_map->binding_slots[binding_slot_idx].first, key_map->binding_slots[binding_slot_idx].last, n, binding_hash_next);

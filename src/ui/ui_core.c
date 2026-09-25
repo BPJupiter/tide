@@ -65,7 +65,7 @@ ui_key_from_stringf(UI_Key seed_key, char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   UI_Key key = ui_key_from_string(seed_key, string);
   scratch_end(scratch);
@@ -86,7 +86,7 @@ ui_event_list_push(Arena *arena, UI_Event_List *list, UI_Event *v)
 {
   UI_Event_Node *n = push_array(arena, UI_Event_Node, 1);
   MemoryCopyStruct(&n->v, v);
-  n->v.string = push_str8_copy(arena, n->v.string);
+  n->v.string = str8_copy(arena, n->v.string);
   DLLPushBack(list->first, list->last, n);
   list->count += 1;
   return n;
@@ -632,7 +632,7 @@ ui_slot_press(UI_EventActionSlot slot)
 internal void
 ui_set_autocomplete_string(String8 string)
 {
-  ui_state->autocomplete_string = push_str8_copy(ui_build_arena(), string);
+  ui_state->autocomplete_string = str8_copy(ui_build_arena(), string);
 }
 
 internal String8
@@ -667,7 +667,7 @@ internal void
 ui_store_drag_data(String8 string)
 {
   arena_clear(ui_state->drag_state_arena);
-  ui_state->drag_state_data = push_str8_copy(ui_state->drag_state_arena, string);
+  ui_state->drag_state_data = str8_copy(ui_state->drag_state_arena, string);
 }
 
 internal String8
@@ -862,7 +862,7 @@ ui_begin_build(WM_Window window, UI_Event_List *events, UI_Icon_Info *icon_info,
         icon_kind < UI_IconKind_COUNT;
         icon_kind = (UI_IconKind)(icon_kind + 1))
     {
-      ui_state->icon_info.icon_kind_text_map[icon_kind] = push_str8_copy(ui_build_arena(), icon_info->icon_kind_text_map[icon_kind]);
+      ui_state->icon_info.icon_kind_text_map[icon_kind] = str8_copy(ui_build_arena(), icon_info->icon_kind_text_map[icon_kind]);
     }
     MemoryCopyStruct(&ui_state->animation_info, animation_info);
   }
@@ -1607,7 +1607,7 @@ ui_end_build(void)
               if(!str8_match(box_display_string, ui_state->string_hover_string, 0) || box->font_size != ui_state->string_hover_size)
               {
                 arena_clear(ui_state->string_hover_arena);
-                ui_state->string_hover_string = push_str8_copy(ui_state->string_hover_arena, box_display_string);
+                ui_state->string_hover_string = str8_copy(ui_state->string_hover_arena, box_display_string);
                 ui_state->string_hover_size = box->font_size;
                 ui_state->string_hover_fstrs = dr_fstrs_copy(ui_state->string_hover_arena, &b->display_fstrs);
                 ui_state->string_hover_begin_us = now_time_us();
@@ -2628,7 +2628,7 @@ ui_build_box_from_stringf(UI_BoxFlags flags, char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   va_end(args);
   UI_Box *box = ui_build_box_from_string(flags, string);
   scratch_end(scratch);
@@ -2640,7 +2640,7 @@ ui_build_box_from_stringf(UI_BoxFlags flags, char *fmt, ...)
 internal void
 ui_box_equip_display_string(UI_Box *box, String8 string)
 {
-  box->string = push_str8_copy(ui_build_arena(), string);
+  box->string = str8_copy(ui_build_arena(), string);
   box->flags |= UI_BoxFlag_HasDisplayString;
   Vec4f32 text_color = box->text_color;
   if(box->flags & UI_BoxFlag_DrawText && (box->fastpath_codepoint == 0 || !(box->flags & UI_BoxFlag_DrawTextFastpathCodepoint)))
@@ -3349,7 +3349,7 @@ ui__push_tags_key_from_appended_string(String8 string)
       String8_List tags = {0};
       if(string.size != 0)
       {
-        str8_list_push(scratch.arena, &tags, push_str8_copy(ui_build_arena(), string));
+        str8_list_push(scratch.arena, &tags, str8_copy(ui_build_arena(), string));
       }
       for(UI_Tag_Node *n = ui_state->tag_stack.top; n != 0; n = n->next)
       {
@@ -3359,7 +3359,7 @@ ui__push_tags_key_from_appended_string(String8 string)
         }
         if(n->v.size != 0)
         {
-          str8_list_push(scratch.arena, &tags, push_str8_copy(ui_build_arena(), n->v));
+          str8_list_push(scratch.arena, &tags, str8_copy(ui_build_arena(), n->v));
         }
       }
       node = push_array(ui_build_arena(), UI_Tags_Cache_Node, 1);
@@ -3400,7 +3400,7 @@ internal String8
 ui_push_tag(String8 v)
 {
   ui__push_tags_key_from_appended_string(v);
-  UI_StackPushImpl(ui_state, Tag, tag, String8, push_str8_copy(ui_build_arena(), v))
+  UI_StackPushImpl(ui_state, Tag, tag, String8, str8_copy(ui_build_arena(), v))
 }
 
 internal String8
@@ -3414,7 +3414,7 @@ internal String8
 ui_set_next_tag(String8 v)
 {
   ui__push_tags_key_from_appended_string(v);
-  UI_StackSetNextImpl(ui_state, Tag, tag, String8, push_str8_copy(ui_build_arena(), v))
+  UI_StackSetNextImpl(ui_state, Tag, tag, String8, str8_copy(ui_build_arena(), v))
 }
 
 //- rjf: helpers
@@ -3508,7 +3508,7 @@ ui_push_tagf(char *fmt, ...)
   Temp scratch = scratch_begin(0, 0);
   va_list args;
   va_start(args, fmt);
-  String8 string = push_str8fv(scratch.arena, fmt, args);
+  String8 string = str8fv(scratch.arena, fmt, args);
   ui_push_tag(string);
   va_end(args);
   scratch_end(scratch);

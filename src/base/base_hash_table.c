@@ -620,20 +620,20 @@ internal u64 hash_map_hash_from_path(String8 path)
 
 internal Hash_Map_Node *hash_map_push_string_string(Arena *arena, Hash_Map *hm, String8 key, String8 value)
 {
-    key   = push_str8_copy(arena, key);
-    value = push_str8_copy(arena, value);
+    key   = str8_copy(arena, key);
+    value = str8_copy(arena, value);
     return hash_map_push(arena, hm, hash_map_hasher(key), (Hash_Map_Key_Value){ .key = { .key_string = key }, .value = { .value_string = value } }, hash_map_match_string);
 }
 
 internal Hash_Map_Node *hash_map_push_string_raw(Arena *arena, Hash_Map *hm, String8 key, void *value)
 {
-    key = push_str8_copy(arena, key);
+    key = str8_copy(arena, key);
     return hash_map_push(arena, hm, hash_map_hasher(key), (Hash_Map_Key_Value){ .key = { .key_string = key }, .value = { .value_raw = value } }, hash_map_match_string);
 }
 
 internal Hash_Map_Node *hash_map_push_string_u64(Arena *arena, Hash_Map *hm, String8 key, u64 value)
 {
-    key = push_str8_copy(arena, key);
+    key = str8_copy(arena, key);
     return hash_map_push(arena, hm, hash_map_hasher(key), (Hash_Map_Key_Value){ .key = { .key_string = key }, .value = { .value_u64 = value } }, hash_map_match_string);
 }
 
@@ -674,20 +674,20 @@ internal Hash_Map_Node *hash_map_push_raw_u64(Arena *arena, Hash_Map *hm, void *
 
 internal Hash_Map_Node *hash_map_push_path_u64(Arena *arena, Hash_Map *hm, String8 path, u64 value)
 {
-    path = push_str8_copy(arena, path);
+    path = str8_copy(arena, path);
     return hash_map_push(arena, hm, hash_map_hash_from_path(path), (Hash_Map_Key_Value){ .key = { .key_string = path }, .value = { .value_u64 = value } }, hash_map_match_path);
 }
 
 internal Hash_Map_Node *hash_map_push_path_string(Arena *arena, Hash_Map *hm, String8 path, String8 value)
 {
-    path  = push_str8_copy(arena, path);
-    value = push_str8_copy(arena, value);
+    path  = str8_copy(arena, path);
+    value = str8_copy(arena, value);
     return hash_map_push(arena, hm, hash_map_hash_from_path(path), (Hash_Map_Key_Value){ .key = { .key_string = path }, .value = { .value_string = value } }, hash_map_match_path);
 }
 
 internal Hash_Map_Node *hash_map_push_path_raw(Arena *arena, Hash_Map *hm, String8 path, void *value)
 {
-    path = push_str8_copy(arena, path);
+    path = str8_copy(arena, path);
     return hash_map_push(arena, hm, hash_map_hash_from_path(path), (Hash_Map_Key_Value){ .key = { .key_string = path }, .value = { .value_raw = value } }, hash_map_match_path);
 }
 
@@ -698,7 +698,7 @@ internal void *hash_map_search_stringf_raw(Hash_Map *hm, char *fmt, ...)
     Temp scratch = scratch_begin(0,0);
     va_list args;
     va_start(args, fmt);
-    String8 string = push_str8fv(scratch.arena, fmt, args);
+    String8 string = str8fv(scratch.arena, fmt, args);
     void *raw = hash_map_search_string_raw(hm, string); 
     va_end(args);
     scratch_end(scratch);
