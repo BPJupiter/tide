@@ -11,6 +11,7 @@
 #include <X11/Xatom.h>
 #include <X11/cursorfont.h>
 #include <X11/extensions/sync.h>
+#include <X11/exrensions/Xfixes.h>
 #include <X11/keysym.h>
 #include <X11/keysymdef.h>
 #include <poll.h>
@@ -69,13 +70,21 @@ struct LNX_WM_State
 {
     Arena *arena;
     Display *display;
+    Window global_invisible_window;
+    Arena *clipboard_arena;
+    String8 clipboard_text;
     XIM xim;
     LNX_WM_Window *first_window;
     LNX_WM_Window *last_window;
     LNX_WM_Window *free_window;
+    Atom clipboard;
+    Atom targets;
+    Atom utf8_string;
     Atom wm_delete_window_atom;
     Atom wm_sync_request_atom;
     Atom wm_sync_request_counter_atom;
+    bool32 xfixes_present;
+    int xfixes_selection_event_code;
     Cursor cursors[WM_Cursor_COUNT];
     WM_Cursor last_set_cursor;
     WM_System_Info gfx_info;
