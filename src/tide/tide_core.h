@@ -542,6 +542,9 @@ internal CFG_Node *ti_immediate_cfg_from_keyf(char *fmt, ...);
 // eval <-> file path
 internal String8 ti_file_path_from_eval_string(Arena *arena, String8 string);
 
+// eval -> query
+internal String8 ti_query_from_eval_string(Arena *arena, String8 string);
+
 
 /////////////////
 // View Functions

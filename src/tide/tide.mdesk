@@ -401,6 +401,30 @@ TI_VocabTable:
     }
     ```
   }
+
+  //- rjf: @schema target
+  {
+    target, 0,
+    ```
+      @row_commands(@cmd_line save_cfg_to_project, enable_cfg, launch_and_run, launch_and_step_into, duplicate_cfg, remove_cfg)
+      @collection_commands(add_target)
+      x:
+    {
+      'label':              code_string,
+      'executable':         path,
+      'arguments':          string,
+      'working_directory':  @folder path,
+      'entry_point':        expr_string,
+      @default("output") 'output_label': code_string,
+      'stdout_path':        @can_not_exist @no_relativize path,
+      'stderr_path':        @can_not_exist @no_relativize path,
+      'stdin_path':         @can_not_exist @no_relativize path,
+      'environment':        set,
+      'debug_subprocesses': bool,
+      @no_revert @no_expand @default(0) 'enabled': bool,
+    }
+    ```,
+  }
   
   //- rjf: @schema recent_project
   {

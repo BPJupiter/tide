@@ -449,6 +449,23 @@ internal String8 ti_file_path_from_eval_string(Arena *arena, String8 string)
     return result;
 }
 
+internal String8 ti_query_from_eval_string(Arena *arena, String8 string)
+{
+    String8 result = {0};
+    {
+        u64 colon_pos = str8_find_needle(string, 0, s(":"), 0);
+        if (colon_pos < string.size)
+        {
+            String8 qualifier = str8_substr(string, r1u64(0, colon_pos));
+            if (str8_match(qualifier, s("query"), 0))
+            {
+                result = str8_copy(arena, str8_substr(string, r1u64(colon_pos+1, string.size)));
+            }
+        }
+    }
+    return result;
+}
+
 ///////////////////
 // View Functions
 
@@ -711,11 +728,15 @@ internal void ti_view_ui(Rng2f32 rect)
                     UI_CornerRadius(ui_top_font_size()/2.f)
                     if (ui_clicked(ti_icon_buttonf(TI_IconKind_List, 0, "Open Commands & Settings Palette")))
                 {
-                    // @TODO
-                    sh_message(0, s("OpenPalette"), s("This is where I would open a palette settings page..."));
+                    ti_cmd(TI_CmdKind_RunCommand, .cmd_name = ti_cmd_kind_info_table[TI_CmdKind_OpenPalette].string);
                 }
 
-                // to browser stuff here
+                // targets state dependent helper
+                bool32 helper_built = 0;
+                //if(processes.count == 0)
+                {
+                    // @TODO
+                }
             }
             scratch_end(scratch);
         }
@@ -2577,6 +2598,24 @@ internal void ti_window_frame(void)
                                     StaticAssert(ArrayCount(codepoints) == ArrayCount(cmds), menu_button_check);
                                     ti_cmd_list_menu_buttons(ArrayCount(cmds), cmds, codepoints);
                                 }
+
+                                // targets menu
+                                UI_Key targets_menu_key = ui_key_from_string(ui_key_zero(), str8_lit("_targets_menu_key_"));
+                                UI_CtxMenu(targets_menu_key) UI_PrefWidth(ui_em(50.f, 1.f)) UI_TagF("implicit")
+                                {
+                                    Temp scratch = scratch_begin(0, 0);
+                                    String8 cmds[] =
+                                    {
+                                        ti_cmd_kind_info_table[TI_CmdKind_AddTarget].string,
+                                    };
+                                    u32 codepoints[] =
+                                    {
+                                        'a',
+                                    };
+                                    StaticAssert(ArrayCount(codepoints) == ArrayCount(cmds), menu_button_check);
+                                    ti_cmd_list_menu_buttons(ArrayCount(cmds), cmds, codepoints);
+                                    scratch_end(scratch);
+                                }
                                  
                                 // help menu
                                 
@@ -2595,6 +2634,7 @@ internal void ti_window_frame(void)
                                         {str8_lit("Window"),     'w', WM_Key_W, window_menu_key},
                                         {str8_lit("Panel"),      'p', WM_Key_P, panel_menu_key},
                                         {str8_lit("Tab"),        'b', WM_Key_V, tab_menu_key},
+                                        {str8_lit("Targets"),    't', WM_Key_T, targets_menu_key},
                                     };
                                     
                                     // determine if one of the menus is already open
@@ -3140,7 +3180,7 @@ internal void ti_window_frame(void)
                     panel_rect = pad_2f32(panel_rect, floor_f32(-ui_top_font_size()*0.25f));
                     panel_rect = r2f32p(round_f32(panel_rect.x0), round_f32(panel_rect.y0), round_f32(panel_rect.x1), round_f32(panel_rect.y1));
                     f32 tab_bar_rheight = floor_f32(ui_top_font_size()*3.5f);
-                    f32 tab_bar_vheight = floor_f32(ui_top_font_size()*2.f);//*ti_setting_f32_from_name(str8_lit("tab_height")));
+                    f32 tab_bar_vheight = floor_f32(ui_top_font_size()*ti_setting_f32_from_name(str8_lit("tab_height")));
                     f32 tab_bar_rv_diff = tab_bar_rheight - tab_bar_vheight;
                     f32 tab_spacing = floor_f32(ui_top_font_size()*0.4f);
                     Rng2f32 tab_bar_rect = r2f32p(panel_rect.x0, panel_rect.y0, panel_rect.x1, panel_rect.y0 + tab_bar_vheight);
@@ -3603,6 +3643,7 @@ internal void ti_window_frame(void)
                             {
                                 // gather info for this tab
                                 bool32 tab_is_selected = (tab == panel->selected_tab);
+                                bool32 tab_is_auto = ti_setting_bool32_from_name(s("auto"));
                                 
                                 // begin vertical region for this tab
                                 ui_set_next_child_layout_axis(Axis2_Y);
@@ -3621,7 +3662,7 @@ internal void ti_window_frame(void)
                                     UI_PrefHeight(ui_px(tab_bar_vheight, 1))
                                     UI_TagF(omit_name ? "hollow" : "")
                                     UI_TagF(!omit_name && !tab_is_selected ? "inactive" : "")
-                                    //UI_TagF(!omit_name && tab_is_auto ? "auto" : "")
+                                    UI_TagF(!omit_name && tab_is_auto ? "auto" : "")
                                     UI_TagF("")
                                 {
                                     if (panel->tab_side == Side_Max)
@@ -6675,11 +6716,11 @@ internal void ti_frame(void)
                     } break;
                     case TI_CmdKind_BuildTab:
                     {
-                        String8 expr_file_path = s("test tab");
+                        String8 expr_file_path = ti_file_path_from_eval_string(scratch.arena, ti_regs()->expr);
                         CFG_Node *panel = cfg_node_from_id(ti_regs()->panel);
                         CFG_Node *tab = cfg_node_new(ti_state->cfg, panel, ti_regs()->string);
                         CFG_Node *expr = cfg_node_new(ti_state->cfg, tab, str8_lit("expression"));
-                        cfg_node_new(ti_state->cfg, expr, s("test tab"));
+                        cfg_node_new(ti_state->cfg, expr, ti_regs()->expr);
                         if (expr_file_path.size != 0)
                         {
                             CFG_Node *project = cfg_node_new(ti_state->cfg, tab, str8_lit("project"));
@@ -6784,8 +6825,8 @@ internal void ti_frame(void)
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);
                         CFG_Node *panels = cfg_node_child_from_string(window, str8_lit("panels"));
                         CFG_Panel_Tree panel_tree = cfg_panel_tree_from_cfg(scratch.arena, window);
-                            
-                            //- rjf: define all of the "fixed" tabs we care about
+                        
+                        //- rjf: define all of the "fixed" tabs we care about
 #define X(name) CFG_Node *name = &cfg_nil_node;
 #define Y(name, rule, expr) CFG_Node *name = &cfg_nil_node;
 #define Z(name) CFG_Node *name = &cfg_nil_node;
@@ -6820,9 +6861,6 @@ internal void ti_frame(void)
                                 }
                                 if(need_unhook)
                                 {
-                                    cfg_node_equip_string(ti_state->cfg, tab, str8_lit("geo3d"));
-                                    cfg_node_release(ti_state->cfg, cfg_node_child_from_string(tab, str8_lit("expression")));
-                                    cfg_node_release(ti_state->cfg, cfg_node_child_from_string(tab, str8_lit("project")));
                                     cfg_node_unhook(ti_state->cfg, panel->cfg, tab);
                                     any_fixed_tabs_found = 1;
                                 }
@@ -6833,15 +6871,15 @@ internal void ti_frame(void)
                         cfg_node_release(ti_state->cfg, panels);
                         
                         //- rjf: allocate any missing tabs
-#define X(name) if(name == &cfg_nil_node) {name = cfg_node_alloc(ti_state->cfg); cfg_node_equip_string(ti_state->cfg, name, str8_lit("geo3d"));}
-#define Y(name, rule, expr) if(name == &cfg_nil_node) {name = cfg_node_alloc(ti_state->cfg); cfg_node_equip_string(ti_state->cfg, name, str8_lit("geo3d"));}
-#define Z(name) if(name == &cfg_nil_node && !any_fixed_tabs_found) {name = cfg_node_alloc(ti_state->cfg); cfg_node_equip_string(ti_state->cfg, name, str8_lit("geo3d"));}
+#define X(name) if(name == &cfg_nil_node) {name = cfg_node_alloc(ti_state->cfg); cfg_node_equip_string(ti_state->cfg, name, str8_lit("watch")); CFG_Node *expr_cfg = cfg_node_new(ti_state->cfg, name, str8_lit("expression")); cfg_node_new(ti_state->cfg, expr_cfg, str8_lit("query:" #name));}
+#define Y(name, rule, expr) if(name == &cfg_nil_node) {name = cfg_node_alloc(ti_state->cfg); cfg_node_equip_string(ti_state->cfg, name, str8_lit(#rule)); CFG_Node *expr_cfg = cfg_node_new(ti_state->cfg, name, str8_lit("expression")); cfg_node_new(ti_state->cfg, expr_cfg, str8_lit(expr));}
+#define Z(name) if(name == &cfg_nil_node && !any_fixed_tabs_found) {name = cfg_node_alloc(ti_state->cfg); cfg_node_equip_string(ti_state->cfg, name, str8_lit(#name));}
                         TI_FixedTabXList
 #undef X
 #undef Y
 #undef Z
             
-                            //- rjf: eliminate all tab selections
+                        //- rjf: eliminate all tab selections
 #define X(name) if(name != &cfg_nil_node) {cfg_node_release(ti_state->cfg, cfg_node_child_from_string(name, str8_lit("selected")));}
 #define Y(name, rule, expr) if(name != &cfg_nil_node) {cfg_node_release(ti_state->cfg, cfg_node_child_from_string(name, str8_lit("selected")));}
 #define Z(name) if(name != &cfg_nil_node) {cfg_node_release(ti_state->cfg, cfg_node_child_from_string(name, str8_lit("selected")));}
@@ -6851,7 +6889,6 @@ internal void ti_frame(void)
 #undef Z
                         for(CFG_Node_Ptr_Node *n = texts.first; n != 0; n = n->next)
                         {
-                            cfg_node_equip_string(ti_state->cfg, n->v, str8_lit("geo3d"));
                             cfg_node_release(ti_state->cfg, cfg_node_child_from_string(n->v, str8_lit("selected")));
                         }
                         
@@ -6888,10 +6925,14 @@ internal void ti_frame(void)
                                 cfg_node_new(ti_state->cfg, root_0, s("selected"));
                                 
                                 // rjf: root 1 split
-                                CFG_Node *root_1_0 = cfg_node_new(ti_state->cfg, root_1, s("0.25"));
+                                CFG_Node *root_1_0 = cfg_node_new(ti_state->cfg, root_1, s("0.50"));
                                 CFG_Node *root_1_1 = cfg_node_new(ti_state->cfg, root_1, s("0.50"));
-                                CFG_Node *root_1_2 = cfg_node_new(ti_state->cfg, root_1, s("0.25"));
+                                cfg_node_insert_child(ti_state->cfg, root_1_0, root_1_0->last, targets);
+                                cfg_node_insert_child(ti_state->cfg, root_1_1, root_1_1->last, geo3d);
+                                cfg_node_insert_child(ti_state->cfg, root_1_1, root_1_1->last, bitmap);
                                 cfg_node_insert_child(ti_state->cfg, root_1_1, root_1_1->last, output);
+                                cfg_node_new(ti_state->cfg, targets, s("selected"));
+                                cfg_node_new(ti_state->cfg, geo3d, s("selected"));
                             }break;
                         }
                         
@@ -6910,7 +6951,8 @@ internal void ti_frame(void)
                         {
                             ws->window_layout_reset = 1;
                         }
-                    } break;
+                    }break;
+          
                     // queries
                     case TI_CmdKind_PushQuery:
                     {

@@ -10,7 +10,193 @@ internal DR_FStr_List ti_title_fstrs_from_cfg(Arena *arena, CFG_Node *cfg, bool3
     {
         Temp scratch = scratch_begin(&arena, 1);
 
+        // unpack config
+        bool32 is_disabled = ti_disabled_from_cfg(cfg);
+        String8 name_string = ti_name_from_cfg(cfg);
+        String8 label_string = ti_label_from_cfg(cfg);
+        String8 expr_string = ti_expr_from_cfg(cfg);
+        String8 collection_name = {0};
+        String8 file_path = ti_path_from_cfg(cfg);
+        Vec4f32 rgba = ti_color_from_cfg(cfg);
+        if(rgba.w == 0)
+        {
+            rgba = ui_color_from_name(str8_lit("text"));
+        }
+        Vec4f32 rgba_secondary = rgba;
+        UI_TagF("weak")
+        {
+            rgba_secondary = ui_color_from_name(s("text"));
+        }
+        TI_IconKind icon_kind = ti_icon_kind_from_code_name(cfg->string);
+        bool32 is_from_command_line = 0;
+        {
+            CFG_Node *cmd_line_root = cfg_node_child_from_string(cfg_node_root(), s("command_line"));
+            for(CFG_Node *p = cfg->parent; p != &cfg_nil_node; p = p->parent)
+            {
+                if(p == cmd_line_root)
+                {
+                    is_from_command_line = 1;
+                    break;
+                }
+            }
+        }
+        bool32 is_within_window = 0;
+        {
+            for(CFG_Node *p = cfg->parent; p != &cfg_nil_node; p = p->parent)
+            {
+                if(str8_match(p->string, s("window"), 0))
+                {
+                    is_within_window = 1;
+                    break;
+                }
+            }
+        }
+        if(expr_string.size != 0)
+        {
+            String8 query_name = ti_query_from_eval_string(arena, expr_string);
+            if(query_name.size != 0)
+            {
+                String8 query_code_name = query_name;
+                String8 query_display_name = ti_display_from_code_name(query_code_name);
+                collection_name = query_display_name;
+                if(query_display_name.size == 0)
+                {
+                    query_code_name = ti_singular_from_code_name_plural(query_name);
+                    collection_name = ti_display_plural_from_code_name(query_code_name);
+                }
+                TI_IconKind query_icon_kind = ti_icon_kind_from_code_name(query_code_name);
+                if(query_icon_kind != TI_IconKind_Null)
+                {
+                    icon_kind = query_icon_kind;
+                }
+            }
+            else
+            {
+                file_path = ti_file_path_from_eval_string(arena, expr_string);
+                if(file_path.size != 0)
+                {
+                    icon_kind = TI_IconKind_FileOutline;
+                }
+            }
+        }
+
+        // set up color/size for all parts of the title
+        //
+        // the "running" part implies that it changes as things are added -
+        // so if a primary title is pushed, we can make the rest of the title
+        // more faded/smaller, but only after a primary title is pushed,
+        // which could be caused by many different potential parts of the cfg.
+        //
+        DR_FStr_Params params = {ti_font_from_slot(TI_FontSlot_Main), ti_raster_flags_from_slot(TI_FontSlot_Main), rgba, ui_top_font_size()};
+        bool32 running_is_secondary = 0;
+#define start_secondary() if(!running_is_secondary){running_is_secondary = 1; params.color = rgba_secondary; params.size = ui_top_font_size()*0.95f;}
+
+        // disabled? -> soften color
+        if(is_disabled)
+        {
+            params.color = rgba_secondary;
+        }
+
+        // push icon
+        if(icon_kind != TI_IconKind_Null)
+        {
+            dr_fstrs_push_new(arena, &result, &params, ti_icon_kind_text_table[icon_kind],
+                              .font = ti_font_from_slot(TI_FontSlot_Icons),
+                              .raster_flags = ti_raster_flags_from_slot(TI_FontSlot_Icons),
+                              .color = rgba_secondary);
+            dr_fstrs_push_new(arena, &result, &params, s("  "));
+        }
+
+        // push warning icon for command-line entities
+        if(is_from_command_line)
+        {
+            dr_fstrs_push_new(arena, &result, &params, ti_icon_kind_text_table[TI_IconKind_Info],
+                              .font = ti_font_from_slot(TI_FontSlot_Icons),
+                              .raster_flags = ti_raster_flags_from_slot(TI_FontSlot_Icons),
+                              .color = rgba_secondary);
+            dr_fstrs_push_new(arena, &result, &params, str8_lit("  "));
+        }
+
+        // push view title, if from window, and no file path, and no label
+        if(is_within_window && file_path.size == 0 && collection_name.size == 0 && label_string.size == 0)
+        {
+            String8 view_display_name = ti_display_from_code_name(cfg->string);
+            if(view_display_name.size != 0)
+            {
+                dr_fstrs_push_new(arena, &result, &params, view_display_name);
+                dr_fstrs_push_new(arena, &result, &params, s("  "));
+                start_secondary();
+            }
+        }
+
+        // push bucket name
+        if(cfg->parent == cfg_node_root())
+        {
+            if(str8_match(cfg->string, s("user"), 0))
+            {
+                dr_fstrs_push_new(arena, &result, &params, s("User"),
+                                  .font = ti_font_from_slot(TI_FontSlot_Main),
+                                  .raster_flags = ti_raster_flags_from_slot(TI_FontSlot_Main));
+                dr_fstrs_push_new(arena, &result, &params, s("  "));
+                start_secondary();
+            }
+            else if (str8_match(cfg->string, s("project"), 0))
+            {
+                dr_fstrs_push_new(arena, &result, &params, s("Project"),
+                                  .font = ti_font_from_slot(TI_FontSlot_Main),
+                                  .raster_flags = ti_raster_flags_from_slot(TI_FontSlot_Main));
+                dr_fstrs_push_new(arena, &result, &params, s("  "));
+                start_secondary();
+            }
+        }
+
+        // push name
+        if(name_string.size != 0)
+        {
+            dr_fstrs_push_new(arena, &result, &params, name_string);
+            dr_fstrs_push_new(arena, &result, &params, s("  "));
+            start_secondary();
+        }
+
+        // push label
+        if(label_string.size != 0)
+        {
+            dr_fstrs_push_new(arena, &result, &params, label_string);
+            dr_fstrs_push_new(arena, &result, &params, s("  "));
+            start_secondary();
+        }
+
+        // push collection name
+        if(collection_name.size != 0)
+        {
+            dr_fstrs_push_new(arena, &result, &params, collection_name);
+            dr_fstrs_push_new(arena, &result, &params, s("  "));
+            start_secondary();
+        }
+
+        // query is file path - do specific file name strings
+        else if(file_path.size != 0)
+        {
+            // @TODO
+        }
+
+        // cfg has expression attached -> use that
+        else if(expr_string.size != 0)
+        {
+            dr_fstrs_push_new(arena, &result, &params, expr_string,
+                              .font = ti_font_from_slot(TI_FontSlot_Code),
+                              .raster_flags = ti_raster_flags_from_slot(TI_FontSlot_Code));
+            dr_fstrs_push_new(arena, &result, &params, s("  "));
+            start_secondary();
+        }
+
+        // special case: colors
+        if(str8_match(cfg->string, str8_lit("theme_color"), 0))
+        {
+            // @TODO
+        }
         
+#undef start_secondary
         scratch_end(scratch);
     }
     return result;

@@ -412,7 +412,7 @@ C_LINKAGE_BEGIN
 extern String8 ti_tab_fast_path_view_name_table[5];
 extern String8 ti_tab_fast_path_query_name_table[5];
 extern TI_Vocab_Info ti_vocab_info_table[154];
-extern TI_Name_Schema_Info ti_name_schema_info_table[27];
+extern TI_Name_Schema_Info ti_name_schema_info_table[28];
 extern String8 ti_reg_slot_code_name_table[33];
 extern Rng1u64 ti_reg_slot_range_table[33];
 extern String8 ti_icon_kind_text_table[75];
