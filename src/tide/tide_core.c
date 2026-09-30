@@ -449,6 +449,17 @@ internal String8 ti_file_path_from_eval_string(Arena *arena, String8 string)
     return result;
 }
 
+internal String8 ti_eval_string_from_file_path(Arena *arena, String8 string)
+{
+    Temp scratch = scratch_begin(&arena, 1);
+    String8 string_escaped = escaped_from_raw_str8(scratch.arena, string);
+    String8 result = str8f(arena, "file:\"%S\".data", string_escaped);
+    scratch_end(scratch);
+    return result;
+}
+
+// eval -> query
+
 internal String8 ti_query_from_eval_string(Arena *arena, String8 string)
 {
     String8 result = {0};
@@ -745,6 +756,7 @@ internal void ti_view_ui(Rng2f32 rect)
         // watch view
         else if(str8_match(view_name, str8_lit("watch"), 0))
         {
+            //@HERE
             Temp scratch = scratch_begin(0, 0);
             TI_Lister_View_State *lvs = ti_view_state_by_size(sizeof(TI_Lister_View_State));
 
@@ -2412,8 +2424,7 @@ internal void ti_window_frame(void)
                             CFG_Node *current_path = cfg_node_child_from_string_or_alloc(ti_state->cfg, user, str8_lit("current_path"));
                             if(!str8_match(current_path->first->string, path_chopped, 0))
                             {
-                                //ti_cmd(TI_CmdKind_SetCurrentPath, .file_path = path_chopped);
-                                sh_message(0, s("TI_CmdKind_SetCurrentPath"), path_chopped);
+                                ti_cmd(TI_CmdKind_SetCurrentPath, .file_path = path_chopped);
                             }
                         }
                     }
@@ -5779,8 +5790,7 @@ internal void ti_frame(void)
                             if(file_path.size != 0)
                             {
                                 TI_RegsScope(.cmd_name = str8_zero(), .file_path = file_path) ti_push_cmd(cmd->regs->cmd_name, ti_regs());
-                                //ti_cmd(TI_CmdKind_SetCurrentPath, .file_path = str8_chop_last_slash(file_path));
-                                sh_message(0, s("TI_CmdKind_SetCurrentPath"), str8_chop_last_slash(file_path));
+                                ti_cmd(TI_CmdKind_SetCurrentPath, .file_path = str8_chop_last_slash(file_path));
                             }
                         }
                         
@@ -6064,8 +6074,7 @@ internal void ti_frame(void)
                             String8 new_current_dir = str8_chop_last_slash(ti_regs()->file_path);
                             if(new_current_dir.size != 0)
                             {
-                                //ti_cmd(TI_CmdKind_SetCurrentPath, .file_path = new_current_dir);
-                                sh_message(0, s("TI_CmdKind_SetCurrentPath"), new_current_dir);
+                                ti_cmd(TI_CmdKind_SetCurrentPath, .file_path = new_current_dir);
                             }
                         }
                             
@@ -6446,6 +6455,13 @@ internal void ti_frame(void)
                             ti_cmd(TI_CmdKind_FocusPanel, .panel = dst_panel->cfg->id);
                         }
                     } break;
+                    // files
+                    case TI_CmdKind_SetCurrentPath:
+                    {
+                        CFG_Node *user = cfg_node_child_from_string(cfg_node_root(), s("user"));
+                        CFG_Node *current_path = cfg_node_child_from_string_or_alloc(ti_state->cfg, user, s("current_path"));
+                        cfg_node_new_replace(ti_state->cfg, current_path, ti_regs()->file_path);
+                    }break;
                     // panel removal
                     case TI_CmdKind_ClosePanel:
                     {
@@ -6820,6 +6836,26 @@ internal void ti_frame(void)
                         ti_cmd(TI_CmdKind_CancelAllQueries);
                         ti_cmd(TI_CmdKind_PushQuery, .expr = expr, .do_implicit_root = 1, .do_big_rows = 1, .do_lister = 1);
                     } break;
+                    // files
+                    case TI_CmdKind_Open:
+                    {
+                        String8 path = path_absolute_dst_from_relative_dst_src(scratch.arena, ti_regs()->file_path, get_current_path(scratch.arena));
+                        File_Properties props = properties_from_file_path(path);
+                        if(props.created != 0)
+                        {
+                            ti_cmd(TI_CmdKind_BuildTab, .string = s("pending"), .expr = ti_eval_string_from_file_path(scratch.arena, path));
+                        }
+                        else
+                        {
+                            log_user_errorf("Couldn't open file at \"%S\".", path);
+                        }
+                    }break;
+                    case TI_CmdKind_ShowFileInExplorer:
+                    if(ti_regs()->file_path.size != 0)
+                    {
+                        String8 full_path = ti_regs()->file_path;
+                        sh_show_in_file_browser(full_path);
+                    }break;
                     case TI_CmdKind_ResetToDefaultPanels:
                     {
                         CFG_Node *window = cfg_node_from_id(ti_regs()->window);

@@ -22,7 +22,7 @@ str8_lit_comp(""),
 str8_lit_comp(""),
 };
 
-TI_Vocab_Info ti_vocab_info_table[154] =
+TI_Vocab_Info ti_vocab_info_table[157] =
 {
 {str8_lit_comp("view"), str8_lit_comp("views"), str8_lit_comp("View"), str8_lit_comp("Views"), TI_IconKind_Binoculars},
 {str8_lit_comp("target"), str8_lit_comp("targets"), str8_lit_comp("Target"), str8_lit_comp("Targets"), TI_IconKind_Target},
@@ -87,6 +87,9 @@ TI_Vocab_Info ti_vocab_info_table[154] =
 {str8_lit_comp("tab_bar_top"), str8_lit_comp(""), str8_lit_comp("Anchor Tab Bar To Top"), str8_lit_comp(""), TI_IconKind_UpArrow},
 {str8_lit_comp("tab_bar_bottom"), str8_lit_comp(""), str8_lit_comp("Anchor Tab Bar To Bottom"), str8_lit_comp(""), TI_IconKind_DownArrow},
 {str8_lit_comp("tab_settings"), str8_lit_comp(""), str8_lit_comp("Selected Tab Settings"), str8_lit_comp(""), TI_IconKind_Gear},
+{str8_lit_comp("set_current_path"), str8_lit_comp(""), str8_lit_comp("Set Current Path"), str8_lit_comp(""), TI_IconKind_FileOutline},
+{str8_lit_comp("open"), str8_lit_comp(""), str8_lit_comp("Open"), str8_lit_comp(""), TI_IconKind_FileOutline},
+{str8_lit_comp("show_file_in_explorer"), str8_lit_comp(""), str8_lit_comp("Show File In Explorer"), str8_lit_comp(""), TI_IconKind_FolderClosedFilled},
 {str8_lit_comp("new_user"), str8_lit_comp(""), str8_lit_comp("New User"), str8_lit_comp(""), TI_IconKind_Add},
 {str8_lit_comp("new_project"), str8_lit_comp(""), str8_lit_comp("New Project"), str8_lit_comp(""), TI_IconKind_Add},
 {str8_lit_comp("open_user"), str8_lit_comp(""), str8_lit_comp("Open User"), str8_lit_comp(""), TI_IconKind_Person},
@@ -286,7 +289,7 @@ Rng1u64 ti_reg_slot_range_table[33] =
 {OffsetOf(TI_Regs, wm_event), OffsetOf(TI_Regs, wm_event) + sizeof(WM_Event *)},
 };
 
-TI_Cmd_Kind_Info ti_cmd_kind_info_table[137] =
+TI_Cmd_Kind_Info ti_cmd_kind_info_table[140] =
 {
 {0},
 { str8_lit_comp("exit"), str8_lit_comp("Exits the TIDE program."), str8_lit_comp("quit,close,abort"), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
@@ -334,6 +337,9 @@ TI_Cmd_Kind_Info ti_cmd_kind_info_table[137] =
 { str8_lit_comp("tab_bar_top"), str8_lit_comp("Anchors a panel's tab bar to the top of the panel."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
 { str8_lit_comp("tab_bar_bottom"), str8_lit_comp("Anchors a panel's tab bar to the bottom of the panel."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
 { str8_lit_comp("tab_settings"), str8_lit_comp("Opens settings for a tab."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("set_current_path"), str8_lit_comp("Sets the program's current path, which is used as a starting point when browsing for files."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*0, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
+{ str8_lit_comp("open"), str8_lit_comp("Opens a file."), str8_lit_comp("code,source,file"), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*1)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*1)|(TI_QueryFlag_Required*1), TI_RegSlot_FilePath, str8_lit_comp("folder:\"$input\"")}},
+{ str8_lit_comp("show_file_in_explorer"), str8_lit_comp("Opens the operating system's file explorer and shows the selected file."), str8_lit_comp(""), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*0)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*0)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
 { str8_lit_comp("new_user"), str8_lit_comp("Creates a new user file, and sets the current user path as that file's path"), str8_lit_comp("new,user,project,layout"), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*1)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*1)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
 { str8_lit_comp("new_project"), str8_lit_comp("Creates a new project file, and sets the current project path as that file's path."), str8_lit_comp("new,user,project,layout"), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*1)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*1)|(TI_QueryFlag_Required*0), TI_RegSlot_Null, str8_lit_comp("")}},
 { str8_lit_comp("open_user"), str8_lit_comp("Opens a user file path, immediately loading it, and begins autosaving to it."), str8_lit_comp("load,user,project,layout"), str8_lit_comp(""),  TI_CmdKindFlag_ListInUI*1, {(TI_QueryFlag_AllowFiles*1)|(TI_QueryFlag_AllowFolders*0)|(TI_QueryFlag_CodeInput*0)|(TI_QueryFlag_KeepOldInput*0)|(TI_QueryFlag_SelectOldInput*0)|(TI_QueryFlag_Floating*1)|(TI_QueryFlag_Required*1), TI_RegSlot_FilePath, str8_lit_comp("")}},
