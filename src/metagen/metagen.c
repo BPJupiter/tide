@@ -166,7 +166,7 @@ mg_escaped_from_str8(Arena *arena, String8 string)
         case '"': replace_byte = '"';  break;
         case '?': replace_byte = '?';  break;
       }
-      String8 replace_string = push_str8_copy(scratch.arena, str8(&replace_byte, 1));
+      String8 replace_string = str8_copy(scratch.arena, str8(&replace_byte, 1));
       str8_list_push(scratch.arena, &strs, replace_string);
       if(replace_byte == '\\' || replace_byte == '"' || replace_byte == '\'')
       {
@@ -217,7 +217,7 @@ mg_wrapped_lines_from_string(Arena *arena, String8 string, u64 first_line_max_wi
       if (substr.size > width_this_line){
         String8 line = str8_substr(string, line_range);
         if (wrapped_indent_level > 0){
-          line = push_str8f(arena, "%.*s%S", wrapped_indent_level, spaces, line);
+          line = str8f(arena, "%.*s%S", wrapped_indent_level, spaces, line);
         }
         str8_list_push(arena, &list, line);
         line_range = r1u64(line_range.max+1, candidate_line_range.max);
@@ -231,7 +231,7 @@ mg_wrapped_lines_from_string(Arena *arena, String8 string, u64 first_line_max_wi
   if (line_range.min < string.size && line_range.max > line_range.min){
     String8 line = str8_substr(string, line_range);
     if (wrapped_indent_level > 0){
-      line = push_str8f(arena, "%.*s%S", wrapped_indent_level, spaces, line);
+      line = str8f(arena, "%.*s%S", wrapped_indent_level, spaces, line);
     }
     str8_list_push(arena, &list, line);
   }
@@ -293,7 +293,7 @@ mg_c_array_literal_contents_from_data(String8 data)
       chunk_text_string.str = push_array(mg_arena, u8, chunk_text_string.size);
       for(u64 byte_idx = 0; byte_idx < chunk_size; byte_idx += 1)
       {
-        String8 byte_str = push_str8f(scratch.arena, "0x%02x,", chunk_bytes[byte_idx]);
+        String8 byte_str = str8f(scratch.arena, "0x%02x,", chunk_bytes[byte_idx]);
         MemoryCopy(chunk_text_string.str+byte_idx*5, byte_str.str, byte_str.size);
       }
       off += chunk_size;
@@ -345,7 +345,7 @@ mg_map_insert_ptr(Arena *arena, MG_Map *map, String8 string, void *val)
   u64 slot_idx = hash%map->slots_count;
   MG_Map_Slot *slot = &map->slots[slot_idx];
   MG_Map_Node *n = push_array(arena, MG_Map_Node, 1);
-  n->key = push_str8_copy(arena, string);
+  n->key = str8_copy(arena, string);
   n->val = val;
   SLLQueuePush(slot->first, slot->last, n);
 }
@@ -624,7 +624,7 @@ mg_column_desc_array_from_tag(Arena *arena, MD_Node *tag)
   u64 idx = 0;
   for MD_EachNode(hdr, tag->first)
   {
-    result.v[idx].name = push_str8_copy(arena, hdr->string);
+    result.v[idx].name = str8_copy(arena, hdr->string);
     result.v[idx].kind = MG_ColumnKind_DirectCell;
     if(md_node_has_tag(hdr, str8_lit("tag_check"), 0))
     {
@@ -817,11 +817,11 @@ mg_eval_table_expand_expr__string(Arena *arena, MG_Str_Expr *expr, MG_Table_Expa
         String8 numeric_eval_stringized = {0};
         if(md_node_has_tag(md_root_from_node(expr->node), str8_lit("hex"), 0))
         {
-          numeric_eval_stringized = push_str8f(arena, "0x%I64x", numeric_eval);
+          numeric_eval_stringized = str8f(arena, "0x%I64x", numeric_eval);
         }
         else
         {
-          numeric_eval_stringized = push_str8f(arena, "%I64d", numeric_eval);
+          numeric_eval_stringized = str8f(arena, "%I64d", numeric_eval);
         }
         str8_list_push(arena, out, numeric_eval_stringized);
       }
@@ -875,7 +875,7 @@ mg_eval_table_expand_expr__string(Arena *arena, MG_Str_Expr *expr, MG_Table_Expa
         
         if(str8_match(column_lookup, str8_lit("_it"), 0))
         {
-          lookup_string = push_str8f(arena, "%I64u", row_idx);
+          lookup_string = str8f(arena, "%I64u", row_idx);
         }
         else
         {
@@ -1137,7 +1137,7 @@ mg_layer_from_key(String8 key)
   {
     MG_Layer_Node *n = push_array(mg_arena, MG_Layer_Node, 1);
     SLLQueuePush(slot->first, slot->last, n);
-    n->v.key = push_str8_copy(mg_arena, key);
+    n->v.key = str8_copy(mg_arena, key);
     layer = &n->v;
   }
   return layer;

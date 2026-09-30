@@ -52,7 +52,7 @@ internal void entry_point(Cmd_Line *cmdline)
         for (Task *task = first_task; task != 0; task = task->next) {
             File_Iter *it = file_iter_begin(mg_arena, task->path, 0);
             for (File_Info info = {0}; file_iter_next(mg_arena, it, &info);) {
-                String8 file_path = push_str8f(mg_arena, "%S/%S", task->path, info.name);
+                String8 file_path = str8f(mg_arena, "%S/%S", task->path, info.name);
                 if (info.props.flags & FilePropertyFlag_IsFolder) {
                     Task *next_task = push_array(mg_arena, Task, 1);
                     SLLQueuePush(first_task, last_task, next_task);
@@ -86,7 +86,7 @@ internal void entry_point(Cmd_Line *cmdline)
                         case MD_MsgKind_Error:      {msg_kind_string = str8_lit("error");}break;
                         case MD_MsgKind_FatalError: {msg_kind_string = str8_lit("fatal error");}break;
                     }
-                    String8 location = push_str8f(mg_arena, "%S:%I64d:%I64d", file_path, pt.line, pt.column);
+                    String8 location = str8f(mg_arena, "%S:%I64d:%I64d", file_path, pt.line, pt.column);
                     MG_Msg dst_m = {location, msg_kind_string, m->string};
                     mg_msg_list_push(mg_arena, &msgs, &dst_m);
                 }
@@ -493,7 +493,7 @@ internal void entry_point(Cmd_Line *cmdline)
             str8_list_pushf(mg_arena, &md_strs, "\n");
           }
         }
-        String8 output_path = push_str8f(mg_arena, "%S/%S.md", build_dir_path, node->string);
+        String8 output_path = str8f(mg_arena, "%S/%S.md", build_dir_path, node->string);
         FILE *file = fopen((char *)output_path.str, "w");
         for(String8_Node *n = md_strs.first; n != 0; n = n->next)
         {
@@ -519,12 +519,12 @@ internal void entry_point(Cmd_Line *cmdline)
         if(layer->gen_folder_name.size != 0)
         {
           String8 gen_folder = layer->gen_folder_name;
-          layer_generated_folder = push_str8f(mg_arena, "%S/%S", code_dir_path, gen_folder);
+          layer_generated_folder = str8f(mg_arena, "%S/%S", code_dir_path, gen_folder);
         }
         else
         {
           String8 gen_folder = str8_lit("generated");
-          layer_generated_folder = push_str8f(mg_arena, "%S/%S/%S", code_dir_path, layer->key, gen_folder);
+          layer_generated_folder = str8f(mg_arena, "%S/%S/%S", code_dir_path, layer->key, gen_folder);
         }
         if(make_directory(layer_generated_folder))
         {
@@ -533,15 +533,15 @@ internal void entry_point(Cmd_Line *cmdline)
           join.sep = str8_lit("_");
           String8 layer_key_filename = str8_list_join(mg_arena, &layer_key_parts, &join);
           String8 layer_key_filename_upper = upper_from_str8(mg_arena, layer_key_filename);
-          String8 h_path = push_str8f(mg_arena, "%S/%S.meta.h", layer_generated_folder, layer_key_filename);
-          String8 c_path = push_str8f(mg_arena, "%S/%S.meta.c", layer_generated_folder, layer_key_filename);
+          String8 h_path = str8f(mg_arena, "%S/%S.meta.h", layer_generated_folder, layer_key_filename);
+          String8 c_path = str8f(mg_arena, "%S/%S.meta.c", layer_generated_folder, layer_key_filename);
           if(layer->h_name_override.size != 0)
           {
-            h_path = push_str8f(mg_arena, "%S/%S", layer_generated_folder, str8_skip_last_slash(layer->h_name_override));
+            h_path = str8f(mg_arena, "%S/%S", layer_generated_folder, str8_skip_last_slash(layer->h_name_override));
           }
           if(layer->c_name_override.size != 0)
           {
-            c_path = push_str8f(mg_arena, "%S/%S", layer_generated_folder, str8_skip_last_slash(layer->c_name_override));
+            c_path = str8f(mg_arena, "%S/%S", layer_generated_folder, str8_skip_last_slash(layer->c_name_override));
           }
           {
             FILE *h = fopen((char *)h_path.str, "w");
