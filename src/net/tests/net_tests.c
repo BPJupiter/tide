@@ -287,30 +287,28 @@ internal void print_recv_hexdump(NET_Client client)
     
     scratch_end(scratch);
 }
-
+*/
 Test(connect_to_server)
 {
     Temp scratch = scratch_begin(0, 0);
     {
+        NET_Session test_session = net_session_open(0, 0);
         // We can connect to google's public DNS over HTTPS
         // as they offer web-client to explore responses.
         String8 request = str8_lit("GET / HTTP/1.1\r\n"
                                    "Host: 8.8.8.8\r\n"
                                    "\r\n");
 
-        NET_Address target;
-        T_Ok(net_address_from_string(&target, str8_lit("8.8.8.8:443")));
-        NET_Client conn = net_client_alloc(scratch.arena,
-                                           target.family,
-                                           NET_TransportProtocol_TCP);
-        conn = net_client_connect(conn, target);
-        ring_try_write(conn.send_buffer, request.size, request.str);
-        T_Ok(net_client_send_from_ring(&conn));
-        T_Ok(net_client_recv_to_ring(&conn));
-        T_Ok(0 == ring_peek_unread_quantity(conn.recv_buffer));
+        NET_Endpoint ep = net_endpoint_from_string(s("8.8.8.8:443"));
+        T_Ok(net_send(test_session, NET_Protocol_TCP, ep, request, max_u64));
+        NET_Protocol p_out = {0};
+        NET_Endpoint ep_out = {0};
+        String8 data_out = {0};
+        T_Ok(net_recv(scratch.arena, test_session, &p_out, &ep_out, &data_out, max_u64));
         // We get a FIN & RST response from google because we aren't encrypted :P
+        T_Ok(data_out.size == 0);
+        net_session_close(test_session);
     }
     
     scratch_end(scratch);
 }
-*/

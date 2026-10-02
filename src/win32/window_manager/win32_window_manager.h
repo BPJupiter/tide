@@ -25,13 +25,15 @@
 // Windows
 
 typedef struct W32_WM_Title_Bar_Client_Area W32_WM_Title_Bar_Client_Area;
-struct W32_WM_Title_Bar_Client_Area {
+struct W32_WM_Title_Bar_Client_Area
+{
     W32_WM_Title_Bar_Client_Area *next;
     Rng2f32 rect;
 };
 
 typedef struct W32_WM_Window W32_WM_Window;
-struct W32_WM_Window {
+struct W32_WM_Window
+{
     W32_WM_Window *next;
     W32_WM_Window *prev;
     HWND hwnd;
@@ -59,7 +61,8 @@ struct W32_WM_Monitor_Gather_Node {
 };
 
 typedef struct W32_WM_Monitor_Gather_Bundle W32_WM_Monitor_Gather_Bundle;
-struct W32_WM_Monitor_Gather_Bundle {
+struct W32_WM_Monitor_Gather_Bundle
+{
     Arena *arena;
     W32_WM_Monitor_Gather_Node *first_monitor;
     W32_WM_Monitor_Gather_Node *last_monitor;

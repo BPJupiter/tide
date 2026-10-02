@@ -24,15 +24,6 @@ global bool32 supported_dns_types[1ULL << 16] = {
     [DNS_Type_AAAA]  = true,
 };
 
-typedef enum DNS_TransportProtocol DNS_TransportProtocol;
-enum DNS_TransportProtocol {
-    DNS_TransportProtocol_UDP,
-    DNS_TransportProtocol_TCP,
-    DNS_TransportProtocol_TLS,
-    DNS_TransportProtocol_HTTPS,
-    DNS_TransportProtocol_COUNT
-};
-
 ////////////////////////
 // Message Structures
 
@@ -77,22 +68,12 @@ struct DNS_Msg {
     DNS_RR *extra;
 };
 
-///////////////////////
-// Client Structures
-
-typedef struct DNS_Client DNS_Client;
-struct DNS_Client {
-    NET_Client dialer;
-    DNS_TransportProtocol dns_protocol;
-};
-
 /////////////////////////
 // Server Structures
 
-typedef struct DNS_Server DNS_Server;
-struct DNS_Server {
-    NET_Listener listener;
-    DNS_TransportProtocol dns_protocol;
+typedef struct DNS_Session DNS_Session;
+struct DNS_Session {
+    NET_Session net_session;
 };
 
 ///////////////
@@ -129,27 +110,23 @@ struct DNS_Server {
 ///////////////////////
 // Message Functions
 
-internal DNS_Msg dns_msg_alloc(Arena *arena, String8 domain, DNS_Type type);
-internal String8 dns_msg_header_to_str8(Arena *arena, DNS_Msg_Header h);
+internal DNS_Msg dns_msg_make(Arena *arena, String8 domain, DNS_Type type);
+internal String8 dns_string_from_msg_header(Arena *arena, DNS_Msg_Header h);
 
-//////////////////////
-// Client Functions
+//////////////////
+// Wire Lengths
 
-internal DNS_Client dns_client_alloc(Arena *arena, NET_AddressFamily family, DNS_TransportProtocol protocol);
-internal void       dns_client_release(DNS_Client client);
-internal DNS_Msg    dns_exchange(Arena *arena, DNS_Msg msg, DNS_TransportProtocol protocol, String8 target); // TODO
-internal DNS_Msg    dns_client_exchange(Arena *arena, DNS_Client client, DNS_Msg msg, String8 target); // TODO
-internal DNS_Msg    dns_client_exchange_with_address(Arena *arena, DNS_Client client, DNS_Msg msg, NET_Address address);
+internal u64 dns_rdata_wire_length(DNS_RR *rr);
+internal u64 dns_rr_wire_length(DNS_RR *rr);
+internal u64 dns_msg_wire_length(DNS_Msg *msg);
 
-////////////////////////
-// Server Functions
+////////////////////////////
+// Wire Packing/Unpacking
 
-internal DNS_Server dns_server_alloc(NET_AddressFamily family, DNS_TransportProtocol protocol, u16 port); // TODO
-internal void       dns_server_release(DNS_Server server); // TODO
-internal void       dns_listen_and_serve(String8 address, DNS_TransportProtocol protocol); // TODO
-internal void       dns_server_listen_and_serve(DNS_Server server); // TODO
-internal void       dns_server_shutdown(DNS_Server *server); // TODO
-internal void       dns_server_shutdown_and_release(DNS_Server *server); // TODO
+internal String8 dns_pack_msg     (Arena *arena, DNS_Msg msg, bool32 pack_tcp_length);
+
+internal String8 dns_unpack_labels(Arena *arena, String8 wire, u64 *cursor);
+internal DNS_Msg dns_unpack_msg     (Arena *arena, String8 wire, bool32 unpack_tcp_length);
 
 ///////////////////////
 // Utility Functions
@@ -160,22 +137,12 @@ internal String8 dns_canonical_from_string(Arena *arena, String8 s);
 internal String8 dns_name_labels_from_string(Arena *arena, String8 s);
 internal bool32  dns_string_is_name_labels(String8 s);
 
-internal String8 dns_inverse_query_name_from_address(Arena *arena, NET_Address address);
-
-//////////////////
-// Wire Lengths
-
-internal u64 dns_rdata_wire_length(DNS_RR *rr);
-internal u64 dns_rr_wire_length(DNS_RR *rr);
-internal u64 dns_msg_wire_length(DNS_Msg *msg);
+internal String8 dns_inverse_query_name_from_endpoint(Arena *arena, NET_Endpoint endpoint);
 
 //////////////////////////////
-// DNS Diagnostic Functions
+// Network Diagnosis
 
-//~ fbt: This function pings each root server A-M and then attemps a single DNS query to each one
-//       if servers respond to a ping, but NONE respond to our DNS query, then we figure
-//       our local network blocks outbound DNS not headed for the local resolver.
-internal bool32 dns_is_blocked_on_this_network(DNS_TransportProtocol protocol);
+internal bool32 dns_is_blocked_on_this_network(void);
 
 ////////////////////////////////////////
 // @per_os_impl Sytem DNS Info

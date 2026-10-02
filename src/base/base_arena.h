@@ -28,8 +28,8 @@ struct Arena_Params {
 
 typedef struct Arena Arena;
 struct Arena {
-    Arena *prev;
-    Arena *current;
+    Arena *prev; // previous arena in chain
+    Arena *current; // current arena in chain
     ArenaFlags flags;
     u64 commit_size;
     u64 reserve_size;

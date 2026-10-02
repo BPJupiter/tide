@@ -24,6 +24,7 @@ struct File_Info {
     File_Properties props;
 };
 
+// on-disk file identifier
 typedef struct File_ID File_ID;
 struct File_ID {
     u64 v[3];
@@ -32,6 +33,13 @@ struct File_ID {
 typedef struct File File;
 struct File {
     u64 u64[1];
+};
+
+typedef struct File_Pair File_Pair;
+struct File_Pair
+{
+    File read;
+    File write;
 };
 
 typedef struct File_Map File_Map;
@@ -63,6 +71,11 @@ internal String8    file_read_cstring(Arena *arena, File file, u64 off);
 //- rjf: files
 internal File            file_open(AccessFlags flags, String8 path);
 internal void            file_close(File file);
+internal File_Pair       file_pipe_make(bool32 read_inherited, bool32 write_inherited);
+internal u64             file_pipe_read(File file, void *out_data, u64 size);
+internal u64             file_pipe_write(File file, void *data, u64 size);
+internal u64             file_pipe_bytes_available(File file);
+internal bool32          file_pipe_is_end(File file);
 internal u64             file_read(File file, Rng1u64 rng, void *out_data);
 #define file_read_struct(f, off, ptr) file_read((f), r1u64((off), (off)+sizeof(*(ptr))), (ptr))
 internal u64             file_write(File file, Rng1u64 rng, void *data);
@@ -70,9 +83,12 @@ internal bool32          file_set_times(File file, Date_Time time);
 internal File_Properties properties_from_file(File file);
 internal File_ID         id_from_file(File file);
 internal bool32          file_reserve_size(File file, u64 size);
+internal bool32          file_set_size(File file, u64 size);
+internal bool32          file_flush(File file);
 internal bool32          delete_file_at_path(String8 path);
 internal bool32          copy_file_path(String8 dst, String8 src);
 internal bool32          move_file_path(String8 dst, String8 src);
+internal bool32          replace_file_path(String8 dst, String8 src);
 internal String8         full_path_from_path(Arena *arena, String8 path);
 internal bool32          file_path_exists(String8 path);
 internal bool32          folder_path_exists(String8 path);
@@ -82,6 +98,7 @@ internal File_Properties properties_from_file_path(String8 path);
 internal File_Map file_map_open(AccessFlags flags, File file);
 internal void     file_map_close(File_Map map);
 internal void    *file_map_view_open(File_Map map, AccessFlags flags, Rng1u64 range);
+internal void    *file_map_view_replace_placeholder(File_Map map, void *ptr, Rng1u64 range);
 internal void     file_map_view_close(File_Map map, void *ptr, Rng1u64 range);
 
 //- rjf: directory iteration

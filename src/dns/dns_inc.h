@@ -6,7 +6,6 @@
 #define DNS_INC_H
 
 #include "dns_core.h"
-#include "dns_pack.h"
 
 #if OS_WINDOWS
 # include "win32/dns/win32_dns.h"

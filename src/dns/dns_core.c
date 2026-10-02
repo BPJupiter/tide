@@ -6,6 +6,23 @@
 
 #include "generated/dns.meta.c"
 
+///////////////////////
+// Bit Packing Flags
+
+#define _QR (1 << 15)
+#define _AA (1 << 10)
+#define _TC (1 << 9)
+#define _RD (1 << 8)
+#define _RA (1 << 7)
+#define _Z  (1 << 6)
+#define _AD (1 << 5)
+#define _CD (1 << 4)
+
+// ENDS0 OPT
+#define _DO (1 << 15)
+#define _CO (1 << 14)
+#define _DE (1 << 1)3
+
 /////////////
 // Globals
 
@@ -27,7 +44,7 @@ internal u16 dns_id_func_default(void)
 ///////////////////////////
 // DNS Message Functions
 
-internal DNS_Msg dns_msg_alloc(Arena *arena, String8 domain, DNS_Type type)
+internal DNS_Msg dns_msg_make(Arena *arena, String8 domain, DNS_Type type)
 {
     DNS_Msg msg = {0};
     msg.header.id = dns_id_func();
@@ -81,164 +98,492 @@ internal String8 dns_msg_header_to_str8(Arena *arena, DNS_Msg_Header h)
     return result;
 }
 
+//////////////////
+// Wire Lengths
+
+internal u64 dns_rdata_wire_length(DNS_RR *rr)
+{
+    u64 l = 0;
+
+    switch (rr->type) {
+        case DNS_Type_A: {
+            l += sizeof(rr->rdata.A.addr);
+        } break;
+        case DNS_Type_NS: {
+            l += rr->rdata.NS.ns.size + 1;
+        } break;
+        case DNS_Type_CNAME: {
+            l += rr->rdata.CNAME.target.size + 1;
+        } break;
+        case DNS_Type_PTR: {
+            l += rr->rdata.PTR.ptrdname.size + 1;
+        } break;
+        case DNS_Type_AAAA: {
+            l += sizeof(rr->rdata.AAAA.addr);
+        } break;
+        default: {
+            DNS_CRASH_THE_PROGRAM_IF_THIS_TYPE_IS_SUPPORTED(rr->type);
+        } break;
+    }
+
+    return l;
+}
+
+internal u64 dns_rr_wire_length(DNS_RR *rr)
+{
+    /*
+                                    1  1  1  1  1  1
+      0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                                               |
+    /                                               /
+    /                      NAME                     /
+    |                                               |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                      TYPE                     |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                     CLASS                     |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                      TTL                      |
+    |                                               |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                   RDLENGTH                    |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--|
+    /                     RDATA                     /
+    /                                               /
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    
+    */
+
+    u64 l = rr->name.size + 1 + 10; // +1 because example.com is actually .example.com
+    l += dns_rdata_wire_length(rr);
+
+    return l;
+}
+
+internal u64 dns_msg_wire_length(DNS_Msg *msg)
+{
+    u64 i = 0;
+    u64 l = DNS_MSG_HEADER_SIZE;
+
+    // we always add a +1, even if the name is a root label.
+    // 4 is for the type and class.
+
+    for (i = 0; i < msg->header.question_count; i++) {
+        l += msg->question[i].name.size + 1;
+    }
+    l += 4;
+
+    for (i = 0; i < msg->header.answer_count; i++) {
+        l += dns_rr_wire_length(&msg->answer[i]);
+    }
+
+    for (i = 0; i < msg->header.nameserver_count; i++) {
+        l += dns_rr_wire_length(&msg->ns[i]);
+    }
+
+    for (i = 0; i < msg->header.additional_count; i++) {
+        l += dns_rr_wire_length(&msg->extra[i]);
+    }
+
+    return Min(l, DNS_MAX_MSG_SIZE);
+}
+
 //////////////////////
-// Client Functions
+// Wire Packing/Unpacking
 
-internal DNS_Client dns_client_alloc(Arena *arena, NET_AddressFamily family, DNS_TransportProtocol protocol)
+internal String8 dns_pack_msg(Arena *arena, DNS_Msg msg, bool32 pack_tcp_length)
 {
-    DNS_Client client = {0};
-    
-    client.dns_protocol = protocol;
-    NET_TransportProtocol ipproto = 0;
-    switch (protocol)
+    Temp scratch = scratch_begin(&arena, 1);
+    String8_List serial = {0};
+    str8_serial_begin(scratch.arena, &serial);
     {
-        default:{}break;
-        case DNS_TransportProtocol_TLS:
-        case DNS_TransportProtocol_HTTPS:
-        case DNS_TransportProtocol_TCP: {
-            ipproto = NET_TransportProtocol_TCP;
-        } break;
-        case DNS_TransportProtocol_UDP: {
-            ipproto = NET_TransportProtocol_UDP;
-        } break;
-    }
+        if(pack_tcp_length)
+        {
+            u64 l = dns_msg_wire_length(&msg);
+            l = host_to_net_u16(l);
+            str8_serial_push_u16(scratch.arena, &serial, l);
+        }
+        
+        // pack header
+        {
+            u16 id = host_to_net_u16(msg.header.id);
+            str8_serial_push_u16(scratch.arena, &serial, id);
+            
+            u16 bits = (u16)msg.header.opcode << 11 | ((u16)msg.header.rcode & 0xF);
+            if (msg.header.query_response)      bits |= _QR;
+            if (msg.header.authoritative)       bits |= _AA;
+            if (msg.header.truncated)           bits |= _TC;
+            if (msg.header.recursion_desired)   bits |= _RD;
+            if (msg.header.recursion_available) bits |= _RA;
+            if (msg.header.zero)                bits |= _Z;
+            if (msg.header.authenticated_data)  bits |= _AD;
+            if (msg.header.checking_disabled)   bits |= _CD;
+        
+            bits = host_to_net_u16(bits);
+            str8_serial_push_u16(scratch.arena, &serial, bits);
 
-    client.dialer = net_client_alloc(arena, family, ipproto);
-    
-    return client;
-}
+            // NOTE: rfc 9619 states that qdcount should always be 1.
+            u16 qdcount = host_to_net_u16(msg.header.question_count);
+            u16 ancount = host_to_net_u16(msg.header.answer_count);
+            u16 nscount = host_to_net_u16(msg.header.nameserver_count);
+            u16 arcount = host_to_net_u16(msg.header.additional_count);
+            str8_serial_push_u16(scratch.arena, &serial, qdcount);
+            str8_serial_push_u16(scratch.arena, &serial, ancount);
+            str8_serial_push_u16(scratch.arena, &serial, nscount);
+            str8_serial_push_u16(scratch.arena, &serial, arcount);
+        }
 
-internal void dns_client_release(DNS_Client client)
-{
-    net_client_close(client.dialer);
-}
+        // @TODO: Message compression
+        
+        // @TODO: Error checking for the below block
+        
+        // pack questions
+        for (u64 i = 0; i < msg.header.question_count; i++)
+        {
+            String8 name = dns_name_labels_from_string(scratch.arena, msg.question[i].name);
+            u16 qtype    = host_to_net_u16(msg.question[i].type);
+            u16 qclass   = host_to_net_u16(msg.question[i].class);
+            str8_serial_push_string(scratch.arena, &serial, name);
+            str8_serial_push_u16(scratch.arena, &serial, qtype);
+            str8_serial_push_u16(scratch.arena, &serial, qclass);
+        }
 
-internal DNS_Msg dns_exchange(Arena *arena, DNS_Msg msg, DNS_TransportProtocol protocol, String8 target)
-{
-    // TODO
-    DNS_Msg result = {0};
-    return result;
-}
-
-internal DNS_Msg dns_client_exchange(Arena *arena, DNS_Client client, DNS_Msg msg, String8 target)
-{
-    // TODO
-    DNS_Msg result = {0};
-    return result;
-}
-
-internal DNS_Msg dns_client_exchange_with_address(Arena *arena, DNS_Client client, DNS_Msg msg, NET_Address address)
-{
-    DNS_Msg result = {0};
-    bool32 ok = true;
-
-    switch (client.dns_protocol)
-    {
-        default:{}break;
-        case DNS_TransportProtocol_UDP: {
+        // pack RRs from the answer, nameserver, and additional sections
+        struct
+        {
+            DNS_RR *rr;
+            u64 count;
+        } rrs[] =
+        {
+            {msg.answer, msg.header.answer_count},
+            {msg.ns,     msg.header.nameserver_count},
+            {msg.extra,  msg.header.additional_count},
+        };
+        for(u64 section = 0; section < ArrayCount(rrs); section++)
+        {
+            for(u64 i = 0; i < rrs[section].count; i++)
             {
-                client.dialer.address = address;
-                ok &= dns_pack_msg(client.dialer.send_buffer, &msg);
-                ok &= net_client_send_from_ring(&client.dialer);
-                ok &= net_client_recv_to_ring(&client.dialer);
-                ok &= dns_unpack_msg(arena, client.dialer.recv_buffer, &result);
+                DNS_RR rr = rrs[section].rr[i];
+                // pack the RR header
+                String8 name = dns_name_labels_from_string(scratch.arena, rr.name);
+                u16 type =  host_to_net_u16(rr.type);
+                u16 class = host_to_net_u16(rr.class);
+                u32 ttl =   host_to_net_u32(rr.ttl);
+                str8_serial_push_string(scratch.arena, &serial, name);
+                str8_serial_push_u16(scratch.arena, &serial, type);
+                str8_serial_push_u16(scratch.arena, &serial, class);
+                str8_serial_push_u32(scratch.arena, &serial, ttl);
+                
+                // the rdlength is written to later with the length of the rdata that get serialized.
+                u16 *rdlength_ptr = str8_serial_push_u16(scratch.arena, &serial, 0);
+                
+                // pack rdata
+                switch (rr.type)
+                {
+                    case DNS_Type_A:
+                    {
+                        u32 addr = host_to_net_u32(rr.rdata.A.addr);
+                        str8_serial_push_u32(scratch.arena, &serial, addr);
+                    } break;
+                    case DNS_Type_NS:
+                    {
+                        String8 ns = dns_name_labels_from_string(scratch.arena, rr.rdata.NS.ns);
+                        str8_serial_push_string(scratch.arena, &serial, ns);
+                    } break;
+                    case DNS_Type_CNAME:
+                    {
+                        String8 cname = dns_name_labels_from_string(scratch.arena, rr.rdata.CNAME.target);
+                        str8_serial_push_string(scratch.arena, &serial, cname);
+                    } break;
+                    case DNS_Type_SOA:
+                    {
+                        String8 mname = dns_name_labels_from_string(scratch.arena, rr.rdata.SOA.master_name);
+                        String8 rname = dns_name_labels_from_string(scratch.arena, rr.rdata.SOA.responsible_name);
+                        u32 serial_n  = host_to_net_u32(rr.rdata.SOA.serial);
+                        u32 refresh   = host_to_net_u32(rr.rdata.SOA.refresh);
+                        u32 retry     = host_to_net_u32(rr.rdata.SOA.retry);
+                        u32 expire    = host_to_net_u32(rr.rdata.SOA.expire);
+                        u32 minimum   = host_to_net_u32(rr.rdata.SOA.minimum);
+                        str8_serial_push_string(scratch.arena, &serial, mname);
+                        str8_serial_push_string(scratch.arena, &serial, rname);
+                        str8_serial_push_u32(scratch.arena, &serial, serial_n);
+                        str8_serial_push_u32(scratch.arena, &serial, refresh);
+                        str8_serial_push_u32(scratch.arena, &serial, retry);
+                        str8_serial_push_u32(scratch.arena, &serial, expire);
+                        str8_serial_push_u32(scratch.arena, &serial, minimum);
+                    } break;
+                    case DNS_Type_PTR:
+                    {
+                        String8 ptrdname = dns_name_labels_from_string(scratch.arena, rr.rdata.PTR.ptrdname);
+                        str8_serial_push_string(scratch.arena, &serial, ptrdname);
+                    } break;
+                    case DNS_Type_AAAA:
+                    {
+                        u128 addr = host_to_net_u128(rr.rdata.AAAA.addr);
+                        str8_serial_push_data(scratch.arena, &serial, &addr, sizeof(addr));
+                    } break;
+                    default:
+                    {
+                        DNS_CRASH_THE_PROGRAM_IF_THIS_TYPE_IS_SUPPORTED(rr.type);
+                    } break;
+                }
+            
+                rdlength_ptr[0] = safe_cast_u16(safe_cast_u32(serial.last->string.size));
+                if (rdlength_ptr[0] <= DNS_MAX_MSG_SIZE)
+                { // overflow
+                    rdlength_ptr[0] = host_to_net_u16(rdlength_ptr[0]);
+                }
+                else
+                {
+                    // @TODO: Handle inconsistent rdata length...
+                }
             }
-        } break;
-        case DNS_TransportProtocol_TCP: {
-            {
-                net_client_connect(client.dialer, address);
-                u64 length64 = dns_msg_wire_length(&msg);
-                u16 length16 = host_to_net_u16(safe_cast_u16(safe_cast_u32(length64)));
-                ok &= ring_try_write_struct(client.dialer.send_buffer, &length16);
-                ok &= dns_pack_msg(client.dialer.send_buffer, &msg);
-                ok &= net_client_send_from_ring(&client.dialer);
-                ok &= net_client_recv_to_ring(&client.dialer);
-                u16 unpacklen = 0;
-                ok &= ring_try_read_struct(client.dialer.recv_buffer, &unpacklen);
-                unpacklen = net_to_host_u16(unpacklen);
-                u16 unread = ring_peek_unread_quantity(client.dialer.recv_buffer);
-                ok &= dns_unpack_msg(arena, client.dialer.recv_buffer, &result);
-                ok &= (unpacklen == unread);
-            }
-        } break;
+        }
+        // @TODO: OPT RR
     }
-
-    if (!ok)
-    {
-        MemoryZeroStruct(&result);
-    }
-
-    return result;
-}
-
-////////////////////////
-// Server Functions
-
-internal DNS_Server dns_server_alloc(NET_AddressFamily family, DNS_TransportProtocol protocol, u16 port)
-{
-    DNS_Server server = {0};
-
-    server.dns_protocol = protocol;
-    NET_TransportProtocol ipproto = 0;
-    switch (protocol)
-    {
-        default:{}break;
-        case DNS_TransportProtocol_TLS:
-        case DNS_TransportProtocol_HTTPS:
-        case DNS_TransportProtocol_TCP: {
-            ipproto = NET_TransportProtocol_TCP;
-        } break;
-        case DNS_TransportProtocol_UDP: {
-            ipproto = NET_TransportProtocol_UDP;
-        } break;
-    }
-    server.listener = net_listener_alloc(family, ipproto, port);
-    
-    return server;
-}
-
-internal void dns_server_release(DNS_Server server)
-{
-    NOTIMPL_WARNING(dns_server_release);
-    // TODO
-}
-
-internal void dns_listen_and_serve(String8 address, DNS_TransportProtocol protocol)
-{
-    NOTIMPL_WARNING(dns_listen_and_serve);
-    // TODO
-}
-
-internal void dns_server_listen_and_serve(DNS_Server server)
-{
-    // TODO: Sanity checking on server.dns_protocol and server.listener.protocol
-    Temp scratch = scratch_begin(0, 0);
-    switch(server.dns_protocol)
-    {
-        default:{}break;
-        case DNS_TransportProtocol_UDP: {
-            {
-                NET_Client client = net_listener_accept(scratch.arena, server.listener);
-                u8 foo = 255;
-                ring_try_write_struct(client.send_buffer, &foo);
-                net_client_send_from_ring(&client);
-            }
-        } break;
-    }
+    String8 result = str8_serial_end(arena, &serial);
     scratch_end(scratch);
+
+    return result;
 }
 
-internal void dns_server_shutdown(DNS_Server *server)
+internal String8 dns_unpack_labels(Arena *arena, String8 wire, u64 *cursor)
 {
-    NOTIMPL_WARNING(dns_server_shutdown);
+    // @TODO this function fucking sucks and needs to not suck
+    Temp scratch = scratch_begin(&arena, 1);
+
+    bool32 good_domain = 1;
+    String8 domain_name = str8_zero();
+    u32 total_length = 0;
+
+    u64 pos = *cursor;
+    u64 end = 0;
+    
+    bool32 jumped = 0;
+    u32 jumps = 0;
+    for(;;)
+    {
+        if(pos + 1 > wire.size)
+        {
+            good_domain = 0;
+            break;
+        }
+        
+        u8 length = 0;
+        str8_deserial_read_struct(wire, pos, &length);
+        if ((length & 0xC0) == 0xC0) {
+            if(++jumps > DNS_MAX_COMPRESSION_JUMPS || pos + 2 > wire.size)
+            {
+                good_domain = 0;
+                break;
+            }
+
+            u8 lo = 0;
+            str8_deserial_read_struct(wire, pos+1, &lo);
+            if (!jumped) {
+                jumped = 1;
+                end = pos+2;
+            }
+
+            u16 offset = ((u16)(length & 0x3F) << 8) | lo;
+            if(offset >= pos)
+            {
+                good_domain = 0;
+                break;
+            }
+            pos = offset;
+            continue;
+        }
+
+        if (length == 0) {
+            // terminating byte
+            pos += 1;
+            if(!jumped)
+            {
+                end = pos;
+            }
+            break;
+        }
+
+        bool32 bad_name = 0;
+        if (length > DNS_MAX_LABEL_LEN)               bad_name = 1;
+        if (total_length + length > DNS_MAX_NAME_LEN) bad_name = 1;
+        if (pos + 1 + length > wire.size)             bad_name = 1;
+        if (bad_name) {
+            good_domain = 0;
+            break;
+        }
+
+        String8 label = str8_substr(wire, r1u64(pos+1, pos+1+length));
+        total_length += label.size;
+        domain_name = str8_cat(scratch.arena, domain_name, label);
+        domain_name = str8_cat(scratch.arena, domain_name, s("."));
+        pos += label.size + 1;
+    }
+
+    String8 result = {0};
+    if (good_domain)
+    {
+        if(domain_name.size == 0)
+        {
+            domain_name = s(".");
+        }
+        result = str8_copy(arena, domain_name);
+        *cursor = end;
+    }
+    
+    scratch_end(scratch);
+    return result;
 }
 
-internal void dns_server_shutdown_and_release(DNS_Server *server)
+internal DNS_Msg dns_unpack_msg(Arena *arena, String8 wire, bool32 unpack_tcp_length)
 {
-    NOTIMPL_WARNING(dns_server_shutdown_and_release);
-    // TODO
-}
+    Temp scratch = scratch_begin(&arena, 1);
+    DNS_Msg msg = {0};
+    u64 cursor = 0;
 
+    if(unpack_tcp_length)
+    {
+        u16 total_length = 0;
+        cursor += str8_deserial_read_struct(wire, cursor, &total_length);
+        // @TODO verify/do something with this total length. probably.
+    }
+
+    u16 id;
+    cursor += str8_deserial_read_struct(wire, cursor, &id);
+    msg.header.id = net_to_host_u16(id);
+    
+    u16 bits;
+    cursor += str8_deserial_read_struct(wire, cursor, &bits);
+    bits = net_to_host_u16(bits);
+    
+    msg.header.opcode = (bits >> 11) & 0xF;
+    msg.header.rcode = (bits & 0xF);
+    if (bits & _QR) msg.header.query_response      = 1;
+    if (bits & _AA) msg.header.authoritative       = 1;
+    if (bits & _TC) msg.header.truncated           = 1;
+    if (bits & _RD) msg.header.recursion_desired   = 1;
+    if (bits & _RA) msg.header.recursion_available = 1;
+    if (bits & _Z)  msg.header.zero                = 1;
+    if (bits & _AD) msg.header.authenticated_data  = 1;
+    if (bits & _CD) msg.header.checking_disabled   = 1;
+
+    u16 qdcount, ancount, nscount, arcount;
+    cursor += str8_deserial_read_struct(wire, cursor, &qdcount);
+    cursor += str8_deserial_read_struct(wire, cursor, &ancount);
+    cursor += str8_deserial_read_struct(wire, cursor, &nscount);
+    cursor += str8_deserial_read_struct(wire, cursor, &arcount);
+    msg.header.question_count   = net_to_host_u16(qdcount);
+    msg.header.answer_count     = net_to_host_u16(ancount);
+    msg.header.nameserver_count = net_to_host_u16(nscount);
+    msg.header.additional_count = net_to_host_u16(arcount);
+
+    msg.question = push_array(arena, DNS_RR, msg.header.question_count);
+    msg.answer   = push_array(arena, DNS_RR, msg.header.answer_count);
+    msg.ns       = push_array(arena, DNS_RR, msg.header.nameserver_count);
+    msg.extra    = push_array(arena, DNS_RR, msg.header.additional_count);
+
+    // unpack question
+    for (u64 i = 0; i < msg.header.question_count; i++) {
+        u16 qtype, qclass;
+        msg.question[i].name = dns_unpack_labels(arena, wire, &cursor);
+        cursor += str8_deserial_read_struct(wire, cursor, &qtype);
+        cursor += str8_deserial_read_struct(wire, cursor, &qclass);
+        msg.question[i].type = net_to_host_u16(qtype);
+        msg.question[i].class = net_to_host_u16(qclass);
+    }
+
+    // unpack RRs from the answer, nameserver, and additional sections
+    struct
+    {
+        DNS_RR *rr;
+        u64 count;
+    } rrs[] =
+    {
+        {msg.answer, msg.header.answer_count},
+        {msg.ns,     msg.header.nameserver_count},
+        {msg.extra,  msg.header.additional_count},
+    };
+    for(u64 section = 0; section < ArrayCount(rrs); section++)
+    {
+        for(u64 i = 0; i < rrs[section].count; i++)
+        {
+            DNS_RR *rr = &rrs[section].rr[i];
+            
+            u16 type, class, rdlength;
+            u32 ttl;
+            rr->name = dns_unpack_labels(arena, wire, &cursor);
+            cursor += str8_deserial_read_struct(wire, cursor, &type);
+            cursor += str8_deserial_read_struct(wire, cursor, &class);
+            cursor += str8_deserial_read_struct(wire, cursor, &ttl);
+            cursor += str8_deserial_read_struct(wire, cursor, &rdlength);
+            rr->type     = net_to_host_u16(type);
+            rr->class    = net_to_host_u16(class);
+            rr->ttl      = net_to_host_u32(ttl);
+            rdlength = net_to_host_u16(rdlength);
+
+            u64 rdata_start = cursor;
+            // unpack rdata
+            switch(rr->type)
+            {
+                case DNS_Type_A:
+                {
+                    u32 addr;
+                    cursor += str8_deserial_read_struct(wire, cursor, &addr);
+                    rr->rdata.A.addr = net_to_host_u32(addr);
+                } break;
+                case DNS_Type_NS:
+                {
+                    rr->rdata.NS.ns                = dns_unpack_labels(arena, wire, &cursor);
+                } break;
+                case DNS_Type_CNAME:
+                {
+                    rr->rdata.CNAME.target         = dns_unpack_labels(arena, wire, &cursor);
+                } break;
+                case DNS_Type_SOA:
+                {
+                    rr->rdata.SOA.master_name      = dns_unpack_labels(arena, wire, &cursor);
+                    rr->rdata.SOA.responsible_name = dns_unpack_labels(arena, wire, &cursor);
+                    u32 serial_n, refresh, retry, expire, minimum;
+                    cursor += str8_deserial_read_struct(wire, cursor, &serial_n);
+                    cursor += str8_deserial_read_struct(wire, cursor, &refresh);
+                    cursor += str8_deserial_read_struct(wire, cursor, &retry);
+                    cursor += str8_deserial_read_struct(wire, cursor, &expire);
+                    cursor += str8_deserial_read_struct(wire, cursor, &minimum);
+                    rr->rdata.SOA.serial  = net_to_host_u32(serial_n);
+                    rr->rdata.SOA.refresh = net_to_host_u32(refresh);
+                    rr->rdata.SOA.retry   = net_to_host_u32(retry);
+                    rr->rdata.SOA.expire  = net_to_host_u32(expire);
+                    rr->rdata.SOA.minimum = net_to_host_u32(minimum);
+                } break;
+                case DNS_Type_PTR:
+                {
+                    rr->rdata.PTR.ptrdname = dns_unpack_labels(arena, wire, &cursor);
+                } break;
+                case DNS_Type_AAAA:
+                {
+                   u128 addr;
+                   cursor += str8_deserial_read_struct(wire, cursor, &addr);
+                   rr->rdata.AAAA.addr = net_to_host_u128(addr);
+                } break;
+                default:
+                {
+                    DNS_CRASH_THE_PROGRAM_IF_THIS_TYPE_IS_SUPPORTED(rr->type);
+                    cursor += rdlength;
+                } break;
+            }
+
+            u64 consumed = cursor - rdata_start;
+            if (consumed != rdlength) {
+                // @TODO something! this is quite bad and shouldn't happen!
+            }
+        }
+    }
+
+    scratch_end(scratch);
+    return msg;
+}
 
 ////////////////////
 // Utility Functions
@@ -355,24 +700,21 @@ internal bool32 dns_string_is_name_labels(String8 s)
     return result;
 }
 
-internal String8 dns_inverse_query_name_from_address(Arena *arena, NET_Address address)
+internal String8 dns_inverse_query_name_from_address(Arena *arena, NET_Endpoint endpoint)
 {
     Temp scratch = scratch_begin(&arena, 1);
     String8 result = {0};
     
-    switch (address.family)
+    switch (endpoint.kind)
     {
         default:{}break;
-        case NET_AddressFamily_IPv4: {
-            {
-                u32 rev_ip = bswap_u32(address.ip.v4);
-                String8 ip_str = net_string_from_ipv4(scratch.arena, rev_ip);
-                result = str8_cat(arena, ip_str, s(".in-addr.arpa"));
-            }
+        case NET_EndpointKind_IPv4:
+        {
+            String8 ip_str = net_string_from_endpoint(scratch.arena, endpoint);
+            result = str8_cat(arena, ip_str, s(".in-addr.arpa"));
         } break;
-        case NET_AddressFamily_IPv6: {
-            {
-            }
+        case NET_EndpointKind_IPv6:
+        {
         } break;
     }
     
@@ -380,112 +722,8 @@ internal String8 dns_inverse_query_name_from_address(Arena *arena, NET_Address a
     return result;
 }
 
-//////////////////
-// Wire Legnths
-
-internal u64 dns_rdata_wire_length(DNS_RR *rr)
+internal bool32 dns_is_blocked_on_this_network(void)
 {
-    u64 l = 0;
-
-    switch (rr->type) {
-        case DNS_Type_A: {
-            l += sizeof(rr->rdata.A.addr);
-        } break;
-        case DNS_Type_NS: {
-            l += rr->rdata.NS.ns.size + 1;
-        } break;
-        case DNS_Type_CNAME: {
-            l += rr->rdata.CNAME.target.size + 1;
-        } break;
-        case DNS_Type_PTR: {
-            l += rr->rdata.PTR.ptrdname.size + 1;
-        } break;
-        case DNS_Type_AAAA: {
-            l += sizeof(rr->rdata.AAAA.addr);
-        } break;
-        default: {
-            DNS_CRASH_THE_PROGRAM_IF_THIS_TYPE_IS_SUPPORTED(rr->type);
-        } break;
-    }
-
-    return l;
-}
-
-internal u64 dns_rr_wire_length(DNS_RR *rr)
-{
-    /*
-                                    1  1  1  1  1  1
-      0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |                                               |
-    /                                               /
-    /                      NAME                     /
-    |                                               |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |                      TYPE                     |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |                     CLASS                     |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |                      TTL                      |
-    |                                               |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |                   RDLENGTH                    |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--|
-    /                     RDATA                     /
-    /                                               /
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    
-    */
-
-    u64 l = rr->name.size + 1 + 10; // +1 because example.com is actually .example.com
-    l += dns_rdata_wire_length(rr);
-
-    return l;
-}
-
-internal u64 dns_msg_wire_length(DNS_Msg *msg)
-{
-    u64 i = 0;
-    u64 l = DNS_MSG_HEADER_SIZE;
-
-    // we always add a +1, even if the name is a root label.
-    // 4 is for the type and class.
-
-    for (i = 0; i < msg->header.question_count; i++) {
-        l += msg->question[i].name.size + 1;
-    }
-    l += 4;
-
-    for (i = 0; i < msg->header.answer_count; i++) {
-        l += dns_rr_wire_length(&msg->answer[i]);
-    }
-
-    for (i = 0; i < msg->header.nameserver_count; i++) {
-        l += dns_rr_wire_length(&msg->ns[i]);
-    }
-
-    for (i = 0; i < msg->header.additional_count; i++) {
-        l += dns_rr_wire_length(&msg->extra[i]);
-    }
-
-    return Min(l, DNS_MAX_MSG_SIZE);
-}
-
-internal bool32 dns_is_blocked_on_this_network(DNS_TransportProtocol protocol)
-{
-    bool32 result = true;
-    Temp scratch = scratch_begin(0, 0);
-
-    DNS_Client udp_client = dns_client_alloc(scratch.arena, NET_AddressFamily_IPv4, DNS_TransportProtocol_UDP);
-    DNS_Client tcp_client = dns_client_alloc(scratch.arena, NET_AddressFamily_IPv4, DNS_TransportProtocol_TCP);
-    for (u64 i = 0; i < DNS_RootServer_COUNT; i++) {
-        DNS_Msg msg = dns_msg_alloc(scratch.arena, str8_lit("www.example.org"), DNS_Type_A);
-        NET_Address address;
-        (void)net_address_from_string(&address, str8_cat(scratch.arena, dns_dname_of_root_server(i), str8_lit(":53")));
-        bool32 ok = dns_pack_msg(udp_client.dialer.send_buffer, &msg);
-        ok &= dns_pack_msg(tcp_client.dialer.send_buffer, &msg);
-    }
-
-    scratch_end(scratch);
-    return result;
+    // @TODO
+    return 0;
 }

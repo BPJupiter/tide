@@ -57,14 +57,8 @@ internal void main_thread_base_entry_point(int arguments_count, char **arguments
     }
 
     // Initialize all included layers
-#if defined(SOCKET_H) && !defined(SOCK_INIT_MANUAL)
-    sock_init();
-#endif
-#if defined(HTTP_H) && !defined(HTTP_INIT_MANUAL)
-    http_init();
-#endif
-#if defined(SYMBOL_SERVER_H) && !defined(SMSV_INIT_MANUAL)
-    smsv_init();
+#if defined(NET_H) && !defined(NET_INIT_MANUAL)
+    net_init();
 #endif
 #if defined(ARTIFACT_CACHE_H) && !defined(AC_INIT_MANUAL)
     ac_init();
@@ -201,11 +195,8 @@ internal void async_thread_entry_point(void *params)
 #if defined(FILE_STREAM_H)
             fs_async_tick();
 #endif
-#if defined(SOCKET_H)
-            sock_async_tick();
-#endif
-#if defined(HTTP_H)
-            http_async_tick();
+#if defined(NET_H)
+            net_async_tick();
 #endif
 #if defined(SYMBOL_SERVER_H)
             smsv_async_tick();

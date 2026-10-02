@@ -1,12 +1,8 @@
 // Copyright (c) Frances Telfar
 // Licensed under the PolyForm Noncommercial License (https://polyformproject.org/licenses/noncommercial/1.0.0)
 
-#ifndef NET_CORE_H
-#define NET_CORE_H
-
-#if !defined(NET_PORT)
-# define NET_PORT 13709
-#endif
+#ifndef NET_H
+#define NET_H
 
 typedef enum NET_Protocol {
     NET_Protocol_TCP,
@@ -53,6 +49,21 @@ struct NET_Endpoint
 # define host_to_net_u128(x) (x)
 #endif
 
+/////////////////////
+// Session Handle
+
+typedef struct NET_Session NET_Session;
+struct NET_Session
+{
+    u64 u64[1];
+};
+
+////////////////////////////
+// Wakeup Hook Function Types
+
+#define NET_WAKEUP_FUNCTION_DEF(name) void name(void)
+typedef NET_WAKEUP_FUNCTION_DEF(NET_Wakeup_Function_Type);
+
 ///////////////////////////////
 // String <-> Binary Formats
 
@@ -69,16 +80,20 @@ internal String8 net_string_from_endpoint(Arena *arena, NET_Endpoint endpoint);
 internal void net_init(void);
 internal void net_async_tick(void);
 
+///////////////////////
+// @per_os_impl Session Creation/Closing
+
+internal NET_Session net_session_open(u16 listener_port, NET_Wakeup_Function_Type *wakeup_hook);
+internal void net_session_close(NET_Session session);
+
 //////////////////////////
 // @per_os_impl Sends
 
-internal u64 net_send(u8 *ptr, u64 size, NET_Protocol *protocol_in, NET_Endpoint *entpoint_in, u64 endt_us);
-#define net_send_struct(ptr, protocol_in, endpoint_in, endt_us) net_send((ptr), sizeof(*(ptr)), (protocol_in), (endpoint_in), (endt_us))
+internal bool32 net_send(NET_Session session, NET_Protocol protocol, NET_Endpoint endpoint, String8 data, u64 endt_us);
 
 ///////////////////////////
 // @per_os_impl Receives
 
-internal u64 net_recv_from_port(u16 port, u8 *ptr, u64 size, NET_Protocol *protocol_out, NET_Endpoint *endpoint_out, u64 endt_us);
-#define net_recv_struct_from_port(port, ptr, protocol_out, endpoint_out, endt_us) net_recv((port), (ptr), sizeof(*(ptr)), (protocol_out), (endpoint_out), (endt_us))
+internal bool32 net_recv(Arena *arena, NET_Session session, NET_Protocol *protocol_out, NET_Endpoint *endpoint_out, String8 *data_out, u64 endt_us);
 
 #endif // NET_CORE_H

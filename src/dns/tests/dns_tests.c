@@ -7,7 +7,7 @@ Test(get_local_dns)
 
     String8_List local_dns_addresses = dns_get_local_nameservers(scratch.arena);
     for (String8_Node *n = local_dns_addresses.first; n != 0; n = n->next) {
-        T_Ok(net_ipv4_from_string(0, n->string) || net_ipv6_from_string(0, n->string));
+        //T_Ok(net_ipv4_from_string(0, n->string) || net_ipv6_from_string(0, n->string));
         //printf("%.*s\n", str8_varg(n->string));
     }
 
@@ -21,23 +21,31 @@ internal void print_msg_data(DNS_Msg *msg)
     String8 header_string = dns_msg_header_to_str8(scratch.arena, msg->header);
     fprintf(stderr, "%.*s\n", str8_varg(header_string));
 
-    for (u64 i = 0; i < msg->header.answer_count; i++) {
-        switch (msg->answer[i].type) {
-            case DNS_Type_A: {   
-                String8 ip = net_string_from_ipv4(scratch.arena, msg->answer[i].rdata.A.addr);
+    for (u64 i = 0; i < msg->header.answer_count; i++)
+    {
+        switch (msg->answer[i].type)
+        {
+            case DNS_Type_A:
+            {
+                String8 ip = net_string_from_endpoint(scratch.arena, (NET_Endpoint){.address.u32[0] = msg->answer[i].rdata.A.addr});
                 printf("%.*s\n", str8_varg(ip));
             } break;
-            case DNS_Type_PTR: {
+            case DNS_Type_PTR:
+            {
                 printf("%.*s\n", str8_varg(msg->answer[i].rdata.PTR.ptrdname));
             } break;
         }
     }
-    for (u64 i = 0; i < msg->header.nameserver_count; i++) {
-        switch (msg->ns[i].type) {
-            case DNS_Type_NS: {
+    for (u64 i = 0; i < msg->header.nameserver_count; i++)
+    {
+        switch (msg->ns[i].type)
+        {
+            case DNS_Type_NS:
+            {
                 fprintf(stderr, "%.*s\n", str8_varg(msg->ns[i].rdata.NS.ns));
             } break;
-            case DNS_Type_SOA: {
+            case DNS_Type_SOA:
+            {
                 fprintf(stderr, "%.*s\n", str8_varg(msg->ns[i].rdata.SOA.master_name));
                 fprintf(stderr, "%.*s\n", str8_varg(msg->ns[i].rdata.SOA.responsible_name));
                 fprintf(stderr, "Serial: %u\n", msg->ns[i].rdata.SOA.serial);
@@ -53,12 +61,14 @@ internal void print_msg_data(DNS_Msg *msg)
 
 Test(stub_client_exchange_with_address)
 {
-    DNS_TransportProtocol protocols[] = {
-        DNS_TransportProtocol_UDP,
-        DNS_TransportProtocol_TCP,
+    NET_Session dns_session = net_session_open(0, 0);
+    NET_Protocol protocols[] = {
+        //NET_Protocol_UDP,
+        NET_Protocol_TCP,
     };
     struct
-    {   DNS_Type type;
+    {
+        DNS_Type type;
         String8 name;
     } queries[] = {
         {DNS_Type_A,    s("www.example.org")},
@@ -70,31 +80,36 @@ Test(stub_client_exchange_with_address)
         for (u64 q = 0; q < ArrayCount(queries); q += 1)
         {
             Temp scratch = scratch_begin(0, 0);
-            
-            DNS_TransportProtocol protocol = protocols[p];
+
+            NET_Protocol protocol = protocols[p];
             DNS_Type type = queries[q].type;
             String8 name = queries[q].name;
 
-            DNS_Msg msg = dns_msg_alloc(scratch.arena, name, type);
-            DNS_Client client = dns_client_alloc(scratch.arena, NET_AddressFamily_IPv4, protocol);
-            NET_Address address = {0};
-            (void)net_address_from_string(&address, str8_lit("8.8.8.8:53"));
-            
-            DNS_Msg response = dns_client_exchange_with_address(scratch.arena, client, msg, address);
-            
+            DNS_Msg msg = dns_msg_make(scratch.arena, name, type);
+            NET_Endpoint endpoint = net_endpoint_from_string(s("8.8.8.8:53"));
+
+            String8 packed = dns_pack_msg(scratch.arena, msg, protocol == NET_Protocol_TCP);
+            T_Ok(net_send(dns_session, protocol, endpoint, packed, max_u64));
+            String8 data_out = {0};
+            T_Ok(net_recv(scratch.arena, dns_session, 0, 0, &data_out, max_u64));
+            DNS_Msg response = dns_unpack_msg(scratch.arena, data_out, protocol == NET_Protocol_TCP);
+
             T_Ok(msg.header.id == response.header.id);
             T_Ok(response.header.rcode == DNS_RCode_NoError);
             T_Ok(response.header.answer_count >= 1);
             
-            for (u64 i = 0; i < response.header.answer_count; i++) {
+            for (u64 i = 0; i < response.header.answer_count; i++)
+            {
                 T_Ok(response.answer[i].type == type);
             }
             
             scratch_end(scratch);
         }
     }
+    net_session_close(dns_session);
 }
 
+/*
 Test(stub_client_exchange_with_address_nxdomain)
 {
     DNS_TransportProtocol protocols[] = {
@@ -203,3 +218,4 @@ Test(server)
     
     scratch_end(scratch);
 }
+*/

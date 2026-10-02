@@ -13,7 +13,6 @@
 
 #include <winsock2.h>
 #include <mswsock.h>
-#include <iphlpapi.h>
 #include <windows.h>
 #include <windowsx.h>
 #include <timeapi.h>
@@ -21,7 +20,6 @@
 #include <Shlobj.h>
 #include <processthreadsapi.h>
 #pragma comment(lib, "user32")
-#pragma comment(lib, "Iphlpapi")
 #pragma comment(lib, "ole32")
 #pragma comment(lib, "shell32")
 #pragma comment(lib, "advapi32")
@@ -51,7 +49,6 @@ StaticAssert(sizeof(Member(File_Iter, memory)) >= sizeof(W32_File_Iter), file_it
 typedef u32 W32_EntityKind;
 enum {
     W32_EntityKind_Null,
-    // Threading
     W32_EntityKind_Thread,
     W32_EntityKind_Mutex,
     W32_EntityKind_RWMutex,
@@ -78,7 +75,6 @@ struct W32_Entity {
     W32_EntityKind kind;
     union
     {
-        // Threading
         struct {
             Thread_Entry_Point_Function_Type *func;
             void *ptr;
@@ -92,6 +88,16 @@ struct W32_Entity {
     };
 };
 
+////////////////////////
+//~ On Demand Memory
+typedef struct W32_Demand_Memory W32_Demand_Memory;
+struct W32_Demand_Memory
+{
+    Memory_Read_Fault_Function *fault;
+    void *user_data;
+    PVOID handler;
+};
+
 ///////////
 // State
 
@@ -99,13 +105,17 @@ typedef struct W32_State W32_State;
 struct W32_State {
     Arena *arena;
 
+    // info
     System_Info system_info;
     Process_Info process_info;
     u64 microsecond_resolution;
 
+    // entity storage
     CRITICAL_SECTION entity_mutex;
     Arena *entity_arena;
     W32_Entity *entity_free;
+
+    W32_Demand_Memory demand_memory;
 };
 
 //////////////
