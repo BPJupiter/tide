@@ -81,8 +81,9 @@ Test(str8_ipv4_strings)
         T_Ok(ep.kind == NET_EndpointKind_IPv4);
         T_Ok(ep.address.u32[3] == valid_addresses[i].u32);
 
-        //String8 string = net_string_from_ipv4(scratch.arena, seed_to_u32[i]);
-        //T_Ok(str8_match(valid_seeds[i], string, 0));
+        String8 string = net_string_from_endpoint(scratch.arena, ep);
+        String8 addr_part = str8_prefix(string, str8_find_needle(string, 0, s(":"), 0));
+        T_Ok(str8_match(valid_addresses[i].string, addr_part, 0));
     }
     scratch_end(scratch);
 }
@@ -167,127 +168,14 @@ Test(str8_ipv6_strings)
         T_Ok(ep.kind == NET_EndpointKind_IPv6);
         T_Ok(u128_match(ep.address, valid_addresses[i].u128));
 
-        /*
-        String8 string = net_string_from_ipv6(scratch.arena, seed_to_u128[i]);
-        
-        T_Ok(net_ipv6_from_string(&ip, string));
-        T_Ok(u128_match(ip, seed_to_u128[i]));
-        */
+        String8 string = net_string_from_endpoint(scratch.arena, ep);
+        ep = net_endpoint_from_string(string);
+        T_Ok(u128_match(ep.address, valid_addresses[i].u128));
     }
 
     scratch_end(scratch);
 }
 
-/*
-
-Test(str8_to_address)
-{
-    Temp scratch = scratch_begin(0, 0);
-    String8 valid_seeds[] = {
-        str8_lit_comp("192.168.1.1:8080"),
-        str8_lit_comp("127.0.0.1:80"),
-        str8_lit_comp("127.0.0.1:0080"),
-        str8_lit_comp("0.0.0.0:443"),
-        str8_lit_comp("255.255.255.255:65535"),
-        
-        str8_lit_comp("[2001:db8::1]:8000"),
-        str8_lit_comp("[::1]:443"),
-        str8_lit_comp("[::]:0"),
-        str8_lit_comp("[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:22"),
-        str8_lit_comp("[::ffff:192.168.1.1]:8080"),
-    };
-
-    // local_persist here stops padded memory from having uninitialized garbage data.
-    local_persist NET_Address seed_to_struct[] = {
-        // We set the last two bytes of our padding to 0xFFFF so that our
-        // ipv4 address is also valid when reading it as an ipv6 address.
-        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0xC0A80101 }, .family = NET_AddressFamily_IPv4, .port = 8080 },
-        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x7F000001 }, .family = NET_AddressFamily_IPv4, .port = 80 },
-        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x7F000001 }, .family = NET_AddressFamily_IPv4, .port = 80 },
-        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0x00000000 }, .family = NET_AddressFamily_IPv4, .port = 443 },
-        { .ip = { ._padding = {[10] = 0xFF, [11] = 0xFF}, .v4 = 0xFFFFFFFF }, .family = NET_AddressFamily_IPv4, .port = 65535 },
-        
-        { .ip = { .v6 = u128_lit64(0x20010DB800000000, 0x0000000000000001) }, .family = NET_AddressFamily_IPv6, .port = 8000 },
-        { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000000000000001) }, .family = NET_AddressFamily_IPv6, .port = 443 },
-        { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000000000000000) }, .family = NET_AddressFamily_IPv6, .port = 0 },
-        { .ip = { .v6 = u128_lit64(0x20010DB885A30000, 0x00008A2E03707334) }, .family = NET_AddressFamily_IPv6, .port = 22 },
-        { .ip = { .v6 = u128_lit64(0x0000000000000000, 0x0000FFFFC0A80101) }, .family = NET_AddressFamily_IPv6, .port = 8080 },
-    };
-
-    for (u64 i = 0; i < ArrayCount(valid_seeds); i++) {
-        NET_Address result = {0};
-        T_Ok(net_address_from_string(&result, valid_seeds[i]));
-        T_Ok(MemoryMatchStruct(&result, &seed_to_struct[i]));
-    }
-
-    String8 invalid_seeds[] = {
-        str8_lit_comp(""),
-        str8_lit_comp("hello_world"),
-        str8_lit_comp(":"),
-        str8_lit_comp("0.0.0.0"),
-        str8_lit_comp(":80"),
-
-        str8_lit_comp("192.168.1.1"),
-        str8_lit_comp("192.168.1.1:"),
-        
-        str8_lit_comp("256.0.0.1:80"),
-        str8_lit_comp("192.168.1.999:80"),
-        str8_lit_comp("999.999.999.999:80"),
-        
-        str8_lit_comp("192.168.1:80"),
-        str8_lit_comp("192.168.1.1.1:80"),
-        
-        str8_lit_comp("-1.0.0.0:80"),
-        str8_lit_comp("192.168.1a.1:80"),
-        str8_lit_comp("192.168.1. 1:80"),
-        str8_lit_comp("[192.168.1.1]:80"),
-
-        str8_lit_comp("[2001:db8::1]"),
-        str8_lit_comp("[2001:db8::1]:"),
-        
-        str8_lit_comp("2001:db8::1:8080"),
-        str8_lit_comp("[2001:db8::1:8080"),
-        str8_lit_comp("2001:db8::1]:8080"),
-        
-        str8_lit_comp("[2001:xyz::1]:80"),
-        str8_lit_comp("[-2001:db8::1]:80"),
-        
-        str8_lit_comp("[2001::db8::1]:80"),
-        str8_lit_comp("[1:2:3:4:5:6:7:8:9]:80"),
-        str8_lit_comp("[1:2:3:4:5:6:7:8::]:80"),
-        str8_lit_comp("[::::]:80"),
-
-        str8_lit_comp("127.0.0.1:65536"),
-        str8_lit_comp("[::1]:999999"),
-        
-        str8_lit_comp("127.0.0.1:-80"),
-        str8_lit_comp("127.0.0.1:80a"),
-        str8_lit_comp("127.0.0.1:http"),
-        
-        str8_lit_comp(" 127.0.0.1:80"),
-        str8_lit_comp("127.0.0.1:80 "),
-        str8_lit_comp("127.0.0.1 :80"),
-        str8_lit_comp("127.0.0.1: 80"),
-    };
-
-    for (u64 i = 0; i < ArrayCount(invalid_seeds); i++) {
-        T_Ok(!net_address_from_string(0, invalid_seeds[i]));
-    }
-    scratch_end(scratch);
-}
-
-internal void print_recv_hexdump(NET_Client client)
-{
-    Temp scratch = scratch_begin(0, 0);
-    
-    u64 size = ring_peek_unread_quantity(client.recv_buffer);
-    u8 *buff = push_array(scratch.arena, u8, size);
-    String8 hexdump = hexdump_str8(scratch.arena, buff, size);
-    fprintf(stderr, "\n%.*s\n", str8_varg(hexdump));
-    
-    scratch_end(scratch);
-}
-*/
 Test(connect_to_server)
 {
     Temp scratch = scratch_begin(0, 0);

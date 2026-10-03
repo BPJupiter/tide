@@ -120,7 +120,32 @@ internal NET_Endpoint net_endpoint_from_string(String8 address_and_port)
 internal String8 net_string_from_endpoint(Arena *arena, NET_Endpoint endpoint)
 {
     String8 result = {0};
-    NOTIMPL_WARNING(net_string_from_endpoint);
+    switch(endpoint.kind)
+    {
+        default:{}break;
+        case NET_EndpointKind_IPv4:
+        {
+            result = str8f(arena, "%i.%i.%i.%i:%i",
+                           (int)endpoint.address.u8[15],
+                           (int)endpoint.address.u8[14],
+                           (int)endpoint.address.u8[13],
+                           (int)endpoint.address.u8[12],
+                           (int)endpoint.port);
+        }break;
+        case NET_EndpointKind_IPv6:
+        {
+            result = str8f(arena, "[%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x]:%i",
+                     (int)endpoint.address.u16[7],
+                     (int)endpoint.address.u16[6],
+                     (int)endpoint.address.u16[5],
+                     (int)endpoint.address.u16[4],
+                     (int)endpoint.address.u16[3],
+                     (int)endpoint.address.u16[2],
+                     (int)endpoint.address.u16[1],
+                     (int)endpoint.address.u16[0],
+                     (int)endpoint.port);
+        }break;
+    }
     return result;
 }
 
