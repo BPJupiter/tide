@@ -34,7 +34,7 @@ fp_hook FP_Handle
 fp_font_open(String8 path)
 {
   Temp scratch = scratch_begin(0, 0);
-  String8 path_copy = push_str8_copy(scratch.arena, path);
+  String8 path_copy = str8_copy(scratch.arena, path);
   FP_FT_Font font = {0};
   FT_New_Face(fp_ft_state->library, (char *)path_copy.str, 0, &font.face);
   FP_Handle handle = fp_ft_handle_from_font(font);

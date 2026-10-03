@@ -5,17 +5,17 @@ cd /D "%~dp0"
 
 :: --- Usage Notes (2024/1/10) ------------------------------------------------
 ::
-:: This is a central build script for the RAD Debugger project, for use in
+:: This is a central build script for the TIDE Proxy project, for use in
 :: Windows development environments. It takes a list of simple alphanumeric-
 :: only arguments which control (a) what is built, (b) which compiler & linker
 :: are used, and (c) extra high-level build options. By default, if no options
-:: are passed, then the main "raddbg" graphical debugger is built.
+:: are passed, then the main "tide" graphical proxy is built.
 ::
 :: Below is a non-exhaustive list of possible ways to use the script:
-:: `build raddbg`
-:: `build raddbg clang`
-:: `build raddbg release`
-:: `build raddbg asan telemetry`
+:: `build tide`
+:: `build tide clang`
+:: `build tide release`
+:: `build tide asan telemetry`
 :: `build rdi_from_pdb`
 ::
 :: For a full list of possible build targets and their build command lines,
@@ -36,8 +36,8 @@ if "%debug%"=="1"   set release=0 && echo [debug mode]
 if "%release%"=="1" set debug=0 && echo [release mode]
 if "%msvc%"=="1"    set clang=0 && echo [msvc compile]
 if "%clang%"=="1"   set msvc=0 && echo [clang compile]
-if "%~1"==""                     echo [default mode, assuming `torment` build] && set torment=1&& set com_shim=1&& set raddbg_com_shim=1
-if "%~1"=="release" if "%~2"=="" echo [default mode, assuming `torment` build] && set torment=1&& set com_shim=1&& set raddbg_com_shim=1
+if "%~1"==""                     echo [default mode, assuming `torment` build] && set torment=1&& set com_shim=1&& set tide_com_shim=1
+if "%~1"=="release" if "%~2"=="" echo [default mode, assuming `torment` build] && set torment=1&& set com_shim=1&& set tide_com_shim=1
 
 :: --- Unpack Command Line Build Arguments ------------------------------------
 set auto_compile_flags=

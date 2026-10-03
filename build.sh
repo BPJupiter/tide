@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 
 # --- Usage Notes --------------------------------------------------------------
 #
-# This is a central build script for the RAD Debugger project, for use in
+# This is a central build script for the TIDE Project project, for use in
 # Linux development environments. It takes a list of simple alphanumeric-
 # only arguments which control (a) what is built, (b) which compiler is
 # used, and (c) extra high-level build options. By default, if no options

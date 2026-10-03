@@ -1125,6 +1125,7 @@ internal f32 ti_view_setting_f32_from_name(String8 name)
 
 internal u64 ti_view_setting_addr_from_name(String8 name)
 {
+    return 0;
 }
 
 
@@ -7062,7 +7063,7 @@ internal void ti_frame(void)
                             String8 initial_input = {0};
                             if (cmd_name.size != 0)
                             {
-                                if (cmd_kind_info->query.slot = TI_RegSlot_FilePath)
+                                if (cmd_kind_info->query.slot == TI_RegSlot_FilePath)
                                 {
                                     CFG_Node *user = cfg_node_child_from_string(cfg_node_root(), str8_lit("user"));
                                     CFG_Node *current_path = cfg_node_child_from_string(user, str8_lit("current_path"));

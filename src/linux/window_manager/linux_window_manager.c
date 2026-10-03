@@ -644,7 +644,7 @@ wm_window_open(Rng2f32 rect, WM_WindowFlags flags, String8 title)
   
   //- rjf: attach name
   Temp scratch = scratch_begin(0, 0);
-  String8 title_copy = push_str8_copy(scratch.arena, title);
+  String8 title_copy = str8_copy(scratch.arena, title);
   XStoreName(lnx_wm_state->display, w->window, (char *)title_copy.str);
   scratch_end(scratch);
   
@@ -688,7 +688,7 @@ wm_window_set_title(WM_Window handle, String8 title)
   if(wm_window_match(handle, wm_window_zero())) {return;}
   Temp scratch = scratch_begin(0, 0);
   LNX_WM_Window *w = (LNX_WM_Window *)handle.u64[0];
-  String8 title_copy = push_str8_copy(scratch.arena, title);
+  String8 title_copy = str8_copy(scratch.arena, title);
   XStoreName(lnx_wm_state->display, w->window, (char *)title_copy.str);
   scratch_end(scratch);
 }
@@ -1160,7 +1160,7 @@ wm_get_events(Arena *arena, bool32 wait)
                             lnx_wm_state->utf8_string,
                             XA_STRING,
                         };
-                        XChangeProperty(req->display, req->requestor, req->property, XA_ATOM, 32, PropModeReplace, (U8 *)formats, ArrayCount(formats));
+                        XChangeProperty(req->display, req->requestor, req->property, XA_ATOM, 32, PropModeReplace, (u8 *)formats, ArrayCount(formats));
                     }
                     
                     // rjf: requesting a string paste
@@ -1195,7 +1195,7 @@ wm_get_events(Arena *arena, bool32 wait)
                     u64 num_items = 0;
                     u64 bytes_left = 0;
                     u8 *data = 0;
-                    int result = XGetWindowProperty(lnx_wm_state->display, lnx_wm_state->global_invisible_window, lnx_wm_state->clipboard, 0, MB(256), 0, lnx_wm_state->utf8_string, &type, &fmt, &num_items, &bytes_left, &data);
+                    int result = XGetWindowProperty(lnx_wm_state->display, lnx_wm_state->global_invisible_window, lnx_wm_state->clipboard, 0, Megabytes(256), 0, lnx_wm_state->utf8_string, &type, &fmt, &num_items, &bytes_left, &data);
                     
                     // rjf: store
                     if(result == Success && fmt == 8)

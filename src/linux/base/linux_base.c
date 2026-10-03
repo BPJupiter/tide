@@ -252,7 +252,7 @@ internal bool32 commit_memory_large(void *ptr, u64 size)
 internal Shared_Memory shared_memory_alloc(u64 size, String8 name)
 {
     Temp scratch = scratch_begin(0, 0);
-    String8 name_copy = push_str8_copy(scratch.arena, name);
+    String8 name_copy = str8_copy(scratch.arena, name);
     int id = shm_open((char *)name_copy.str, O_RDWR|O_CREAT, 0666);
     ftruncate(id, size);
     Shared_Memory result = { (u64)id };
@@ -263,7 +263,7 @@ internal Shared_Memory shared_memory_alloc(u64 size, String8 name)
 internal Shared_Memory shared_memory_open(String8 name)
 {
     Temp scratch = scratch_begin(0, 0);
-    String8 name_copy = push_str8_copy(scratch.arena, name);
+    String8 name_copy = str8_copy(scratch.arena, name);
     int id = shm_open((char *)name_copy.str, O_RDWR, 0);
     Shared_Memory result = { (u64)id };
     scratch_end(scratch);
@@ -693,7 +693,7 @@ internal void safe_call(Thread_Entry_Point_Function_Type *func, Thread_Entry_Poi
 internal File file_open(AccessFlags flags, String8 path)
 {
     Temp scratch = scratch_begin(0, 0);
-    String8 path_copy = push_str8_copy(scratch.arena, path);
+    String8 path_copy = str8_copy(scratch.arena, path);
     int lnx_flags = 0;
     if(flags & AccessFlag_Read && flags & AccessFlag_Write) {
         lnx_flags = O_RDWR;
@@ -815,7 +815,7 @@ internal bool32 delete_file_at_path(String8 path)
 {
     Temp scratch = scratch_begin(0, 0);
     bool32 result = 0;
-    String8 path_copy = push_str8_copy(scratch.arena, path);
+    String8 path_copy = str8_copy(scratch.arena, path);
     if(remove((char *)path_copy.str) != -1) {
         result = 1;
     }
@@ -880,7 +880,7 @@ internal String8 full_path_from_path(Arena *arena, String8 path)
 internal bool32 file_path_exists(String8 path)
 {
     Temp scratch = scratch_begin(0, 0);
-    String8 path_copy = push_str8_copy(scratch.arena, path);
+    String8 path_copy = str8_copy(scratch.arena, path);
     int access_result = access((char *)path_copy.str, F_OK);
     bool32 result = 0;
     if(access_result == 0) {
@@ -960,7 +960,7 @@ internal File_Iter * file_iter_begin(Arena *arena, String8 path, FileIterFlags f
     base_iter->flags = flags;
     LNX_File_Iter *iter = (LNX_File_Iter *)base_iter->memory;
     {
-        String8 path_copy = push_str8_copy(arena, path);
+        String8 path_copy = str8_copy(arena, path);
         iter->dir = opendir((char *)path_copy.str);
         iter->path = path_copy;
     }
@@ -981,7 +981,7 @@ internal bool32 file_iter_next(Arena *arena, File_Iter *iter, File_Info *info_ou
         int stat_result = 0;
         if(good) {
             Temp scratch = scratch_begin(&arena, 1);
-            String8 full_path = push_str8f(scratch.arena, "%S/%s", lnx_iter->path, lnx_iter->dp->d_name);
+            String8 full_path = str8f(scratch.arena, "%S/%s", lnx_iter->path, lnx_iter->dp->d_name);
             stat_result = stat((char *)full_path.str, &st);
             scratch_end(scratch);
         }
@@ -997,7 +997,7 @@ internal bool32 file_iter_next(Arena *arena, File_Iter *iter, File_Info *info_ou
         
         // rjf: output & exit, if good & unfiltered
         if(good && !filtered) {
-            info_out->name = push_str8_copy(arena, str8_cstring(lnx_iter->dp->d_name));
+            info_out->name = str8_copy(arena, str8_cstring(lnx_iter->dp->d_name));
             if(stat_result != -1) {
                 info_out->props = lnx_file_properties_from_stat(&st);
             }
@@ -1024,7 +1024,7 @@ internal bool32 make_directory(String8 path)
 {
     Temp scratch = scratch_begin(0, 0);
     bool32 result = 0;
-    String8 path_copy = push_str8_copy(scratch.arena, path);
+    String8 path_copy = str8_copy(scratch.arena, path);
     if(mkdir((char *)path_copy.str, 0755) != -1) {
         result = 1;
     }
@@ -1376,7 +1376,7 @@ int main(int argc, char **argv)
                 // save
                 if (got_final_result && size > 0) {
                     String8 full_name = str8(buffer, size);
-                    info->binary_file_path = push_str8_copy(lnx_state.arena, full_name);
+                    info->binary_file_path = str8_copy(lnx_state.arena, full_name);
                     info->binary_path = str8_chop_last_slash(info->binary_file_path);
                 }
             }
