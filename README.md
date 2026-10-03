@@ -1,4 +1,3 @@
-
 # The TIDE Project
 
 **NOTE:** This README does not document usage instructions and tips for the
@@ -20,7 +19,7 @@ See the [LICENSE](LICENSE) for more details.
 
 **NOTE: Currently, only x64 Windows and x64 Linux development is supported for the project.**
 
-## Windows Setup
+## Windows x64
 
 ### 1. Installing the Required Tools (MSVC & Windows SDK)
 
@@ -36,7 +35,7 @@ Build Tools), you may also build with [Clang](https://releases.llvm.org/).
 Building the codebase can be done in a terminal which is equipped with the
 ability to call either MSVC or Clang from command line.
 
-THis is generally done by calling `vcvarsall.bat x64`, which is included in the
+This is generally done by calling `vcvarsall.bat x64`, which is included in the
 Microsoft C/C++ Build Tools. This script is automatically called by the `x64
 Native Tools Command Prompt for VS <year>` variant of the vanilla `cmd.exe`. If
 you've installed the build tools, this command prompt may be eaisly located by
@@ -51,6 +50,7 @@ cl
 
 If everything is set up correctly, you should have output very similar to the
 following:
+
 ```
 Microsoft (R) C/C++ Optimizing Compiler Version 19.29.30151 for x64
 Copyright (C) Microsoft Corporation.  All rights reserved.
@@ -74,7 +74,7 @@ You should see the following output:
 [msvc compile]
 [default mode, assuming `tide` build]
 metagen_main.c
-searching C:\devel\tide/src... 458 files found
+searching P:/tide/src... 458 files found
 parsing metadesk... 16 metadesk files parsed
 gathering tables... 97 tables found
 generating layer code...
@@ -94,8 +94,139 @@ build release
 
 This build will take significantly longer.
 
-By default, `build.bat` only builds the proxy if no arguments (or just
+By default, `build.bat` only builds tide if no arguments (or just
 `release`) are passed.
+
+## Linux x64
+
+### 1. Installing the Required Tools (GCC or Clang, Libraries)
+
+First you'll need either GCC or Clang, if you don't already have them. They
+can be obtained by running one of the following commands, depending on your
+toolchain of choice and distribution:
+
+### GCC on Ubuntu / Debian / Mint
+```
+sudo apt update && sudo apt install build-essential
+```
+
+### Clang on Ubuntu / Debian / Mint
+```
+sudo apt update && sudo apt install clang llvm
+```
+
+### GCC on Arch / Manjaro
+```
+sudo pacman -S base-devel
+```
+
+### Clang on Arch / Manjaro
+```
+sudo pacman -S clang lvvm
+```
+
+If you've installed the Clang and LLVM tooling required, you can run:
+
+```
+clang --version && llvm-ar --version
+```
+
+You should see output similar to the following:
+
+```
+Ubuntu clang version 18.1.3 (1ubuntu1)
+Target: x86_64-pc-linux-gnu
+Thread model: posix
+InstalledDir: /usr/bin
+Ubuntu LLVM version 18.1.3
+  Optimized build.
+```
+
+If you've installed the GCC tooling required, you can run:
+
+```
+gcc --version && gcc-ar --version
+```
+
+You should see output similar to the following:
+
+
+```
+gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+Copyright (C) 2023 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+GNU ar (GNU Binutils for Ubuntu) 2.42
+Copyright (C) 2024 Free Software Foundation, Inc.
+This program is free software; you may redistribute it under the terms of
+the GNU General Public License version 3 or (at your option) any later version.
+This program has absolutely no warranty.
+```
+
+### 2. Installing Dependencies
+
+The tide project relies on a few dynamically linked libraries being present
+on the system:
+
+- `libfreetype`
+- `libx11`
+- `libxext`
+- `libxfixes`
+- `libxrandr`
+- `libgl`
+- `libegl`
+
+You'll need the development packages for them in order to build. These can be
+installed using one of the following commands, depending on your distribution:
+
+### Ubuntu / Debian / Mint
+
+```
+sudo apt install -y libfreetype6-dev libx11-dev libxext-dev libxfixes-dev libxrandr-dev libgl-dev libegl-dev
+```
+
+#### Arch / Manjaro
+
+```
+sudo pacman -S --needed freetype2 libx11 libxext libxfixes libxrandr libglvnd
+```
+
+### 3. Building
+
+To build, `cd` to the root directory of the codebase, and run the `build.sh`
+script:
+
+```
+./build.sh
+```
+
+You should see something similar to the following output:
+
+```
+[clang compile]
+[debug mode]
+[building metagen]
+searching /mnt/p/tide/src... 562 files found
+parsing metadesk... 23 metadesk files parsed
+gathering tables... 138 tables found
+generating layer code...
+```
+
+If everything worked correctly, there will be a `build` folder in the root
+level of the codebase, and it will contain a freshly-build `tide` binary.
+
+This `tide` will have been build in **debug mode**, which is not build with
+optimizations, and may perform worse. To produce a **release mode executable**,
+run `build.sh` with a `release` argument:
+
+```
+./build.sh release
+```
+
+This build will take significantly longer.
+
+By default, `build.sh` only builds the program if no arguments (or just `release`) are passed, but additional arguments can be passed.
 
 ---
 
@@ -155,10 +286,9 @@ A list of the layers in the codebase and their associated namespaces is below:
   128-bit hash of the data. Also implements a keying system on top, where keys
   refer to a unique identity which corresponds to a history of 128-bit hashes.
   User as a general data store by other layers.
-- `dns` (`DNS_`): This layer implements both high-level DNS funtions (such as
-  its own stub resolver), as well as allowing for iterative and recursive DNS
-  queries, as well as serving DNS messages to clients. This layer takes inspiration
-  from the [miekg/dns](https://codeberg.org/miekg/dns) DNS library.
+- `dns` (`DNS_`): This layer implements both high-level DNS funtions for DNS message
+  parsing, packing, and unpacking. This layer is intended to be used in-tandem with the
+  `net` layer.
 - `draw` (`DR_`): Implements a high-level grapihcs drawing API for the proxy's
   purposes, using the underlying `render` abstraction layer. Provides
   high-level APIs for various draw commands, but takes care of batching them,
@@ -190,8 +320,8 @@ A list of the layers in the codebase and their associated namespaces is below:
 - `mutable_text` (`MTX_`): Implements an asynchronously-filled-and-mutated
   cache for text buffers which are mutated across time.
 - `net` (`NET_`): Implements a basic platform abstraction layer for networked
-  applications. This layer takes a great deal of inspiration from the Golang
-  standard library `net` module.
+  applications. Sending and receiving is asynchronous and user-code is intended
+  to be largely stateless.
 - `render` (`R_`): An abstraction layer providing an abstract API for rendering
   using various GPU APIs under a common interface. Does not implement a high
   level drawing API - this layer is strictly for minimally abstracting on an
