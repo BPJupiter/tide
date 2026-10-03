@@ -1,6 +1,9 @@
 // Copyright (c) Epic Games Tools
 // Licensed under the MIT license (https://opensource.org/license/mit/)
 
+// Copyright (c) Frances Telfar
+// Licensed under the PolyForm Noncommercial License (https://polyformproject.org/licenses/noncommercial/1.0.0)
+
 //- GENERATED CODE
 
 #ifndef DNS_META_H
@@ -732,4 +735,8 @@ internal String8 dns_dname_of_root_server(DNS_RootServer v);
 internal String8 dns_ipv4_string_of_root_server(DNS_RootServer v);
 internal String8 dns_ipv6_string_of_root_server(DNS_RootServer v);
 internal String8 dns_operator_of_root_server(DNS_RootServer v);
+internal bool32 dns_is_obsolete_class(DNS_Class v);
+internal bool32 dns_is_query_exclusive_class(DNS_Class v);
+internal bool32 dns_is_obsolete_type(DNS_Type v);
+internal bool32 dns_is_query_exclusive_type(DNS_Type v);
 #endif // DNS_META_H
