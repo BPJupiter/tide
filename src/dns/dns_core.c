@@ -201,13 +201,13 @@ internal String8 dns_pack_msg(Arena *arena, DNS_Msg msg, bool32 pack_tcp_length)
         if(pack_tcp_length)
         {
             u64 l = dns_msg_wire_length(&msg);
-            l = host_to_net_u16(l);
+            l = net_hton_u16(l);
             str8_serial_push_u16(scratch.arena, &serial, l);
         }
         
         // pack header
         {
-            u16 id = host_to_net_u16(msg.header.id);
+            u16 id = net_hton_u16(msg.header.id);
             str8_serial_push_u16(scratch.arena, &serial, id);
             
             u16 bits = (u16)msg.header.opcode << 11 | ((u16)msg.header.rcode & 0xF);
@@ -220,14 +220,14 @@ internal String8 dns_pack_msg(Arena *arena, DNS_Msg msg, bool32 pack_tcp_length)
             if (msg.header.authenticated_data)  bits |= _AD;
             if (msg.header.checking_disabled)   bits |= _CD;
         
-            bits = host_to_net_u16(bits);
+            bits = net_hton_u16(bits);
             str8_serial_push_u16(scratch.arena, &serial, bits);
 
             // NOTE: rfc 9619 states that qdcount should always be 1.
-            u16 qdcount = host_to_net_u16(msg.header.question_count);
-            u16 ancount = host_to_net_u16(msg.header.answer_count);
-            u16 nscount = host_to_net_u16(msg.header.nameserver_count);
-            u16 arcount = host_to_net_u16(msg.header.additional_count);
+            u16 qdcount = net_hton_u16(msg.header.question_count);
+            u16 ancount = net_hton_u16(msg.header.answer_count);
+            u16 nscount = net_hton_u16(msg.header.nameserver_count);
+            u16 arcount = net_hton_u16(msg.header.additional_count);
             str8_serial_push_u16(scratch.arena, &serial, qdcount);
             str8_serial_push_u16(scratch.arena, &serial, ancount);
             str8_serial_push_u16(scratch.arena, &serial, nscount);
@@ -242,8 +242,8 @@ internal String8 dns_pack_msg(Arena *arena, DNS_Msg msg, bool32 pack_tcp_length)
         for (u64 i = 0; i < msg.header.question_count; i++)
         {
             String8 name = dns_name_labels_from_string(scratch.arena, msg.question[i].name);
-            u16 qtype    = host_to_net_u16(msg.question[i].type);
-            u16 qclass   = host_to_net_u16(msg.question[i].class);
+            u16 qtype    = net_hton_u16(msg.question[i].type);
+            u16 qclass   = net_hton_u16(msg.question[i].class);
             str8_serial_push_string(scratch.arena, &serial, name);
             str8_serial_push_u16(scratch.arena, &serial, qtype);
             str8_serial_push_u16(scratch.arena, &serial, qclass);
@@ -267,9 +267,9 @@ internal String8 dns_pack_msg(Arena *arena, DNS_Msg msg, bool32 pack_tcp_length)
                 DNS_RR rr = rrs[section].rr[i];
                 // pack the RR header
                 String8 name = dns_name_labels_from_string(scratch.arena, rr.name);
-                u16 type =  host_to_net_u16(rr.type);
-                u16 class = host_to_net_u16(rr.class);
-                u32 ttl =   host_to_net_u32(rr.ttl);
+                u16 type =  net_hton_u16(rr.type);
+                u16 class = net_hton_u16(rr.class);
+                u32 ttl =   net_hton_u32(rr.ttl);
                 str8_serial_push_string(scratch.arena, &serial, name);
                 str8_serial_push_u16(scratch.arena, &serial, type);
                 str8_serial_push_u16(scratch.arena, &serial, class);
@@ -283,7 +283,7 @@ internal String8 dns_pack_msg(Arena *arena, DNS_Msg msg, bool32 pack_tcp_length)
                 {
                     case DNS_Type_A:
                     {
-                        u32 addr = host_to_net_u32(rr.rdata.A.addr);
+                        u32 addr = net_hton_u32(rr.rdata.A.addr);
                         str8_serial_push_u32(scratch.arena, &serial, addr);
                     } break;
                     case DNS_Type_NS:
@@ -300,11 +300,11 @@ internal String8 dns_pack_msg(Arena *arena, DNS_Msg msg, bool32 pack_tcp_length)
                     {
                         String8 mname = dns_name_labels_from_string(scratch.arena, rr.rdata.SOA.master_name);
                         String8 rname = dns_name_labels_from_string(scratch.arena, rr.rdata.SOA.responsible_name);
-                        u32 serial_n  = host_to_net_u32(rr.rdata.SOA.serial);
-                        u32 refresh   = host_to_net_u32(rr.rdata.SOA.refresh);
-                        u32 retry     = host_to_net_u32(rr.rdata.SOA.retry);
-                        u32 expire    = host_to_net_u32(rr.rdata.SOA.expire);
-                        u32 minimum   = host_to_net_u32(rr.rdata.SOA.minimum);
+                        u32 serial_n  = net_hton_u32(rr.rdata.SOA.serial);
+                        u32 refresh   = net_hton_u32(rr.rdata.SOA.refresh);
+                        u32 retry     = net_hton_u32(rr.rdata.SOA.retry);
+                        u32 expire    = net_hton_u32(rr.rdata.SOA.expire);
+                        u32 minimum   = net_hton_u32(rr.rdata.SOA.minimum);
                         str8_serial_push_string(scratch.arena, &serial, mname);
                         str8_serial_push_string(scratch.arena, &serial, rname);
                         str8_serial_push_u32(scratch.arena, &serial, serial_n);
@@ -320,7 +320,7 @@ internal String8 dns_pack_msg(Arena *arena, DNS_Msg msg, bool32 pack_tcp_length)
                     } break;
                     case DNS_Type_AAAA:
                     {
-                        u128 addr = host_to_net_u128(rr.rdata.AAAA.addr);
+                        u128 addr = net_hton_u128(rr.rdata.AAAA.addr);
                         str8_serial_push_data(scratch.arena, &serial, &addr, sizeof(addr));
                     } break;
                     default:
@@ -332,7 +332,7 @@ internal String8 dns_pack_msg(Arena *arena, DNS_Msg msg, bool32 pack_tcp_length)
                 rdlength_ptr[0] = safe_cast_u16(safe_cast_u32(serial.last->string.size));
                 if (rdlength_ptr[0] <= DNS_MAX_MSG_SIZE)
                 { // overflow
-                    rdlength_ptr[0] = host_to_net_u16(rdlength_ptr[0]);
+                    rdlength_ptr[0] = net_hton_u16(rdlength_ptr[0]);
                 }
                 else
                 {
@@ -452,11 +452,11 @@ internal DNS_Msg dns_unpack_msg(Arena *arena, String8 wire, bool32 unpack_tcp_le
 
     u16 id;
     cursor += str8_deserial_read_struct(wire, cursor, &id);
-    msg.header.id = net_to_host_u16(id);
+    msg.header.id = net_ntoh_u16(id);
     
     u16 bits;
     cursor += str8_deserial_read_struct(wire, cursor, &bits);
-    bits = net_to_host_u16(bits);
+    bits = net_ntoh_u16(bits);
     
     msg.header.opcode = (bits >> 11) & 0xF;
     msg.header.rcode = (bits & 0xF);
@@ -474,10 +474,10 @@ internal DNS_Msg dns_unpack_msg(Arena *arena, String8 wire, bool32 unpack_tcp_le
     cursor += str8_deserial_read_struct(wire, cursor, &ancount);
     cursor += str8_deserial_read_struct(wire, cursor, &nscount);
     cursor += str8_deserial_read_struct(wire, cursor, &arcount);
-    msg.header.question_count   = net_to_host_u16(qdcount);
-    msg.header.answer_count     = net_to_host_u16(ancount);
-    msg.header.nameserver_count = net_to_host_u16(nscount);
-    msg.header.additional_count = net_to_host_u16(arcount);
+    msg.header.question_count   = net_ntoh_u16(qdcount);
+    msg.header.answer_count     = net_ntoh_u16(ancount);
+    msg.header.nameserver_count = net_ntoh_u16(nscount);
+    msg.header.additional_count = net_ntoh_u16(arcount);
 
     msg.question = push_array(arena, DNS_RR, msg.header.question_count);
     msg.answer   = push_array(arena, DNS_RR, msg.header.answer_count);
@@ -490,8 +490,8 @@ internal DNS_Msg dns_unpack_msg(Arena *arena, String8 wire, bool32 unpack_tcp_le
         msg.question[i].name = dns_unpack_labels(arena, wire, &cursor);
         cursor += str8_deserial_read_struct(wire, cursor, &qtype);
         cursor += str8_deserial_read_struct(wire, cursor, &qclass);
-        msg.question[i].type = net_to_host_u16(qtype);
-        msg.question[i].class = net_to_host_u16(qclass);
+        msg.question[i].type = net_ntoh_u16(qtype);
+        msg.question[i].class = net_ntoh_u16(qclass);
     }
 
     // unpack RRs from the answer, nameserver, and additional sections
@@ -518,10 +518,10 @@ internal DNS_Msg dns_unpack_msg(Arena *arena, String8 wire, bool32 unpack_tcp_le
             cursor += str8_deserial_read_struct(wire, cursor, &class);
             cursor += str8_deserial_read_struct(wire, cursor, &ttl);
             cursor += str8_deserial_read_struct(wire, cursor, &rdlength);
-            rr->type     = net_to_host_u16(type);
-            rr->class    = net_to_host_u16(class);
-            rr->ttl      = net_to_host_u32(ttl);
-            rdlength = net_to_host_u16(rdlength);
+            rr->type     = net_ntoh_u16(type);
+            rr->class    = net_ntoh_u16(class);
+            rr->ttl      = net_ntoh_u32(ttl);
+            rdlength = net_ntoh_u16(rdlength);
 
             u64 rdata_start = cursor;
             // unpack rdata
@@ -531,7 +531,7 @@ internal DNS_Msg dns_unpack_msg(Arena *arena, String8 wire, bool32 unpack_tcp_le
                 {
                     u32 addr;
                     cursor += str8_deserial_read_struct(wire, cursor, &addr);
-                    rr->rdata.A.addr = net_to_host_u32(addr);
+                    rr->rdata.A.addr = net_ntoh_u32(addr);
                 } break;
                 case DNS_Type_NS:
                 {
@@ -551,11 +551,11 @@ internal DNS_Msg dns_unpack_msg(Arena *arena, String8 wire, bool32 unpack_tcp_le
                     cursor += str8_deserial_read_struct(wire, cursor, &retry);
                     cursor += str8_deserial_read_struct(wire, cursor, &expire);
                     cursor += str8_deserial_read_struct(wire, cursor, &minimum);
-                    rr->rdata.SOA.serial  = net_to_host_u32(serial_n);
-                    rr->rdata.SOA.refresh = net_to_host_u32(refresh);
-                    rr->rdata.SOA.retry   = net_to_host_u32(retry);
-                    rr->rdata.SOA.expire  = net_to_host_u32(expire);
-                    rr->rdata.SOA.minimum = net_to_host_u32(minimum);
+                    rr->rdata.SOA.serial  = net_ntoh_u32(serial_n);
+                    rr->rdata.SOA.refresh = net_ntoh_u32(refresh);
+                    rr->rdata.SOA.retry   = net_ntoh_u32(retry);
+                    rr->rdata.SOA.expire  = net_ntoh_u32(expire);
+                    rr->rdata.SOA.minimum = net_ntoh_u32(minimum);
                 } break;
                 case DNS_Type_PTR:
                 {
@@ -565,7 +565,7 @@ internal DNS_Msg dns_unpack_msg(Arena *arena, String8 wire, bool32 unpack_tcp_le
                 {
                    u128 addr;
                    cursor += str8_deserial_read_struct(wire, cursor, &addr);
-                   rr->rdata.AAAA.addr = net_to_host_u128(addr);
+                   rr->rdata.AAAA.addr = net_ntoh_u128(addr);
                 } break;
                 default:
                 {

@@ -30,23 +30,23 @@ struct NET_Endpoint
 // Host <-> Network Byte ordering
 
 #if ARCH_LITTLE_ENDIAN
-# define net_to_host_u16(x)  bswap_u16(x)
-# define net_to_host_u32(x)  bswap_u32(x)
-# define net_to_host_u64(x)  bswap_u64(x)
-# define net_to_host_u128(x) bswap_u128(x)
-# define host_to_net_u16(x)  bswap_u16(x)
-# define host_to_net_u32(x)  bswap_u32(x)
-# define host_to_net_u64(x)  bswap_u64(x)
-# define host_to_net_u128(x) bswap_u128(x)
+# define net_ntoh_u16(x)  bswap_u16(x)
+# define net_ntoh_u32(x)  bswap_u32(x)
+# define net_ntoh_u64(x)  bswap_u64(x)
+# define net_ntoh_u128(x) bswap_u128(x)
+# define net_hton_u16(x)  bswap_u16(x)
+# define net_hton_u32(x)  bswap_u32(x)
+# define net_hton_u64(x)  bswap_u64(x)
+# define net_hton_u128(x) bswap_u128(x)
 #else
-# define net_to_host_u16(x)  (x)
-# define net_to_host_u32(x)  (x)
-# define net_to_host_u64(x)  (x)
-# define net_to_host_u128(x) (x)
-# define host_to_net_u16(x)  (x)
-# define host_to_net_u32(x)  (x)
-# define host_to_net_u64(x)  (x)
-# define host_to_net_u128(x) (x)
+# define net_ntoh_u16(x)  (x)
+# define net_ntoh_u32(x)  (x)
+# define net_ntoh_u64(x)  (x)
+# define net_ntoh_u128(x) (x)
+# define net_hton_u16(x)  (x)
+# define net_hton_u32(x)  (x)
+# define net_hton_u64(x)  (x)
+# define net_hton_u128(x) (x)
 #endif
 
 /////////////////////

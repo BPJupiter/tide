@@ -59,6 +59,35 @@ internal void print_msg_data(DNS_Msg *msg)
     scratch_end(scratch);
 }
 
+Test(example_usage_code)
+{
+    NET_Session dns_session = net_session_open(0, 0);
+    Temp scratch = scratch_begin(0, 0);
+
+    {
+        // We want a Type A record (ipv4 address) for www.example.org
+        DNS_Msg msg = dns_msg_make(scratch.arena, s("www.example.org"), DNS_Type_A);
+        // serialise
+        String8 packed = dns_pack_msg(scratch.arena, msg, 1);
+
+        // create endpoint for DNS server we want to ask (google's public DNS), over port 53
+        NET_Endpoint endpoint = net_endpoint_from_string(s("8.8.8.8:53"));
+        // send the message
+        net_send(dns_session, NET_Protocol_TCP, endpoint, packed, max_u64);
+
+        // receive the message
+        String8 wire = {0};
+        net_recv(scratch.arena, dns_session, 0, 0, &wire, max_u64);
+        // deserialise
+        DNS_Msg response = dns_unpack_msg(scratch.arena, wire, 1);
+
+        // ready to start accessing fields of the DNS message
+    }
+
+    scratch_end(scratch);
+    net_session_close(dns_session);
+}
+
 Test(stub_client_exchange_with_address)
 {
     NET_Session dns_session = net_session_open(0, 0);

@@ -19,14 +19,14 @@ w32_net_sockaddr_storage_from_endpoint(NET_Endpoint ep)
     {
         struct sockaddr_in *v4 = (struct sockaddr_in *)&result;
         v4->sin_family = AF_INET;
-        v4->sin_port = host_to_net_u16(ep.port);
-        v4->sin_addr.s_addr = host_to_net_u32(ep.address.u32[3]);
+        v4->sin_port = net_hton_u16(ep.port);
+        v4->sin_addr.s_addr = net_hton_u32(ep.address.u32[3]);
     }
     else
     {
         struct sockaddr_in6 *v6 = (struct sockaddr_in6 *)&result;
         v6->sin6_family = AF_INET6;
-        v6->sin6_port = host_to_net_u16(ep.port);
+        v6->sin6_port = net_hton_u16(ep.port);
         for(u64 i = 0; i < 16; i++)
         {
             v6->sin6_addr.u.Byte[i] = ep.address.u8[15-i];
@@ -42,14 +42,14 @@ w32_net_endpoint_from_sockaddr_storage(struct sockaddr_storage addr)
     if(addr.ss_family == AF_INET)
     {
         struct sockaddr_in *v4 = (struct sockaddr_in *)&addr;
-        ep.port = net_to_host_u16(v4->sin_port);
+        ep.port = net_ntoh_u16(v4->sin_port);
         ep.address.u16[5] = 0xffff;
-        ep.address.u32[3] = net_to_host_u32(v4->sin_addr.s_addr);
+        ep.address.u32[3] = net_ntoh_u32(v4->sin_addr.s_addr);
     }
     else if(addr.ss_family == AF_INET6)
     {
         struct sockaddr_in6 *v6 = (struct sockaddr_in6 *)&addr;
-        ep.port = net_to_host_u16(v6->sin6_port);
+        ep.port = net_ntoh_u16(v6->sin6_port);
         for(u64 i = 0; i < 16; i++)
         {
             ep.address.u8[15-i] = v6->sin6_addr.u.Byte[i];
