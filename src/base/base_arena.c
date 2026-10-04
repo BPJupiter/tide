@@ -4,20 +4,21 @@
 /////////////////////////
 // Global Arena Table
 
-#ifdef ARENA_TABLE_DEBUG
+#if ARENA_TABLE_DEBUG
 typedef struct Arena_Table_Node Arena_Table_Node;
-struct Arena_Table_Node {
+struct Arena_Table_Node
+{
     Arena_Table_Node *next;
     Arena *arena;
 };
 
-static u64 arena_table_take_init = 0;
-static u64 arena_table_initialised = 0;
-static u64 arena_table_lock = 0;
-static Arena_Table_Node *arena_table = 0;
-static u64 arena_table_count = 0;
-static u64 arena_table_cap = 0;
-static Arena_Table_Node *free_arena_table_node = 0;
+global u64 arena_table_take_init = 0;
+global u64 arena_table_inited = 0;
+global u64 arena_table_lock = 0;
+global Arena_Table_Node *arena_table = 0;
+global u64 arena_table_count = 0;
+global u64 arena_table_cap = 0;
+global Arena_Table_Node *free_arena_table_node = 0;
 #endif
 
 //////////////////////
@@ -31,32 +32,39 @@ internal Arena *arena_alloc_(Arena_Params *params)
     u64 commit_size = params->commit_size;
 
     void *base = params->optional_backing_buffer;
-    if (base == 0) {
-        if (params->flags & ArenaFlag_LargePages) {
+    if (base == 0)
+    {
+        if (params->flags & ArenaFlag_LargePages)
+        {
             reserve_size = AlignPow2(reserve_size, get_system_info()->large_page_size);
             commit_size  = AlignPow2(commit_size,  get_system_info()->large_page_size);
         }
-        else {
+        else
+        {
             reserve_size = AlignPow2(reserve_size, get_system_info()->page_size);
             commit_size  = AlignPow2(commit_size,  get_system_info()->page_size);
         }
 
-        if (params->flags & ArenaFlag_LargePages) {
+        if (params->flags & ArenaFlag_LargePages)
+        {
             base = reserve_memory_large(reserve_size);
             commit_memory_large(base, commit_size);
         }
-        else {
+        else
+        {
             base = reserve_memory(reserve_size);
             commit_memory(base, commit_size);
         }
         AsanPoisonMemoryRegion(base, commit_size);
     }
-    else {
+    else
+    {
         AsanPoisonMemoryRegion(base, params->reserve_size);
     }
 
     // Panic on arena creation failure
-    if (Unlikely(base == 0)) {
+    if (Unlikely(base == 0))
+    {
 #if defined(SHELL_H)
         sh_message(1, s("Fatal Allocation Failure"), s("Unexpected memory allocation failure."));
 #endif
@@ -81,24 +89,32 @@ internal Arena *arena_alloc_(Arena_Params *params)
 #endif
 
 #if ARENA_TABLE_DEBUG
-    if (ins_atomic_u64_eval_cond_assign(&arena_table_take_init, 1, 0) == 0) {
+    if (ins_atomic_u64_eval_cond_assign(&arena_table_take_init, 1, 0) == 0)
+    {
         arena_table = reserve_memory(Gigabytes(256));
         arena_table_cap = 4096;
         commit_memory(arena_table, arena_table_cap * sizeof(arena_table[0]));
-        ins_atomic_u64_inc_eval(&arena_table_initialised);
+        ins_atomic_u64_inc_eval(&arena_table_inited);
     }
-    for (; !ins_atomic_u64_eval(&arena_table_initialised); )
-        ;
-    for (;;) {
+    for (; !ins_atomic_u64_eval(&arena_table_inited); ) {}
+    for (;;)
+    {
         bool32 got_lock = (ins_atomic_u64_eval_cond_assign(&arena_table_lock, 1, 0) == 0);
         if (got_lock) {
             Arena_Table_Node *node = free_arena_table_node;
-            if (node != 0) {
+            if (node != 0)
+            {
                 SLLStackPop(free_arena_table_node);
             }
-            else {
+            else
+            {
                 node = &arena_table[arena_table_count];
-                if (arena_table_count >= arena_table_cap) {
+                if(arena_table_count != 0)
+                {
+                    SLLStackPush(arena_table, node);
+                }
+                if (arena_table_count >= arena_table_cap)
+                {
                     u64 arena_table_cap__pre_grow = arena_table_cap;
                     arena_table_cap *= 2;
                     u64 arena_table_cap__post_grow = arena_table_cap;
@@ -128,10 +144,13 @@ internal void arena_release(Arena *arena)
 #endif
 
 #if ARENA_TABLE_DEBUG
-    for (Arena *n = arena->current; n != 0; n = n->prev) {
-        for (;;) {
+    for (Arena *n = arena->current; n != 0; n = n->prev)
+    {
+        for (;;)
+        {
             bool32 got_lock = (ins_atomic_u64_eval_cond_assign(&arena_table_lock, 1, 0) == 0);
-            if (got_lock) {
+            if (got_lock)
+            {
                 Arena_Table_Node *table_node = n->table_node;
                 MemoryZeroStruct(table_node);
                 SLLStackPush(free_arena_table_node, table_node);
@@ -142,7 +161,8 @@ internal void arena_release(Arena *arena)
     }
 #endif
 
-    for (Arena *n = arena->current, *prev = 0; n != 0; n = prev) {
+    for (Arena *n = arena->current, *prev = 0; n != 0; n = prev)
+    {
         prev = n->prev;
         AsanUnpoisonMemoryRegion(n, n->commit);
         release_memory(n, n->reserve);

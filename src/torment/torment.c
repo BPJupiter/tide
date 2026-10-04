@@ -262,7 +262,6 @@ internal void t_print_hardware_info(void)
 
 }
 
-
 internal void t_entry_point(Cmd_Line *cmdline)
 {
     Temp scratch = scratch_begin(0, 0);
@@ -613,6 +612,23 @@ internal void t_entry_point(Cmd_Line *cmdline)
         exit_code = run_counters[TestStatus_Fail] + run_counters[TestStatus_Crash];
     exit:;
     }
+
+    #if ARENA_TABLE_DEBUG
+    printf("Arena Table Count: %llu\n", arena_table_count);
+    printf("Arena Table Cap: %llu\n", arena_table_cap);
+    printf("Arena Table:\n");
+    for(Arena_Table_Node *n = arena_table; n != 0; n = n->next)
+    {
+        if(n->next != 0) printf("%p -> ", n);
+        else             printf("%p\n", n);
+    }
+    printf("Arena Table Free List:\n");
+    for(Arena_Table_Node *n = free_arena_table_node; n != 0; n = n->next)
+    {
+        if(n->next != 0) printf("%p -> ", n);
+        else             printf("%p\n", n);
+    }
+    #endif
 
     scratch_end(scratch);
     exit(exit_code);

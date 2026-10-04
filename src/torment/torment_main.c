@@ -11,6 +11,8 @@
 #define OS_FEATURE_GRAPHICAL 0
 #define WM_STUB 1
 
+#define ARENA_TABLE_DEBUG 1
+
 
 //////////////////////////////
 
