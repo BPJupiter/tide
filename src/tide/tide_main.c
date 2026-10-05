@@ -1,6 +1,27 @@
 // Copyright (c) Frances Telfar
 // Licensed under the PolyForm Noncommercial License (https://polyformproject.org/licenses/noncommercial/1.0.0)
 
+//////////////////////////////////
+//~ fbt: pushing for an ALPHA 0.1.0 release TODO notes:
+//
+//- ui
+// [ ] register an EXE that can be launched by the proxy
+// [ ] world map view of submarine cables
+// [ ] interaction with submarine cables on the map
+// [ ] create a view of submarine cable data such as build date, length, owners, suppliers, website, and landing points
+//
+//- measurement engine
+// [ ] socks5 proxy & interception of network requests inc. DNS
+// [ ] traceroutes on network requests
+// [ ] check hops against "disabled" endpoints & drop/fallback
+// [ ] measurement caching
+
+//////////////////////////////
+//~ fbt: recently completed
+//
+// [x] DNS layer
+// [x] port NET layer from raddbg SOCK layer
+
 ///////////////////
 // Build Options
 
@@ -22,8 +43,8 @@
 #include "win32/win32_inc.h"
 #include "artifact_cache/artifact_cache.h"
 #include "mdesk/mdesk.h"
-//#include "net/net_inc.h"
-//#include "dns/dns_inc.h"
+#include "net/net_inc.h"
+#include "dns/dns_inc.h"
 #include "window_manager/window_manager_inc.h"
 #include "shell/shell_inc.h"
 #include "config/config_inc.h"
@@ -42,8 +63,8 @@
 #include "base/base_inc.c"
 #include "artifact_cache/artifact_cache.c"
 #include "mdesk/mdesk.c"
-//#include "net/net_inc.c"
-//#include "dns/dns_inc.c"
+#include "net/net_inc.c"
+#include "dns/dns_inc.c"
 #include "window_manager/window_manager_inc.c"
 #include "shell/shell_inc.c"
 #include "config/config_inc.c"

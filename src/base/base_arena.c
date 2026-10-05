@@ -109,10 +109,6 @@ internal Arena *arena_alloc_(Arena_Params *params)
             else
             {
                 node = &arena_table[arena_table_count];
-                if(arena_table_count != 0)
-                {
-                    SLLStackPush(arena_table, node);
-                }
                 if (arena_table_count >= arena_table_cap)
                 {
                     u64 arena_table_cap__pre_grow = arena_table_cap;
