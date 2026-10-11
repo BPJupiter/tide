@@ -1423,6 +1423,54 @@ internal void abort_self(u64 exit_code)
     ExitProcess((int)exit_code);
 }
 
+///////////////////////////////
+// @per_os_impl Process Groping
+
+internal Process process_from_name(String8 name)
+{
+    Process result = {0};
+    HANDLE process_handle;
+    PROCESSENTRY32 single_process;
+    process_handle = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+    single_process.dwSize = sizeof(PROCESSENTRY32);
+
+    do
+    {
+        if(str8_match(str8_cstring(single_process.szExeFile), name, 0))
+        {
+            result.u64[0] = (u64)process_handle;
+            return result;
+        }
+    }while(Process32Next(process_handle, &single_process));
+
+    return result;
+}
+
+internal u64 pid_from_name(String8 name)
+{
+    u64 result = 0;
+    HANDLE process_handle;
+    PROCESSENTRY32 single_process;
+    process_handle = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+    single_process.dwSize = sizeof(PROCESSENTRY32);
+
+    do
+    {
+        if(str8_match(str8_cstring(single_process.szExeFile), name, 0))
+        {
+            result = (u64)single_process.th32ProcessID;
+            CloseHandle(process_handle);
+            return result;
+        }
+    }while(Process32Next(process_handle, &single_process));
+
+    CloseHandle(process_handle);
+
+    return 0;
+}
+
 ////////////////////////////////
 // @per_os_impl Process Info
 
@@ -1474,7 +1522,7 @@ internal Process process_launch(Process_Launch_Params *params)
         cmd = str8_list_join(scratch.arena, &params->cmd_line, &join_params);
     }
     
-  //- rjf: form environment
+    //- rjf: form environment
     bool32 use_null_env_arg = 0;
     String8 env = {0};
     {
@@ -1482,21 +1530,27 @@ internal Process process_launch(Process_Launch_Params *params)
         join_params2.sep = str8_lit("\0");
         join_params2.post = str8_lit("\0");
         String8_List all_opts = params->env;
-        if(params->inherit_env != 0) {
-            if(all_opts.node_count != 0) {
+        if(params->inherit_env != 0)
+        {
+            if(all_opts.node_count != 0)
+            {
                 MemoryZeroStruct(&all_opts);
-                for(String8_Node *n = params->env.first; n != 0; n = n->next) {
+                for(String8_Node *n = params->env.first; n != 0; n = n->next)
+                {
                     str8_list_push(scratch.arena, &all_opts, n->string);
                 }
-                for(String8_Node *n = w32_state.process_info.environment.first; n != 0; n = n->next) {
+                for(String8_Node *n = w32_state.process_info.environment.first; n != 0; n = n->next)
+                {
                     str8_list_push(scratch.arena, &all_opts, n->string);
                 }
             }
-            else {
+            else
+            {
                 use_null_env_arg = 1;
             }
         }
-        if(use_null_env_arg == 0) {
+        if(use_null_env_arg == 0)
+        {
             env = str8_list_join(scratch.arena, &all_opts, &join_params2);
         }
     }
@@ -1505,32 +1559,37 @@ internal Process process_launch(Process_Launch_Params *params)
     String16 cmd16 = str16_from_8(scratch.arena, cmd);
     String16 dir16 = str16_from_8(scratch.arena, params->path);
     String16 env16 = {0};
-    if(use_null_env_arg == 0) {
+    if(use_null_env_arg == 0)
+    {
         env16 = str16_from_8(scratch.arena, env);
     }
     
     //- rjf: determine creation flags
     DWORD creation_flags = CREATE_UNICODE_ENVIRONMENT;
-    if(params->consoleless) {
+    if(params->consoleless)
+    {
         creation_flags |= CREATE_NO_WINDOW;
     }
     
     //- rjf: launch
     BOOL inherit_handles = 0;
     STARTUPINFOW startup_info = {sizeof(startup_info)};
-    if(!file_match(params->stdout_file, file_zero())) {
+    if(!file_match(params->stdout_file, file_zero()))
+    {
         HANDLE stdout_handle = (HANDLE)params->stdout_file.u64[0];
         startup_info.hStdOutput = stdout_handle;
         startup_info.dwFlags |= STARTF_USESTDHANDLES;
         inherit_handles = 1;
     }
-    if(!file_match(params->stderr_file, file_zero())) {
+    if(!file_match(params->stderr_file, file_zero()))
+    {
         HANDLE stderr_handle = (HANDLE)params->stderr_file.u64[0];
         startup_info.hStdError = stderr_handle;
         startup_info.dwFlags |= STARTF_USESTDHANDLES;
         inherit_handles = 1;
     }
-    if(!file_match(params->stdin_file, file_zero())) {
+    if(!file_match(params->stdin_file, file_zero()))
+    {
         HANDLE stdin_handle = (HANDLE)params->stdin_file.u64[0];
         startup_info.hStdInput = stdin_handle;
         startup_info.dwFlags |= STARTF_USESTDHANDLES;
@@ -2187,7 +2246,24 @@ internal void w32_entry_point_caller(int argc, WCHAR **wargv)
     main_thread_base_entry_point(argc, argv);
 }
 
-#if BUILD_CONSOLE_INTERFACE
+#if BUILD_DYNAMIC_LIBRARY
+BOOL DllMain(HINSTANCE hInstance, DWORD fdwReason, LPVOID lpvReserved)
+{
+    switch(fdwReason)
+    {
+        default:{}break;
+        case DLL_PROCESS_ATTACH:
+        {
+            library_init_entry_point();
+        }break;
+        case DLL_PROCESS_DETACH:
+        {
+            library_close_exit_point();
+        }break;
+    }
+    return TRUE;
+}
+#elif BUILD_CONSOLE_INTERFACE
 int wmain(int argc, WCHAR **argv)
 {
     w32_entry_point_caller(argc, argv);

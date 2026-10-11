@@ -14,8 +14,18 @@ global bool32        async_loop_again_high_priority = false;
 global bool32        global_async_exit = false;
 thread_static bool32 is_async_thread = false;
 
+////////////////////
 // Defined by target
+
+// process entry point
 internal void entry_point(Cmd_Line *cmdline);
+
+// library entry and exit points
+internal void library_init_entry_point(void);
+internal void library_close_exit_point(void);
+
+/////////////////
+// Process Entry Point Functions
 
 internal void main_thread_base_entry_point(int arguments_count, char **arguments)
 {
@@ -218,7 +228,5 @@ internal void async_thread_entry_point(void *params)
         }
     }
 }
-
-
 
 

@@ -5,7 +5,8 @@
 #define BASE_FILES_H
 
 typedef u32 FileIterFlags;
-enum {
+enum
+{
     FileIterFlag_SkipFolders     = (1 << 0),
     FileIterFlag_SkipFiles       = (1 << 1),
     FileIterFlag_SkipHiddenFiles = (1 << 2),
@@ -13,25 +14,29 @@ enum {
 };
 
 typedef struct File_Iter File_Iter;
-struct File_Iter {
+struct File_Iter
+{
     FileIterFlags flags;
     u8 memory[800];
 };
 
 typedef struct File_Info File_Info;
-struct File_Info {
+struct File_Info
+{
     String8 name;
     File_Properties props;
 };
 
 // on-disk file identifier
 typedef struct File_ID File_ID;
-struct File_ID {
+struct File_ID
+{
     u64 v[3];
 };
 
 typedef struct File File;
-struct File {
+struct File
+{
     u64 u64[1];
 };
 
@@ -43,7 +48,8 @@ struct File_Pair
 };
 
 typedef struct File_Map File_Map;
-struct File_Map {
+struct File_Map
+{
     u64 u64[1];
 };
 

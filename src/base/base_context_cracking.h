@@ -154,6 +154,10 @@
 # define BUILD_CONSOLE_INTERFACE 0
 #endif
 
+#if !defined(BUILD_DYNAMIC_LIBRARY)
+# define BUILD_DYNAMIC_LIBRARY 0
+#endif
+
 #if !defined(BUILD_VERSION_MAJOR)
 # define BUILD_VERSION_MAJOR 0
 #endif

@@ -75,6 +75,12 @@ internal Process launch_cmd_linef(char *fmt, ...);
 
 internal void abort_self(u64 exit_code);
 
+///////////////////////////////
+// @per_os_impl Process Groping
+
+internal Process process_from_name(String8 name);
+internal u64 pid_from_name(String8 name);
+
 ////////////////////////////////
 // @per_os_impl Process Info
 

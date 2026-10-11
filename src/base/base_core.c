@@ -682,11 +682,11 @@ internal u64 count_digits_u64(u64 v, u64 radix)
 // Third Party Includes
 
 #if !BUILD_SUPPLEMENTARY_UNIT
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wsign-conversion"
-#elif defined(_MSC_VER)
-#pragma warning(push, 0)
+# if defined(__clang__)
+#  pragma clang diagnostic push
+#  pragma clang diagnostic ignored "-Wsign-conversion"
+# elif defined(_MSC_VER)
+#  pragma warning(push, 0)
 #endif
 
 # define STB_SPRINTF_IMPLEMENTATION

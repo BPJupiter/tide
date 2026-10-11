@@ -97,6 +97,8 @@ if "%msvc%"=="1"    set rc=call rc
 if "%clang%"=="1"   set rc=call llvm-rc
 if "%msvc%"=="1"    set link_dll=/link /DLL
 if "%clang%"=="1"   set link_dll=-Xlinker -DLL
+if "%msvc%"=="1"    set compile_dll=/LD
+if "%clang%"=="1"   set compile_dll=-shared
 
 :: --- Choose Compile/Link Lines ----------------------------------------------
 if "%msvc%"=="1"      set compile_debug=%cl_debug%
@@ -148,10 +150,12 @@ popd
 
 :: --- Build Everything (@build_targets) --------------------------------------
 pushd build
-if "%torment%"=="1"           set didbuild=1 && %compile% ..\src\torment\torment_main.c                 %compile_link% %out%torment.exe || exit /b 1
-if "%tide%"=="1"              set didbuild=1 && %compile% ..\src\tide\tide_main.c                       %compile_link% %link_icon% %out%tide.exe || exit /b 1
-if "%critters%"=="1"          set didbuild=1 && %compile% ..\src\scratch\critters.c                     %compile_link% %out%critters.exe || exit /b 1
-if "%borked_dns_server%"=="1" set didbuild=1 && %compile% ..\src\scratch\borked_dns_server.c            %compile_link% %out%borked_dns_server.exe || exit /b 1
+if "%torment%"=="1"           set didbuild=1 && %compile% ..\src\torment\torment_main.c                     %compile_link% %out%torment.exe           || exit /b 1
+if "%tide%"=="1"              set didbuild=1 && %compile% ..\src\tide\tide_main.c                           %compile_link% %link_icon% %out%tide.exe  || exit /b 1
+if "%critters%"=="1"          set didbuild=1 && %compile% ..\src\scratch\critters.c                         %compile_link% %out%critters.exe          || exit /b 1
+if "%borked_dns_server%"=="1" set didbuild=1 && %compile% ..\src\scratch\borked_dns_server.c                %compile_link% %out%borked_dns_server.exe || exit /b 1
+if "%typing_sound_dll%"=="1"  set didbuild=1 && %compile% %compile_dll% ..\src\scratch\typing_sound_dll.c   %compile_link% %out%typing_sound.dll      || exit /b 1
+if "%injector%"=="1"          set didbuild=1 && %compile% ..\src\scratch\injector.c                         %compile_link% %out%injector.exe          || exit /b 1
 popd
 
 :: --- Warn On No Builds ------------------------------------------------------

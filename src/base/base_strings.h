@@ -11,19 +11,22 @@
 //~ rjf: String Types
 
 typedef struct String8 String8;
-struct String8 {
+struct String8
+{
     u8 *str;
     u64 size;
 };
 
 typedef struct String16 String16;
-struct String16 {
+struct String16
+{
     u16 *str;
     u64 size;
 };
 
 typedef struct String32 String32;
-struct String32 {
+struct String32
+{
     u32 *str;
     u64 size;
 };
@@ -32,13 +35,15 @@ struct String32 {
 //~ rjf: String List & Array Types
 
 typedef struct String8_Node String8_Node;
-struct String8_Node {
+struct String8_Node
+{
     String8_Node *next;
     String8 string;
 };
 
 typedef struct String8_List String8_List;
-struct String8_List {
+struct String8_List
+{
     String8_Node *first;
     String8_Node *last;
     u64 node_count;
@@ -46,7 +51,8 @@ struct String8_List {
 };
 
 typedef struct String8_Array String8_Array;
-struct String8_Array {
+struct String8_Array
+{
     String8 *v;
     u64 count;
     u64 total_size;
@@ -56,14 +62,16 @@ struct String8_Array {
 //~ rjf: String Matching, Splitting, & Joining Types
 
 typedef u32 StringMatchFlags;
-enum {
+enum
+{
     StringMatchFlag_CaseInsensitive  = (1 << 0),
     StringMatchFlag_RightSideSloppy  = (1 << 1),
     StringMatchFlag_SlashInsensitive = (1 << 2),
 };
 
 typedef u32 StringSplitFlags;
-enum {
+enum
+{
     StringSplitFlag_KeepEmpties = (1 << 0),
 };
 
@@ -84,7 +92,8 @@ typedef enum PathStyle {
 PathStyle;
 
 typedef struct String_Join String_Join;
-struct String_Join {
+struct String_Join
+{
     String8 pre;
     String8 sep;
     String8 post;
@@ -94,7 +103,8 @@ struct String_Join {
 //~ rjf: String Pair Types
 
 typedef struct String8_Txt_Pt_Pair String8_Txt_Pt_Pair;
-struct String8_Txt_Pt_Pair {
+struct String8_Txt_Pt_Pair
+{
     String8 string;
     Txt_Pt pt;
 };
@@ -103,7 +113,8 @@ struct String8_Txt_Pt_Pair {
 //~ rjf: UTF Decoding Types
 
 typedef struct Unicode_Decode Unicode_Decode;
-struct Unicode_Decode {
+struct Unicode_Decode
+{
     u32 inc;
     u32 codepoint;
 };
@@ -112,13 +123,15 @@ struct Unicode_Decode {
 //~ rjf: String Fuzzy Matching Types
 
 typedef struct Fuzzy_Match_Range_Node Fuzzy_Match_Range_Node;
-struct Fuzzy_Match_Range_Node {
+struct Fuzzy_Match_Range_Node
+{
     Fuzzy_Match_Range_Node *next;
     Rng1u64 range;
 };
 
 typedef struct Fuzzy_Match_Range_List Fuzzy_Match_Range_List;
-struct Fuzzy_Match_Range_List {
+struct Fuzzy_Match_Range_List
+{
     Fuzzy_Match_Range_Node *first;
     Fuzzy_Match_Range_Node *last;
     u64 count;
