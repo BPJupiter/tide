@@ -1,0 +1,6 @@
+#ifndef WIN32_INJECTION_H
+#define WIN32_INJECTION_H
+
+
+
+#endif // WIN32_INJECTION_H
