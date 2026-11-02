@@ -756,7 +756,8 @@ internal void ti_view_ui(Rng2f32 rect)
         // watch view
         else if(str8_match(view_name, str8_lit("watch"), 0))
         {
-            //@HERE
+            // @Cleanup: this code is really, really terrible. Currently does not add an executable binary when clicking on "add_target"
+            //           in our watch view. Need to fix ASAP!
             Temp scratch = scratch_begin(0, 0);
             TI_Lister_View_State *lvs = ti_view_state_by_size(sizeof(TI_Lister_View_State));
 
@@ -875,6 +876,7 @@ internal void ti_view_ui(Rng2f32 rect)
             s64 opl   = Min(count, (s64)(off1/row_height_px) + visible_rows + 2);
             first = Min(first, opl);
 
+            // build ui
             bool32 pressed = 0;
             UI_Parent(list) TI_Font(TI_FontSlot_Main)
             {
@@ -910,9 +912,15 @@ internal void ti_view_ui(Rng2f32 rect)
                     // cell params
                     bool32 single_click = (is_cmd || prefer_single_click);
                     TI_Cell_Params params = {0};
-                    params.flags        = TI_CellFlag_KeyboardClickable|TI_CellFlag_Button;
-                    params.meta_fstrs   = fstrs;
-                    params.search_needle = (is_file ? str8_skip_last_slash(filter) : filter);
+                    u64 dummy_cursor = 0;
+                    u64 dummy_mark = 0;
+                    u64 dummy_size = 0;
+                    params.flags                = TI_CellFlag_KeyboardClickable|TI_CellFlag_Button;
+                    params.cursor               = &dummy_cursor;
+                    params.mark                 = &dummy_mark;
+                    params.edit_string_size_out = &dummy_size;
+                    params.meta_fstrs           = fstrs;
+                    params.search_needle        = (is_file ? str8_skip_last_slash(filter) : filter);
                     if (single_click) { params.flags |= TI_CellFlag_SingleClickActivate; }
                     if (is_cmd && info->flags & TI_CmdKindFlag_ListInUI)
                     {
