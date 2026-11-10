@@ -1,0 +1,62 @@
+
+
+
+//////////////////
+// WASM Type Table
+
+@table(id s7        name              string      t_value t_packed t_ref t_heap t_defined        size)
+WASM_TypeTable://   |                 |           \             ________________________/
+{//                 |                 |            \           /
+    // number types
+    {0x7F -1         I32              "i32"         1 0 0 0 0              4          }
+    {0x7E -2         I64              "i64"         1 0 0 0 0              8          }
+    {0x7D -3         F32              "f32"         1 0 0 0 0              4          }
+    {0x7C -4         F64              "f64"         1 0 0 0 0              8          }
+    // vector types
+    {0x7B -5         V128             "v128"        1 0 0 0 0             16          }
+    // packed types
+    {0x78 -8         I8               ""            0 1 0 0 0              1          }
+    {0x77 -9         I16              ""            0 1 0 0 0              1          }
+    // heap types
+    {0x74 -12        NullExceptionRef ""            0 0 1 1 0              4          }
+    {0x73 -13        NullFuncRef      ""            0 0 1 1 0              4          }
+    {0x72 -14        NullExternRef    ""            0 0 1 1 0              4          }
+    {0x71 -15        NullRef          ""            0 0 1 1 0              4          }
+    {0x70 -16        FuncRef          ""            1 0 1 1 0              4          }
+    {0x6F -17        ExternRef        ""            1 0 1 1 0              4          }
+    {0x6E -18        AnyRef           ""            0 0 1 1 0              4          }
+    {0x6D -19        EqRef            ""            0 0 1 1 0              4          }
+    {0x6C -20        I31Ref           ""            0 0 1 1 0              4          }
+    {0x6B -21        StructRef        ""            0 0 1 1 0              4          }
+    {0x6A -22        ArrayRef         ""            0 0 1 1 0              4          }
+    {0x69 -23        ExceptionRef     ""            0 0 1 1 0              4          }
+    // reference types
+    {0x64 -28        HTNonNullable    ""            0 0 1 0 0              4          }
+    {0x63 -29        HTNullable       ""            0 0 1 0 0              4          }
+    // composite types
+    {0x60 -32        Function         ""            0 0 0 0 1              4          }
+    {0x5F -33        Struct           ""            0 0 0 0 1              4          }
+    {0x5E -34        Array            ""            0 0 0 0 1              4          }
+    // sub types
+    {0x50 -48        Sub              ""            0 0 0 0 1              4          }
+    {0x4F -49        SubFinal         ""            0 0 0 0 1              4          }
+    {0x4E -50        Recursive        ""            0 0 0 0 1              4          }
+    // result types
+    {0x40 -64        Void             ""            1 0 0 0 0              0          }
+}
+
+@enum(u8) WASM_TypeKind:
+{
+    @expand(WASM_TypeTable a) `$(a.name) = $(a.id)`,
+}
+
+@xlist WASM_TypeKind_XList:
+{
+    @expand(WASM_TypeTable a) `$(a.name), $(a.id), $(a.size)`
+}
+
+@enum2string_switch(WASM_TypeKind)
+wasm_string_from_type_kind:
+{
+    @expand(WASM_TypeTable a) `case WASM_TypeKind_$(a.name):{result = str8_lit("$(a.string)");}break`;
+}

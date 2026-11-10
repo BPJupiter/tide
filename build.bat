@@ -156,6 +156,7 @@ if "%critters%"=="1"          set didbuild=1 && %compile% ..\src\scratch\critter
 if "%borked_dns_server%"=="1" set didbuild=1 && %compile% ..\src\scratch\borked_dns_server.c                %compile_link% %out%borked_dns_server.exe || exit /b 1
 if "%typing_sound_dll%"=="1"  set didbuild=1 && %compile% %compile_dll% ..\src\scratch\typing_sound_dll.c   %compile_link% %out%typing_sound.dll      || exit /b 1
 if "%injector%"=="1"          set didbuild=1 && %compile% ..\src\scratch\injector.c                         %compile_link% %out%injector.exe          || exit /b 1
+if "%wasmi%"=="1"             set didbuild=1 && %compile% ..\src\scratch\wasmi.c                            %compile_link% %out%wasmi.exe             || exit /b 1
 popd
 
 :: --- Warn On No Builds ------------------------------------------------------
