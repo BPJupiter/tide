@@ -221,16 +221,20 @@ internal void entry_point(Cmd_Line *cmdline)
     }
 
     // generate xlists
-    for (MG_File_Parse_Node *n = parses.first; n != 0; n = n->next) {
+    for (MG_File_Parse_Node *n = parses.first; n != 0; n = n->next)
+    {
         MD_Node *file = n->v.root;
-        for MD_EachNode(node, file->first) {
+        for MD_EachNode(node, file->first)
+        {
             MD_Node *tag = md_tag_from_string(node, str8_lit("xlist"), 0);
-            if (!md_node_is_nil(tag)) {
+            if (!md_node_is_nil(tag))
+            {
                 String8 layer_key = mg_layer_key_from_path(file->string);
                 MG_Layer *layer = mg_layer_from_key(layer_key);
                 String8_List gen_strings = mg_string_list_from_table_gen(mg_arena, table_grid_map, table_col_map, str8_lit(""), node);
-                str8_list_pushf(mg_arena, &layer->enums, "#define %S \\n", node->string);
-                for (String8_Node *n = gen_strings.first; n != 0; n = n->next) {
+                str8_list_pushf(mg_arena, &layer->enums, "#define %S \\\n", node->string);
+                for (String8_Node *n = gen_strings.first; n != 0; n = n->next)
+                {
                     str8_list_pushf(mg_arena, &layer->enums, "X(%S)\\\n", n->string);
                 }
                 str8_list_push(mg_arena, &layer->enums, str8_lit("\n"));
@@ -239,16 +243,20 @@ internal void entry_point(Cmd_Line *cmdline)
     }
 
     // generate structs
-    for (MG_File_Parse_Node *n = parses.first; n != 0; n = n->next) {
+    for (MG_File_Parse_Node *n = parses.first; n != 0; n = n->next)
+    {
         MD_Node *file = n->v.root;
-        for MD_EachNode(node, file->first) {
-            if (md_node_has_tag(node, str8_lit("struct"), 0)) {
+        for MD_EachNode(node, file->first)
+        {
+            if (md_node_has_tag(node, str8_lit("struct"), 0))
+            {
                 String8 layer_key = mg_layer_key_from_path(file->string);
                 MG_Layer *layer = mg_layer_from_key(layer_key);
                 String8_List gen_strings = mg_string_list_from_table_gen(mg_arena, table_grid_map, table_col_map, str8_lit(""), node);
                 str8_list_pushf(mg_arena, &layer->structs, "typedef struct %S %S;\n", node->string, node->string);
                 str8_list_pushf(mg_arena, &layer->structs, "struct %S\n{\n", node->string);
-                for (String8_Node *n = gen_strings.first; n != 0; n = n->next) {
+                for (String8_Node *n = gen_strings.first; n != 0; n = n->next)
+                {
                     str8_list_pushf(mg_arena, &layer->structs, "%S;\n", n->string);
                 }
                 str8_list_pushf(mg_arena, &layer->structs, "};\n\n");
@@ -605,6 +613,8 @@ internal void entry_point(Cmd_Line *cmdline)
             FILE *c = fopen((char *)c_path.str, "w");
             fprintf(c, "// Copyright (c) Epic Games Tools\n");
             fprintf(c, "// Licensed under the MIT license (https://opensource.org/license/mit/)\n\n");
+            fprintf(c, "// Copyright (c) Frances Telfar\n");
+            fprintf(c, "// Licensed under the PolyForm Noncommercial License (https://polyformproject.org/licenses/noncommercial/1.0.0)\n\n");
             if(layer->c_header.first == 0)
             {
               fprintf(c, "//- GENERATED CODE\n\n");

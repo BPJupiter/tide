@@ -1,0 +1,17 @@
+
+///////////////////
+// Built-In Command Tables
+
+@table(name)
+M_CmdTable:
+{
+    {Attach                                                                                                                                            }
+}
+
+@enum M_CmdKind:
+{
+    Null,
+    @expand(M_CmdTable a) `$(a.name)`,
+    COUNT,
+}
+

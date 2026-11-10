@@ -1,12 +1,12 @@
 // Copyright (c) Frances Telfar
 // Licensed under the PolyForm Noncommercial License (https://polyformproject.org/licenses/noncommercial/1.0.0)
 
-#include "injection.c"
+#include "inject.c"
 
 #if OS_WINDOWS
-# include "win32/injection/win32_injection.c"
+# include "win32/inject/win32_inject.c"
 #elif OS_LINUX
-# include "linux/injection/linux_injection.c"
+# include "linux/inject/linux_inject.c"
 #else
-# error Operating system backed not defined for the injection layer.
+# error Operating system backed not defined for the inject layer.
 #endif

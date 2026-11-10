@@ -12,8 +12,8 @@
 
 @embed_file ti_icon_file_bytes:              "../data/logo.ico"
 
-@embed_file ti_test_fish_texture_bytes:      "../data/test/Fish.png"
-//@embed_file ti_test_moops_texture_bytes:     "../data/test/Moops.png"
+@embed_file ti_map_vertex_bytes:             "../data/world-map-low.vb"
+@embed_file ti_map_index_bytes:              "../data/world-map-low.ib"
 
 //////////////////////
 // Fixed Tab Tables

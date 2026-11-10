@@ -22,17 +22,17 @@ typedef enum Socks_AuthMethod {
     Socks_AUthMethod_NoMethod = 0xff,
 } Socks_AuthMethod;
 
-typedef enum Socks_Command {
-    Socks_Command_Connect      = 0x01,
-    Socks_Command_Bind         = 0x02,
-    Socks_Command_UdpAssociate = 0x03,
-} Socks_Command;
+typedef enum Socks_CommandKind {
+    Socks_CommandKind_Connect      = 0x01,
+    Socks_CommandKind_Bind         = 0x02,
+    Socks_CommandKind_UdpAssociate = 0x03,
+} Socks_CommandKind;
 
-typedef enum Socks_AddressType {
-    Socks_AddressType_Ipv4       = 0x01,
-    Socks_AddressType_DomainName = 0x03,
-    Socks_AddressType_Ipv6       = 0x04,
-} Socks_AddressType;
+typedef enum Socks_EndpointRequestKind {
+    Socks_EndpointRequestKind_Ipv4       = 0x01,
+    Socks_EndpointRequestKind_DomainName = 0x03,
+    Socks_EndpointRequestKind_Ipv6       = 0x04,
+} Socks_EndpointRequestKind;
 
 // NODE: 0x09 - 0xFF unassigned.
 typedef enum Socks_ReplyCode {
@@ -63,12 +63,12 @@ typedef enum Socks_ConnectionStatus {
 } Socks_ConnectionStatus;
 
 typedef struct Socks_Conn_Params Socks_Conn_Params;
-struct Socks_Conn_Params {
+struct Socks_Conn_Params
+{
     u64 id;
-    Socks_Command command;
-    Socks_AddressType address_type;
-    String8 dest_address;
-    u16 port;
+    Socks_CommandKind command_kind;
+    Socks_EndpointRequestKind endpoint_request_kind;
+    NET_Endpoint dest_endpoint;
     String8 auth_username;
     String8 auth_password;
 };

@@ -1,6 +1,9 @@
 // Copyright (c) Epic Games Tools
 // Licensed under the MIT license (https://opensource.org/license/mit/)
 
+// Copyright (c) Frances Telfar
+// Licensed under the PolyForm Noncommercial License (https://polyformproject.org/licenses/noncommercial/1.0.0)
+
 //- GENERATED CODE
 
 internal R_Tex2DSampleKind          dr_push_tex2d_sample_kind(R_Tex2DSampleKind v) {DR_StackPushImpl(Tex2DSampleKind, tex2d_sample_kind, R_Tex2DSampleKind, v);}

@@ -1,6 +1,6 @@
 
 ///////////////////////
-// @per_os_impl DLL Injection
+// @per_os_impl DLL Inject
 
 internal bool32
 inj_dll_into_pid(u64 process_id, String8 dll_path)
