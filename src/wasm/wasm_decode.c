@@ -251,21 +251,46 @@ wasm_module_decode(Arena *arena, String8 data)
 
             for(u64 i = 0; i <= module->function_count; i += 1)
             {
+                WASM_Function *function = &module->functions[i];
                 // resolve function type
                 u64 func_type_index = 0;
                 func_section_cursor += str8_deserial_read_uleb128(func_section, func_section_cursor, &func_type_index);
 #if 0
                 if(module->types[type_index].kind != WASM_TypeKind_Function)
                 {
-                    // @TODO error handling
+                    // @TODO: error handling
                 }
 #endif
-                // @TODO get the smallest func type index
+                // @TODO: get the smallest func type index
 
                 u64 code_size = 0;
                 code_section_cursor += str8_deserial_read_uleb128(code_section, code_section_cursor, &code_size);
 
-                // @HERE
+                u64 local_set_count = 0;
+                code_section_cursor += str8_deserial_read_uleb128(code_section, code_section_cursor, &local_set_count);
+
+                u64 total_local_count = 0;
+                for(u64 j = 0; j < local_set_count; j += 1)
+                {
+                    u64 sub_local_count = 0;
+                    code_section_cursor += str8_deserial_read_uleb128(code_section, code_section_cursor, &sub_local_count);
+                    // @TODO: u32 max check
+
+                    u8 type_kind = 0;
+                    code_section_cursor += str8_deserial_read_struct(code_section, code_section_cursor, &type_kind);
+                    total_local_count += sub_local_count;
+                }
+
+                // @TODO: check some size shit?
+
+                function->func_type = (WASM_Function_Type *)&module->types[func_type_index];
+                function->func_type_index = func_type_index;
+                function->code.size = code_size;
+                function->code.str = code_section.str;
+                function->local_types.size = total_local_count;
+                function->local_types.str = push_array(arena, u8, total_local_count);
+
+                // @HERE: load the types into our locals array.
             }
         }
     }
