@@ -238,7 +238,7 @@ internal bool32 frame(void)
         local_persist bool32 font_loaded = false;
         if (!font_loaded)
         {
-            font = fnt_tag_from_path(str8_lit("P:/brokenProxy/data/Inconsolata-Regular.ttf"));
+            font = fnt_tag_from_path(str8_lit("P:/tide/data/Inconsolata-Regular.ttf"));
             font_loaded = true;
         }
         dr_text(font, 16.f, 0, 0,

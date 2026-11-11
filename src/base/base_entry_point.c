@@ -47,7 +47,7 @@ internal void main_thread_base_entry_point(int arguments_count, char **arguments
 
     // set up spall
 #if PROFILE_SPALL
-    spall_profile = spall_init_file_ex("spall_capture", 1, 0);
+    spall_init_file("spall_capture", 1, &spall_profile);
 #endif
 
     // parse command line

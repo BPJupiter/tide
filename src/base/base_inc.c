@@ -19,7 +19,6 @@
 #include "base_dynamic_libraries.c"
 #include "base_command_line.c"
 #include "base_markup.c"
-#include "base_profile.c"
 #include "base_log.c"
 #include "base_test.c"
 #include "base_entry_point.c"
