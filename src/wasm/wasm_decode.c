@@ -3,6 +3,7 @@ internal WASM_Module *
 wasm_module_decode(Arena *arena, String8 data)
 {
     Temp scratch = scratch_begin(&arena, 1);
+    ProfBeginFunction();
     WASM_Module *module = 0;
     u64 module_cursor = 0;
 
@@ -49,7 +50,8 @@ wasm_module_decode(Arena *arena, String8 data)
     ////////////////////////
     // fill sections array with data
     //
-    for(;module_cursor < data.size;)
+    ProfScope("fill sections array with data")
+        for(;module_cursor < data.size;)
     {
         u8 section_kind = 0;
         u64 section_size = 0;
@@ -96,7 +98,8 @@ wasm_module_decode(Arena *arena, String8 data)
     ////////////////////
     // decode type section
     //
-    if(sections[WASM_SectionKind_Type].size > 0)
+    ProfScope("decode type section")
+        if(sections[WASM_SectionKind_Type].size > 0)
     {
         String8 section = sections[WASM_SectionKind_Type];
         u64 section_cursor = 0;
@@ -141,13 +144,13 @@ wasm_module_decode(Arena *arena, String8 data)
                 // @TODO validate all parameter & result types.
 
                 u64 param_cell_num = wasm_cell_num_from_types(type->params);
-                u64 return_cell_num = wasm_cell_num_from_types(type->results);
-                if(param_cell_num > max_u16 || return_cell_num > max_u16)
+                u64 result_cell_num = wasm_cell_num_from_types(type->results);
+                if(param_cell_num > max_u16 || result_cell_num > max_u16)
                 {
                     // @TODO parse error
                 }
                 type->param_cell_count = param_cell_num;
-                type->return_cell_count = return_cell_num;
+                type->result_cell_count = result_cell_num;
 
                 // if there is already a type of this signature, use that instead.
                 for(u64 j = 0; j < i; j += 1)
@@ -168,7 +171,8 @@ wasm_module_decode(Arena *arena, String8 data)
     ///////////////////////
     // decode import section
     //
-    if(sections[WASM_SectionKind_Import].size > 0)
+    ProfScope("decode import section")
+        if(sections[WASM_SectionKind_Import].size > 0)
     {
         String8 section = sections[WASM_SectionKind_Import];
         u64 section_cursor = 0;
@@ -199,7 +203,9 @@ wasm_module_decode(Arena *arena, String8 data)
                     }break;
                     case WASM_ImportKind_Func:
                     {
-                        section_cursor += str8_deserial_read_struct(section, section_cursor, &import->function.func_type_index);
+                        u64 type_index = 0;
+                        section_cursor += str8_deserial_read_uleb128(section, section_cursor, &type_index);
+                        import->function.func_type_index = type_index;
                     }break;
                     case WASM_ImportKind_Table:
                     {
@@ -229,8 +235,9 @@ wasm_module_decode(Arena *arena, String8 data)
     //
     // NOTE: we load both the function and code sections here in a single
     //       pass.
-    if(sections[WASM_SectionKind_Function].size > 0 &&
-       sections[WASM_SectionKind_Code].size > 0)
+    ProfScope("decode function & code section")
+        if(sections[WASM_SectionKind_Function].size > 0 &&
+           sections[WASM_SectionKind_Code].size > 0)
     {
         // we grab the code section here because the equivalent code at
         // https://github.com/wasm-micro-runtime/wasm-micro-runtime/blob/main/core/iwasm/interpreter/wasm_loader.c
@@ -249,7 +256,7 @@ wasm_module_decode(Arena *arena, String8 data)
             module->function_count = func_count;
             module->functions = push_array(arena, WASM_Function, module->function_count);
 
-            for(u64 i = 0; i <= module->function_count; i += 1)
+            for(u64 i = 0; i < module->function_count; i += 1)
             {
                 WASM_Function *function = &module->functions[i];
                 // resolve function type
@@ -266,36 +273,102 @@ wasm_module_decode(Arena *arena, String8 data)
                 u64 code_size = 0;
                 code_section_cursor += str8_deserial_read_uleb128(code_section, code_section_cursor, &code_size);
 
-                u64 local_set_count = 0;
-                code_section_cursor += str8_deserial_read_uleb128(code_section, code_section_cursor, &local_set_count);
+                u64 local_enumeration_cursor = code_section_cursor;
 
+                u64 local_set_count = 0;
+                local_enumeration_cursor += str8_deserial_read_uleb128(code_section, local_enumeration_cursor, &local_set_count);
+
+                // enumerate locals we have to store
                 u64 total_local_count = 0;
                 for(u64 j = 0; j < local_set_count; j += 1)
                 {
                     u64 sub_local_count = 0;
-                    code_section_cursor += str8_deserial_read_uleb128(code_section, code_section_cursor, &sub_local_count);
+                    local_enumeration_cursor += str8_deserial_read_uleb128(code_section, local_enumeration_cursor, &sub_local_count);
                     // @TODO: u32 max check
+                    local_enumeration_cursor += sizeof(WASM_TypeKind);
 
-                    u8 type_kind = 0;
-                    code_section_cursor += str8_deserial_read_struct(code_section, code_section_cursor, &type_kind);
                     total_local_count += sub_local_count;
                 }
 
                 // @TODO: check some size shit?
 
+                // NOTE: the
+                u64 local_info_part_size = local_enumeration_cursor - code_section_cursor;
+                function->code.size = code_size - local_info_part_size;
+                function->code.str = code_section.str + local_info_part_size;
+
                 function->func_type = (WASM_Function_Type *)&module->types[func_type_index];
                 function->func_type_index = func_type_index;
-                function->code.size = code_size;
-                function->code.str = code_section.str;
-                function->local_types.size = total_local_count;
-                function->local_types.str = push_array(arena, u8, total_local_count);
+                function->locals.size = total_local_count;
+                if(function->locals.size > 0)
+                {
+                    function->locals.str = push_array(arena, u8, total_local_count);
+                }
 
-                // @HERE: load the types into our locals array.
+                // load local types into module function
+                code_section_cursor += str8_deserial_read_uleb128(code_section, code_section_cursor, &local_set_count); // redundant.
+                u64 local_type_index = 0;
+                for(u64 j = 0; j < local_set_count; j += 1)
+                {
+                    u64 sub_local_count = 0;
+                    code_section_cursor += str8_deserial_read_uleb128(code_section, code_section_cursor, &sub_local_count);
+                    // @TODO: u32 max check
+                    u8 type_kind = 0;
+                    code_section_cursor += str8_deserial_read_struct(code_section, code_section_cursor, &type_kind);
+                    // @TODO: check type is limited to (i32, i64, f32, f64)
+
+                    for(u64 k = 0; k < sub_local_count; k += 1)
+                    {
+                        function->locals.str[local_type_index] = type_kind;
+                        local_type_index += 1;
+                    }
+                }
+                AssertAlways(local_type_index == function->locals.size);
+                AssertAlways(local_enumeration_cursor == code_section_cursor); // we should now be pointing at instruction data
+
+                function->param_cell_count  = function->func_type->param_cell_count;
+                function->result_cell_count = function->func_type->result_cell_count;
+                function->local_cell_count  = wasm_cell_num_from_types(function->locals);
+
+                // load stack cell offsets for params and locals
+                {
+                    String8 params = function->func_type->params;
+                    String8 locals = function->locals;
+
+                    function->stack_cell_offsets.size = params.size + locals.size;
+                    if(function->stack_cell_offsets.size > 0)
+                    {
+                        function->stack_cell_offsets.str = push_array(arena, u16, function->stack_cell_offsets.size);
+                    }
+
+                    u64 local_offset = 0;
+                    for(u64 j = 0; j < params.size; j += 1)
+                    {
+                        function->stack_cell_offsets.str[j] = (u16)local_offset;
+                        local_offset += wasm_cell_num_from_type(params.str[j]);
+                    }
+
+                    for(u64 j = 0; j < locals.size; j += 1)
+                    {
+                        function->stack_cell_offsets.str[params.size + j] = (u16)local_offset;
+                        local_offset += wasm_cell_num_from_type(locals.str[j]);
+                    }
+
+                    AssertAlways(local_offset == function->param_cell_count + function->local_cell_count);
+                }
+
+                code_section_cursor += function->code.size;
             }
         }
+
+        // @TODO: code_section_cursor == code_section.size && func_section_cursor == func_section_size
     }
 
-    if(sections[WASM_SectionKind_Table].size > 0)
+    ////////////////////
+    // decode table section
+    //
+    ProfScope("decode table section")
+        if(sections[WASM_SectionKind_Table].size > 0)
     {
         String8 section = sections[WASM_SectionKind_Table];
         u64 section_cursor = 0;
@@ -307,7 +380,11 @@ wasm_module_decode(Arena *arena, String8 data)
         }
     }
 
-    if(sections[WASM_SectionKind_Memory].size > 0)
+    ////////////////////
+    // decode memory section
+    //
+    ProfScope("decode memory section")
+        if(sections[WASM_SectionKind_Memory].size > 0)
     {
         String8 section = sections[WASM_SectionKind_Memory];
         u64 section_cursor = 0;
@@ -319,7 +396,11 @@ wasm_module_decode(Arena *arena, String8 data)
         }
     }
 
-    if(sections[WASM_SectionKind_Tag].size > 0)
+    //////////////////////
+    // decode tag section
+    //
+    ProfScope("decode tag section")
+        if(sections[WASM_SectionKind_Tag].size > 0)
     {
         String8 section = sections[WASM_SectionKind_Tag];
         u64 section_cursor = 0;
@@ -331,7 +412,11 @@ wasm_module_decode(Arena *arena, String8 data)
         }
     }
 
-    if(sections[WASM_SectionKind_Global].size > 0)
+    /////////////////////
+    // decode global section
+    //
+    ProfScope("decode global section")
+        if(sections[WASM_SectionKind_Global].size > 0)
     {
         String8 section = sections[WASM_SectionKind_Global];
         u64 section_cursor = 0;
@@ -343,7 +428,11 @@ wasm_module_decode(Arena *arena, String8 data)
         }
     }
 
-    if(sections[WASM_SectionKind_Export].size > 0)
+    /////////////////////
+    // decode export section
+    //
+    ProfScope("decode export section")
+        if(sections[WASM_SectionKind_Export].size > 0)
     {
         String8 section = sections[WASM_SectionKind_Export];
         u64 section_cursor = 0;
@@ -355,7 +444,11 @@ wasm_module_decode(Arena *arena, String8 data)
         }
     }
 
-    if(sections[WASM_SectionKind_Start].size > 0)
+    ////////////////////
+    // decode start section
+    //
+    ProfScope("decode start section")
+        if(sections[WASM_SectionKind_Start].size > 0)
     {
         String8 section = sections[WASM_SectionKind_Start];
         u64 section_cursor = 0;
@@ -368,7 +461,11 @@ wasm_module_decode(Arena *arena, String8 data)
         }
     }
 
-    if(sections[WASM_SectionKind_Element].size > 0)
+    //////////////////
+    // decode element section
+    //
+    ProfScope("decode element section")
+        if(sections[WASM_SectionKind_Element].size > 0)
     {
         String8 section = sections[WASM_SectionKind_Element];
         u64 section_cursor = 0;
@@ -380,15 +477,23 @@ wasm_module_decode(Arena *arena, String8 data)
         }
     }
 
-    if(sections[WASM_SectionKind_DataCount].size > 0)
+    //////////////////////
+    // decode datacount section
+    //
+    ProfScope("decode datacount section")
+        if(sections[WASM_SectionKind_DataCount].size > 0)
     {
         String8 section = sections[WASM_SectionKind_DataCount];
         u64 section_cursor = 0;
         u64 datacount = 0;
         section_cursor += str8_deserial_read_uleb128(section, section_cursor, &datacount);
     }
-
-    if(sections[WASM_SectionKind_Data].size > 0)
+    
+    ////////////////////
+    // decode data section
+    //
+    ProfScope("decode data section")
+        if(sections[WASM_SectionKind_Data].size > 0)
     {
         String8 section = sections[WASM_SectionKind_Data];
         u64 section_cursor = 0;
@@ -399,7 +504,8 @@ wasm_module_decode(Arena *arena, String8 data)
             module->data_count = data_count;
         }
     }
-    
+
+    ProfEnd();
     scratch_end(scratch);
     return module;
 }

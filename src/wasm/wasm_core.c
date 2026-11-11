@@ -24,7 +24,7 @@ wasm_size_from_type_kind(WASM_TypeKind k)
 internal u64
 wasm_cell_num_from_type(WASM_TypeKind type)
 {
-    return wasm_size_from_type_kind(type);
+    return wasm_size_from_type_kind(type)/4;
 }
 
 internal u64
@@ -46,7 +46,7 @@ wasm_type_match(WASM_Type *a, WASM_Type *b)
 {
     // NOTE: refence_count is ignored.
     return (a->param_cell_count == b->param_cell_count &&
-            a->return_cell_count == b->return_cell_count &&
+            a->result_cell_count == b->result_cell_count &&
             str8_match(a->params, b->params, 0) &&
             str8_match(a->results, b->results, 0));
 }

@@ -14,7 +14,7 @@ typedef struct WASM_Function_Type WASM_Function_Type;
 struct WASM_Function_Type
 {
     u16 param_cell_count;
-    u16 return_cell_count;
+    u16 result_cell_count;
     u16 reference_count;
     String8 params;
     String8 results;
@@ -42,10 +42,11 @@ struct WASM_Function
     WASM_Function_Type *func_type;
     u32 func_type_index;
     
-    String8 local_types;
+    String8 locals;
     u16 param_cell_count;
     u16 result_cell_count;
     u16 local_cell_count;
+    String16 stack_cell_offsets;
 
     String8 code;
 };
@@ -130,7 +131,7 @@ struct WASM_Function_Import
     String8 field_name;
     
     WASM_Function_Type *func_type;
-    u8                  func_type_index;
+    u32                 func_type_index;
 };
 
 typedef struct WASM_Table_Import WASM_Table_Import;
