@@ -48,10 +48,9 @@ wasm_module_decode(Arena *arena, String8 data)
     String8 sections[WASM_SectionKind_COUNT] = {0};
 
     ////////////////////////
-    // fill sections array with data
+    // set up sections array
     //
-    ProfScope("fill sections array with data")
-        for(;module_cursor < data.size;)
+    for(;module_cursor < data.size;)
     {
         u8 section_kind = 0;
         u64 section_size = 0;
@@ -84,8 +83,8 @@ wasm_module_decode(Arena *arena, String8 data)
         {
             String8 *section = &sections[section_kind];
             section->size = section_size;
-            section->str = push_array(scratch.arena, u8, section->size);
-            module_cursor += str8_deserial_read_array(data, module_cursor, section->str, section->size);
+            section->str = data.str + module_cursor;
+            module_cursor += section->size;
         }
     }
 
