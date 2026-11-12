@@ -188,7 +188,7 @@ TI_CmdKind_OpenTargets,
 TI_CmdKind_OpenOutput,
 TI_CmdKind_OpenText,
 TI_CmdKind_OpenBitmap,
-TI_CmdKind_OpenGeo3D,
+TI_CmdKind_OpenWorldMap,
 TI_CmdKind_COUNT,
 TI_CmdKind_FirstTabFastPathCmd = TI_CmdKind_OpenTargets,
 } TI_CmdKind;
@@ -377,7 +377,7 @@ X(targets) \
 Y(output, text, "query:output")\
 Y(text, text, "")\
 Y(bitmap, bitmap, "")\
-Y(geo3d, geo3d, "")\
+Y(worldmap, worldmap, "")\
 Z(getting_started)\
 
 #define ti_regs_lit_init_top \
@@ -418,7 +418,7 @@ C_LINKAGE_BEGIN
 extern String8 ti_tab_fast_path_view_name_table[5];
 extern String8 ti_tab_fast_path_query_name_table[5];
 extern TI_Vocab_Info ti_vocab_info_table[157];
-extern TI_Name_Schema_Info ti_name_schema_info_table[28];
+extern TI_Name_Schema_Info ti_name_schema_info_table[27];
 extern String8 ti_reg_slot_code_name_table[33];
 extern Rng1u64 ti_reg_slot_range_table[33];
 extern String8 ti_icon_kind_text_table[75];

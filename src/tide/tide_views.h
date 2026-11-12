@@ -56,6 +56,6 @@ struct TI_Watch_View_State
 TI_VIEW_UI_FUNCTION_DEF(null);
 
 TI_VIEW_UI_FUNCTION_DEF(text);
-TI_VIEW_UI_FUNCTION_DEF(geo3d);
+TI_VIEW_UI_FUNCTION_DEF(worldmap);
 
 #endif // TIDE_VIEWS_H

@@ -11,18 +11,18 @@ TI_VIEW_UI_FUNCTION_DEF(text)
 }
 
 ////////////////////
-// geo3d @view_hook_impl
+// worldmap @view_hook_impl
 
-typedef struct TI_Geo3D_View_State TI_Geo3D_View_State;
-struct TI_Geo3D_View_State
+typedef struct TI_World_Map_View_State TI_World_Map_View_State;
+struct TI_World_Map_View_State
 {
     f32 center_x;
     f32 center_y;
     f32 distance;
 };
 
-typedef struct TI_Geo3D_Box_Draw_Data TI_Geo3D_Box_Draw_Data;
-struct TI_Geo3D_Box_Draw_Data
+typedef struct TI_World_Map_Box_Draw_Data TI_World_Map_Box_Draw_Data;
+struct TI_World_Map_Box_Draw_Data
 {
     f32 center_x;
     f32 center_y;
@@ -32,9 +32,9 @@ struct TI_Geo3D_Box_Draw_Data
     R_Handle texture;
 };
 
-internal UI_BOX_CUSTOM_DRAW(ti_geo3d_box_draw)
+internal UI_BOX_CUSTOM_DRAW(ti_world_map_box_draw)
 {
-    TI_Geo3D_Box_Draw_Data *draw_data = (TI_Geo3D_Box_Draw_Data *)user_data;
+    TI_World_Map_Box_Draw_Data *draw_data = (TI_World_Map_Box_Draw_Data *)user_data;
 
     // get clip
     Rng2f32 clip = box->rect;
@@ -64,14 +64,14 @@ internal UI_BOX_CUSTOM_DRAW(ti_geo3d_box_draw)
             mat_4x4f32(1.f));
 }
 
-TI_VIEW_UI_FUNCTION_DEF(geo3d)
+TI_VIEW_UI_FUNCTION_DEF(worldmap)
 {
    String8 vtx = ti_map_vertex_bytes;
    String8 idx = ti_map_index_bytes;
 
    Temp scratch = scratch_begin(0, 0);
    Access *access = access_open();
-   TI_Geo3D_View_State *state = ti_view_state(TI_Geo3D_View_State);
+   TI_World_Map_View_State *state = ti_view_state(TI_World_Map_View_State);
 
    ///////////////////
    // unpack parameters
@@ -79,24 +79,6 @@ TI_VIEW_UI_FUNCTION_DEF(geo3d)
    f32 center_x_target  = ti_view_setting_f32_from_name(str8_lit("center_x"));
    f32 center_y_target  = ti_view_setting_f32_from_name(str8_lit("center_y"));
    f32 distance_target  = ti_view_setting_f32_from_name(str8_lit("distance"));
-
-   local_persist bool32 initialized = false;
-   local_persist R_Handle vertex_buffer = {0};
-   local_persist R_Handle index_buffer  = {0};
-   local_persist R_Handle texture       = {0};
-   if (!initialized)
-   {
-       vertex_buffer = r_buffer_alloc(R_ResourceKind_Static, vtx.size, vtx.str);
-       index_buffer  = r_buffer_alloc(R_ResourceKind_Static, idx.size, idx.str);
-       {
-           u8 opaque_white_texel[4] = {0xFF, 0xFF, 0xFF, 0xFF};
-           Vec2s32 texture_dim = {0};
-           texture_dim.x = 1;
-           texture_dim.y = 1;
-           texture = r_tex2d_alloc(R_ResourceKind_Static, texture_dim, R_Tex2DFormat_RGBA8, opaque_white_texel);
-       }
-       initialized = true;
-   }
 
    //////////////////
    // do first-time camera initialization, if needed
@@ -131,8 +113,8 @@ TI_VIEW_UI_FUNCTION_DEF(geo3d)
    //////////////
    // build
    //
-   if (!r_handle_match(index_buffer, r_handle_zero())
-       && !r_handle_match(vertex_buffer, r_handle_zero()))
+   if (!r_handle_match(ti_state->world_map_index_buffer, r_handle_zero())
+       && !r_handle_match(ti_state->world_map_vertex_buffer, r_handle_zero()))
    {
        Vec2f32 dim = dim_2f32(rect);
        UI_Box *box = &ui_nil_box;
@@ -162,14 +144,14 @@ TI_VIEW_UI_FUNCTION_DEF(geo3d)
        }
        distance_target *= pow_f32(1.1f, sig.scroll.y);
        distance_target = Clamp(5.f, distance_target, 2000.f);
-       TI_Geo3D_Box_Draw_Data *draw_data = push_array(ui_build_arena(), TI_Geo3D_Box_Draw_Data, 1);
+       TI_World_Map_Box_Draw_Data *draw_data = push_array(ui_build_arena(), TI_World_Map_Box_Draw_Data, 1);
        draw_data->center_x   = state->center_x;
        draw_data->center_y   = state->center_y;
        draw_data->distance   = state->distance;
-       draw_data->vertex_buffer = vertex_buffer;
-       draw_data->index_buffer  = index_buffer;
-       draw_data->texture       = texture;
-       ui_box_equip_custom_draw(box, ti_geo3d_box_draw, draw_data);
+       draw_data->vertex_buffer = ti_state->world_map_vertex_buffer;
+       draw_data->index_buffer  = ti_state->world_map_index_buffer;
+       draw_data->texture       = ti_state->world_map_texture;
+       ui_box_equip_custom_draw(box, ti_world_map_box_draw, draw_data);
    }
 
    ///////////////////

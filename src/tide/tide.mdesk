@@ -24,13 +24,13 @@ TI_WatchTabFastPathTable:
     {Targets  "Targets"       targets       1           Target  "Displays, and allows the editing of, the list of all targets."}
 }
 
-@table(name   display_name    name_lower    view    query    icon)
+@table(name   display_name    name_lower    view     query    icon)
 TI_ViewTabFastPathTable:
 {
-    {Output   "Output"        output        text    "query:output"    List           }
-    {Text     "Text"          text          text    ""                FileOutline    }
-    {Bitmap   "Bitmap"        bitmap        bitmap  ""                Bitmap         }
-    {Geo3D    "Geometry (3D)" geo3d         geo3d   ""                Cube           }
+    {Output   "Output"        output        text     "query:output"    List           }
+    {Text     "Text"          text          text     ""                FileOutline    }
+    {Bitmap   "Bitmap"        bitmap        bitmap   ""                Bitmap         }
+    {WorldMap "World Map"     worldmap      worldmap ""                Bitmap        }
 }
 
 @table(name   display_name   name_lower   icon)
@@ -85,7 +85,7 @@ TI_VocabTable:
     {project             _                         "Project"             _                           Briefcase                                               }
     {recent_project      _                         "Recent Project"      _                           Briefcase                                               }
     {bitmap              _                         "Bitmap"              _                           Bitmap                                                  }
-    {geo3d               ""                        "Geometry (3D)"       ""                          Cube                                                    }
+    {worldmap            ""                        "World Map"           ""                          Bitmap                                                    }
 }
 
 @struct TI_Vocab_Info:
@@ -370,24 +370,6 @@ TI_VocabTable:
     {
       @display_name("Value") @description("An expression to describe the value or location of the color.")
         'expression': expr_string,
-    }
-    ```
-  }
-  
-  //- rjf: @schema geo3d
-  {
-    geo3d, 1,
-    ```
-      @inherit(tab) x:
-    {
-      @display_name("Expression") @description("An expression to describe the base address of the index buffer.")
-        'expression': expr_string,
-      'count': expr_string,
-      'vtx': expr_string,
-      'vtx_size': expr_string,
-      'yaw': @range[0, 1] f32,
-      'pitch': @range[-0.5, 0] f32,
-      'zoom': @range[0, 100] f32,
     }
     ```
   }

@@ -5183,6 +5183,15 @@ internal void ti_init(Cmd_Line *cmdline)
         scratch_end(scratch);
     }
 
+    // load map data
+    {
+        ti_state->world_map_vertex_buffer = r_buffer_alloc(R_ResourceKind_Static, ti_map_vertex_bytes.size, ti_map_vertex_bytes.str);
+        ti_state->world_map_index_buffer = r_buffer_alloc(R_ResourceKind_Static, ti_map_index_bytes.size, ti_map_index_bytes.str);
+        u8 texel[4] = {0xFF, 0xFF, 0xFF, 0xFF};
+        ti_state->world_map_texture = r_tex2d_alloc(R_ResourceKind_Static, v2s32(1, 1), R_Tex2DFormat_RGBA8, texel);
+    }
+
+
     // check initial installation status
     ti_state->installed = sh_install_or_uninstall_self(0, 0);
 
@@ -5656,7 +5665,7 @@ internal void ti_frame(void)
                 TI_View_UI_Function_Type *ui;
             } lens_table[] = {
                 {str8_lit("text"),       0, 0, 0,     TI_VIEW_UI_FUNCTION_NAME(text)},
-                {str8_lit("geo3d"),      0, 0, 0,     TI_VIEW_UI_FUNCTION_NAME(geo3d)},
+                {str8_lit("worldmap"),      0, 0, 0,  TI_VIEW_UI_FUNCTION_NAME(worldmap)},
             };
 
             // fill lenses in view ui rule map
@@ -6973,11 +6982,11 @@ internal void ti_frame(void)
                                 CFG_Node *root_1_0 = cfg_node_new(ti_state->cfg, root_1, s("0.50"));
                                 CFG_Node *root_1_1 = cfg_node_new(ti_state->cfg, root_1, s("0.50"));
                                 cfg_node_insert_child(ti_state->cfg, root_1_0, root_1_0->last, targets);
-                                cfg_node_insert_child(ti_state->cfg, root_1_1, root_1_1->last, geo3d);
+                                cfg_node_insert_child(ti_state->cfg, root_1_1, root_1_1->last, worldmap);
                                 cfg_node_insert_child(ti_state->cfg, root_1_1, root_1_1->last, bitmap);
                                 cfg_node_insert_child(ti_state->cfg, root_1_1, root_1_1->last, output);
                                 cfg_node_new(ti_state->cfg, targets, s("selected"));
-                                cfg_node_new(ti_state->cfg, geo3d, s("selected"));
+                                cfg_node_new(ti_state->cfg, worldmap, s("selected"));
                             }break;
                         }
                         

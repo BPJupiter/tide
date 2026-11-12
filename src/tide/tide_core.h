@@ -420,6 +420,11 @@ struct TI_State {
     // icon texture
     R_Handle icon_texture;
 
+    // world map handles
+    R_Handle world_map_vertex_buffer;
+    R_Handle world_map_index_buffer;
+    R_Handle world_map_texture;
+
     // fixed ui keys
     UI_Key drop_completion_key;
     UI_Key ctx_menu_key;
