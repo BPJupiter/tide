@@ -6,21 +6,29 @@
 //
 //- ui
 // [ ] register an EXE that can be launched by the proxy
-// [ ] world map view of submarine cables
+// [ ] geojson handling of cable data
+// [ ] display cables
 // [ ] interaction with submarine cables on the map
 // [ ] create a view of submarine cable data such as build date, length, owners, suppliers, website, and landing points
+// [ ] traceroute visualisation
+// [ ] information on networked requests (DNS, hops, rtt information)
 //
 //- measurement engine
-// [ ] socks5 proxy & interception of network requests inc. DNS
-// [ ] traceroutes on network requests
-// [ ] check hops against "disabled" endpoints & drop/fallback
 // [ ] measurement caching
+// [ ] check hops against "disabled" endpoints & drop/fallback
+// [ ] socks5 proxy
+//
+//- network library detours
+// [ ] detour API calls
+// [ ] DLL IPC with measurement engine
+//
 
 //////////////////////////////
 //~ fbt: recently completed
 //
 // [x] DNS layer
 // [x] port NET layer from raddbg SOCK layer
+// [x] world map
 
 ///////////////////
 // Build Options
