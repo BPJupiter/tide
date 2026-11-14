@@ -361,6 +361,8 @@ wasm_module_decode(Arena *arena, String8 data)
         }
 
         // @TODO: code_section_cursor == code_section.size && func_section_cursor == func_section_size
+        AssertAlways(code_section_cursor == code_section.size);
+        AssertAlways(func_section_cursor == func_section.size);
     }
 
     ////////////////////

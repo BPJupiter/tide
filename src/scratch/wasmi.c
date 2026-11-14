@@ -41,10 +41,15 @@ entry_point(Cmd_Line *cmdline)
     ProfBeginFunction();
     u64 exit_code = 0;
 
+    if(cmdline->inputs.node_count == 0)
+    {
+        fprintf(stderr, "ERROR: no input file given");
+        goto exit;
+    }
     String8 data = data_from_file_path(scratch.arena, cmdline->inputs.first->string);
     if(data.size == 0)
     {
-        fprintf(stderr, "ERROR: input file was not read %.*s\n", str8_varg(cmdline->inputs.first->string));
+        fprintf(stderr, "ERROR: unable to read input file %.*s\n", str8_varg(cmdline->inputs.first->string));
         goto exit;
     }
     WASM_Module *module = wasm_module_decode(scratch.arena, data);

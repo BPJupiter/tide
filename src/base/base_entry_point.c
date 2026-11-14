@@ -62,7 +62,7 @@ internal void main_thread_base_entry_point(int arguments_count, char **arguments
     // begin captures
     bool32 capture = cmd_line_has_flag(&cmdline, str8_lit("capture"));
     if (capture) {
-        ProfBeginCapture(arguments[0]);
+        ProfBeginGlobalCapture(arguments[0]);
         ProfMsg(BUILD_TITLE);
     }
 
@@ -139,9 +139,9 @@ internal void main_thread_base_entry_point(int arguments_count, char **arguments
     }
 #endif
 
-    // end captures
+    // end global capture
     if (capture) {
-        ProfEndCapture();
+        ProfEndGlobalCapture();
     }
 
     scratch_end(scratch);
@@ -152,6 +152,7 @@ internal void supplement_thread_base_entry_point(void (*entry_point)(void *param
     TCTX *tctx = tctx_alloc();
     tctx_select(tctx);
     entry_point(params);
+    ProfEndThreadCapture();
     tctx_release(tctx);
 }
 
@@ -224,6 +225,7 @@ internal void async_thread_entry_point(void *params)
         }
         lane_sync_u64(&need_exit, 0);
         if(need_exit) {
+            ProfEndThreadCapture();
             break;
         }
     }

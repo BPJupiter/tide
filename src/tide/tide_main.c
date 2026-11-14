@@ -126,7 +126,8 @@ void entry_point(Cmd_Line *cmdline)
     switch (exec_mode)
     {
         default:
-        case ExecMode_Normal: {
+        case ExecMode_Normal:
+        {
             // manual layer initialisation
             {
                 wm_init();
@@ -146,19 +147,18 @@ void entry_point(Cmd_Line *cmdline)
             }
         } break;
 
-        case ExecMode_Help: {
-            {
-                sh_message(0,
-                           str8_lit("The TIDE Proxy - Help"),
-                           str8_lit("The following options may be used when starting the application from the command line:\n\n"
-                                    "--user:<path>\n"
-                                    "Use to specify the location of a user file which should be used. User files are used to store settings for users, inclulding window and panel setups and visual settings. If this file does not exist, it will be created as necessary. This file will be autosaved as user-related changes are math.\n\n"
-                                    "--project:<path>\n"
-                                    "Use to specify the location of a project file which should be used. Project files are used to store settings for workspace. If this file does not exist, it will be created as necessary. This file will be autosaved as project-related changed are made.\n\n"
-                                    "--logs:<path>\n"
-                                    "Overrides default path to the folder with logs.\n"
-                                    ));
-            }
+        case ExecMode_Help:
+        {
+            sh_message(0,
+                       str8_lit("The TIDE Proxy - Help"),
+                       str8_lit("The following options may be used when starting the application from the command line:\n\n"
+                                "--user:<path>\n"
+                                "Use to specify the location of a user file which should be used. User files are used to store settings for users, inclulding window and panel setups and visual settings. If this file does not exist, it will be created as necessary. This file will be autosaved as user-related changes are math.\n\n"
+                                "--project:<path>\n"
+                                "Use to specify the location of a project file which should be used. Project files are used to store settings for workspace. If this file does not exist, it will be created as necessary. This file will be autosaved as project-related changed are made.\n\n"
+                                "--logs:<path>\n"
+                                "Overrides default path to the folder with logs.\n"
+                                ));
         } break;
     }
 
