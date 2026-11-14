@@ -1,9 +1,0 @@
-// Copyright (c) Frances Telfar
-// Licensed under the PolyForm Noncommercial License (https://polyformproject.org/licenses/noncommercial/1.0.0)
-
-///////////////////
-// Embedded Data
-
-@embed_file map_world_shp_bytes: "../data/World_Countries_Generalized.shp"
-@embed_file map_world_dbf_bytes: "../data/World_Countries_Generalized.dbf"
-

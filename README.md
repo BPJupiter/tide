@@ -3,7 +3,7 @@
 **NOTE:** This README does not document usage instructions and tips for the
 proxy itself, and is intended as a technical overview or the project.
 
-The TIDE Proxy is a native, graphical SOCKS5 proxy. It is built to simualte
+The TIDE Proxy is a native, graphical, network telemetry tool. It is built to simualte
 macro-scale internet outages. It is currently a work in progress.
 
 TIDE is an acryonym. It stands for **T**elemetry for **I**nternet **D**isruption **E**stimation.
@@ -304,7 +304,12 @@ A list of the layers in the codebase and their associated namespaces is below:
   layer
 - `font_provider` (`FP_`): An abstraction layer for various font file decoding
   and font rasterisation backends.
+- `detours` (`DTR_`): A binary injection layer for the intercepting of OS
+  networking procedures.
 - `linux` (`LNX_`): The OS platform layer for Linux-based operating systems.
+- `measurement_engine` (`M_`): Implements the core measurement system, without
+  any graphical components. This contains top-level logic for things like traceroutes,
+  DNS resolution, measurement caching, cable inference, and so on.
 - `mdesk` (`MD_`): Code for parsing Metadesk files (stored as `.mdesk`), which
   is the JSON-like (technically a JSON superset) text format used for the proxy's
   user the project configuration files and metacode, which is parsed and used to
@@ -327,9 +332,9 @@ A list of the layers in the codebase and their associated namespaces is below:
   level drawing API - this layer is strictly for minimally abstracting on an
   as-needed basis. Higher level drawing features are implemented in the `draw`
   layer.
-- `scratch` (no namespace): Scratch space for small and transient test program.
+- `scratch` (no namespace): Scratch space for small and transient test programs.
 - `shell` (`SH_`): Implements a platform abstraction layer for shell operations.
-- `socks5` (`S5_`): Implements a (not-yet) RFC-compliant SOCKS5 protocol.
+- `socks5` (`S5_`): Implements a SOCKS5 protocol.
 - `text` (`TXT_`): Implements text processing functions, like parsing line
   breaks, and lexing and parsing source code. Also offers an API to do this
   asynchronously.
