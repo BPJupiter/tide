@@ -1,0 +1,6 @@
+#ifndef WIN32_DETOURS_H
+#define WIN32_DETOURS_H
+
+
+
+#endif // WIN32_DETOURS_H

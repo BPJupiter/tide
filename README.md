@@ -286,6 +286,8 @@ A list of the layers in the codebase and their associated namespaces is below:
   128-bit hash of the data. Also implements a keying system on top, where keys
   refer to a unique identity which corresponds to a history of 128-bit hashes.
   User as a general data store by other layers.
+- `detours` (`DTR_`): A binary injection layer for the intercepting of OS
+  networking procedures.
 - `dns` (`DNS_`): This layer implements both high-level DNS funtions for DNS message
   parsing, packing, and unpacking. This layer is intended to be used in-tandem with the
   `net` layer.
@@ -304,8 +306,6 @@ A list of the layers in the codebase and their associated namespaces is below:
   layer
 - `font_provider` (`FP_`): An abstraction layer for various font file decoding
   and font rasterisation backends.
-- `detours` (`DTR_`): A binary injection layer for the intercepting of OS
-  networking procedures.
 - `linux` (`LNX_`): The OS platform layer for Linux-based operating systems.
 - `measurement_engine` (`M_`): Implements the core measurement system, without
   any graphical components. This contains top-level logic for things like traceroutes,

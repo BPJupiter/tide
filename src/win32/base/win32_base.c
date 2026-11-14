@@ -1859,18 +1859,18 @@ internal LONG WINAPI win32_exception_filter(EXCEPTION_POINTERS *exception_ptrs)
             dbg_SymSetOptions(SYMOPT_EXACT_SYMBOLS|SYMOPT_FAIL_CRITICAL_ERRORS|SYMOPT_LOAD_LINES|SYMOPT_UNDNAME);
             if (dbg_SymInitializeW(process, module_path, TRUE))
             {
-                // check that raddbg.pdb file is good
-                bool32 raddbg_pdb_valid = 0;
+                // check that tide.pdb file is good
+                bool32 tide_pdb_valid = 0;
                 {
                     IMAGEHLP_MODULEW64 module = {0};
                     module.SizeOfStruct = sizeof(module);
                     if(dbg_SymGetModuleInfoW64(process, (DWORD64)&win32_exception_filter, &module))
                     {
-                        raddbg_pdb_valid = (module.SymType == SymPdb);
+                        tide_pdb_valid = (module.SymType == SymPdb);
                     }
                 }
         
-                if(!raddbg_pdb_valid)
+                if(!tide_pdb_valid)
                 {
                     buflen += wnsprintfW(buffer + buflen, sizeof(buffer) - buflen,
                                          L"\nThe PDB debug information file for this executable is not valid or was not found. Please rebuild binary to get the call stack.\n");

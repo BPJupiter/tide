@@ -5049,7 +5049,7 @@ internal void ti_init(Cmd_Line *cmdline)
         }
         {
             String8 user_program_config_data_path = get_process_info()->user_program_config_data_path;
-            String8 user_data_folder = str8f(scratch2.arena, "%S/raddbg", user_program_config_data_path);
+            String8 user_data_folder = str8f(scratch2.arena, "%S/tide", user_program_config_data_path);
             make_directory(user_data_folder);
             if (user_path.size == 0)
             {

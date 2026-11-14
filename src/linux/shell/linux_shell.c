@@ -138,7 +138,7 @@ sh_install_or_uninstall_self(bool32 write, bool32 install)
   
   //- rjf: get local user binary path
   String8 bin_path = str8f(scratch.arena, "%s/.local/bin", home);
-  String8 symlink_path = str8f(scratch.arena, "%S/raddbg", bin_path);
+  String8 symlink_path = str8f(scratch.arena, "%S/tide", bin_path);
   
   //- rjf: get xdg local application install info path
   String8 application_name = str8_chop_last_dot(str8_skip_last_slash(get_process_info()->binary_file_path));

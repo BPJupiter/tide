@@ -1,9 +1,9 @@
 
 ///////////////////////
-// @per_os_impl DLL Inject
+// @per_os_impl DLL Detours
 
 internal bool32
-inj_dll_into_pid(u64 process_id, String8 dll_path)
+dtr_dll_into_pid(u64 process_id, String8 dll_path)
 {
     // open target process with access right
     HANDLE process_handle = OpenProcess(PROCESS_ALL_ACCESS, 0, process_id);

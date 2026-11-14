@@ -629,8 +629,8 @@ wm_window_open(Rng2f32 rect, WM_WindowFlags flags, String8 title)
   //- rjf: set class
   {
     XClassHint *class_hints = XAllocClassHint();
-    class_hints->res_name = "raddbg";
-    class_hints->res_class = "RADDBG";
+    class_hints->res_name = "tide";
+    class_hints->res_class = "TIDE";
     XSetClassHint(lnx_wm_state->display, w->window, class_hints);
     XFree(class_hints);
   }

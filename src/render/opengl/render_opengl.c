@@ -91,7 +91,7 @@ r_ogl_instance_buffer_from_size(u64 size)
 internal void
 r_ogl_debug_message_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 {
-  raddbg_log("[OpenGL] %.*s\n", (int)length, message);
+  tide_log("[OpenGL] %.*s\n", (int)length, message);
   fprintf(stderr, "[OpenGL] %.*s\n", (int)length, message);
 }
 
@@ -157,7 +157,7 @@ r_init(Cmd_Line *cmdln)
         stages[idx].errors.size = info_log_length;
         glGetShaderInfoLog(stages[idx].out, info_log_length, 0, (char *)stages[idx].errors.str);
       }
-      raddbg_pin(text(stages[idx].errors.str));
+      tide_pin(text(stages[idx].errors.str));
     }
     
     // rjf: attach compilations to program

@@ -1,12 +1,12 @@
 // Copyright (c) Frances Telfar
 // Licensed under the PolyForm Noncommercial License (https://polyformproject.org/licenses/noncommercial/1.0.0)
 
-#include "inject.c"
+#include "detours.c"
 
 #if OS_WINDOWS
-# include "win32/inject/win32_inject.c"
+# include "win32/detours/win32_detours.c"
 #elif OS_LINUX
-# include "linux/inject/linux_inject.c"
+# include "linux/detours/linux_detours.c"
 #else
-# error Operating system backed not defined for the inject layer.
+# error Operating system backed not defined for the detours layer.
 #endif
