@@ -77,6 +77,7 @@ internal void set_platform_thread_name(String8 name);
 ////////////////////////////////
 //~ rjf: @per_os_impl Thread Functions
 
+internal Thread get_current_thread(void);
 internal Thread thread_launch(Thread_Entry_Point_Function_Type *f, void *p);
 internal bool32 thread_join(Thread thread, u64 endt_us);
 internal void thread_detach(Thread thread);

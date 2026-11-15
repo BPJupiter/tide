@@ -579,6 +579,14 @@ internal void set_platform_thread_name(String8 name)
 ////////////////////////////////////
 // @per_os_impl Thread Functions
 
+internal Thread
+get_current_thread(void)
+{
+    Thread thread = {0};
+    thread.u64[0] = (u64)GetCurrentThread();
+    return thread;
+}
+
 internal Thread thread_launch(Thread_Entry_Point_Function_Type *f, void *p)
 {
     ProfBeginFunction();

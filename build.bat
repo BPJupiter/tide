@@ -147,6 +147,41 @@ if "%no_map%"=="" if exist mapgen.exe (
 )
 popd
 
+:: --- Compile Deps -----------------------------------------------------------
+pushd build
+set build_detours=
+if "%detours%"=="1"      set build_detours=1
+if not exist detours.lib set build_detours=1
+if "%build_detours%"=="1" (
+  echo [building detours.lib]
+  set detours_source_directory=..\src\third_party\detours
+  call cl /nologo /W4 /WX /we4777 /we4800 /Z7 /MT /Gy /Gm- /Zl /Od ^
+    /DDETOUR_DEBUG=%debug% /DWIN32_LEAN_AND_MEAN /D_WIN32_WINNT=0x501 ^
+    /I!detours_source_directory! /c ^
+    !detours_source_directory!\detours.cpp ^
+    !detours_source_directory!\modules.cpp ^
+    !detours_source_directory!\disasm.cpp ^
+    !detours_source_directory!\image.cpp  ^
+    !detours_source_directory!\creatwth.cpp ^
+    !detours_source_directory!\disolx86.cpp ^
+    !detours_source_directory!\disolx64.cpp ^
+    !detours_source_directory!\disolia64.cpp ^
+    !detours_source_directory!\disolarm.cpp ^
+    !detours_source_directory!\disolarm64.cpp || exit /b 1
+  call link /lib /nologo /out:detours.lib ^
+    detours.obj ^
+    modules.obj ^
+    disasm.obj ^
+    image.obj  ^
+    creatwth.obj ^
+    disolx86.obj ^
+    disolx64.obj ^
+    disolia64.obj ^
+    disolarm.obj ^
+    disolarm64.obj || exit /b 1
+)
+popd
+
 
 :: --- Build Everything (@build_targets) --------------------------------------
 pushd build

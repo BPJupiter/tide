@@ -12,9 +12,11 @@
 
 #include "base/base_inc.h"
 #include "wasm/wasm_inc.h"
+#include "hooks/hooks_inc.h"
 
 #include "base/base_inc.c"
 #include "wasm/wasm_inc.c"
+#include "hooks/hooks_inc.c"
 
 internal void
 printf_with_indent(u64 indent_count, char *fmt, ...)
