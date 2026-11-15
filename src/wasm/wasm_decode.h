@@ -1,6 +1,9 @@
 #ifndef WASM_DECODE_H
 #define WASM_DECODE_H
 
+///////////////////
+// Section Kinds
+
 typedef u8 WASM_SectionKind;
 enum WASM_SectionKindEnum
 {
@@ -21,7 +24,16 @@ enum WASM_SectionKindEnum
     WASM_SectionKind_COUNT,
 };
 
+/////////////////
+// Decoding Functions
+
+global u32 wasm_default_max_pages    = 0x0000ffff;
+global u32 wasm_default_max_pages_64 = 0xffffffff;
+
+global u32 wasm_default_num_bytes_per_page = 0x0000ffff;
+
 
 internal WASM_Module *wasm_module_decode(Arena *arena, String8 bytes);
+
 
 #endif // WASM_DECODE_H

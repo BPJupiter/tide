@@ -1,4 +1,7 @@
 
+///////////////
+// Globals
+
 internal WASM_Module *
 wasm_module_decode(Arena *arena, String8 data)
 {
@@ -378,6 +381,41 @@ wasm_module_decode(Arena *arena, String8 data)
         if(table_count)
         {
             module->table_count = table_count;
+            module->tables = push_array(arena, WASM_Table, table_count);
+            for(u64 i = 0; i < table_count; i += 1)
+            {
+                WASM_Table *table = &module->tables[i];
+                u8 declared_kind = 0;
+                section_cursor += str8_deserial_read_struct(section, section_cursor, &declared_kind);
+                if(declared_kind != WASM_TypeKind_FuncRef)
+                {
+                    // @TODO: incompatable import type
+                }
+
+                u64 table_flags = 0;
+                section_cursor += str8_deserial_read_uleb128(section, section_cursor, &table_flags);
+            
+                bool32 is_table64 = table_flags & WASM_MemoryFlag_Is64Bit;
+
+                // @TODO: properly check flags here
+
+                u64 declared_init_size = 0;
+                u64 declared_max_size  = 0;
+                section_cursor += str8_deserial_read_uleb128(section, section_cursor, &declared_init_size);
+                if(table_flags & WASM_MemoryFlag_HasMaxSize)
+                {
+                    section_cursor += str8_deserial_read_uleb128(section, section_cursor, &declared_max_size);
+
+                    // @TODO: check declared max size
+                }
+
+                // @TODO: adjust table max size?
+
+                table->table_type.element_kind = declared_kind;
+                table->table_type.init_size    = declared_init_size;
+                table->table_type.flags        = table_flags;
+                table->table_type.max_size     = declared_max_size;
+            }
         }
     }
 
@@ -394,6 +432,34 @@ wasm_module_decode(Arena *arena, String8 data)
         if(memory_count)
         {
             module->memory_count = memory_count;
+            module->memories = push_array(arena, WASM_Memory, module->memory_count);
+            for(u64 i = 0; i < module->memory_count; i += 1)
+            {
+                WASM_Memory *memory = &module->memories[i];
+                u64 memory_flags = 0;
+                section_cursor += str8_deserial_read_uleb128(section, section_cursor, &memory_flags);
+
+                bool32 is_memory64 = memory_flags & WASM_MemoryFlag_Is64Bit;
+                // @TODO: properly check flags here
+
+                u64 init_page_count = 0;
+                u64 max_page_count  = is_memory64 ? wasm_default_max_pages_64 : wasm_default_max_pages;
+                section_cursor += str8_deserial_read_uleb128(section, section_cursor, &init_page_count);
+                if(memory_flags & WASM_MemoryFlag_HasMaxSize)
+                {
+                    section_cursor += str8_deserial_read_uleb128(section, section_cursor, &max_page_count);
+
+                    // @TODO: check max memory size
+
+                    ClampTop(max_page_count, is_memory64 ? wasm_default_max_pages_64 : wasm_default_max_pages);
+                }
+
+                // store into memory
+                memory->flags              = memory_flags;
+                memory->num_bytes_per_page = wasm_default_num_bytes_per_page;
+                memory->init_page_count    = init_page_count;
+                memory->max_page_count     = max_page_count;
+            }
         }
     }
 

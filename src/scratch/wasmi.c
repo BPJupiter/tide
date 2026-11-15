@@ -103,9 +103,24 @@ entry_point(Cmd_Line *cmdline)
             printf_with_indent(2, "%.*s", str8_varg(locals));
         }
     }
-    fprintf(stdout, "Table Count:    %I64u\n", module->table_count);
-    fprintf(stdout, "Memory Count:   %I64u\n", module->memory_count);
-    fprintf(stdout, "Tag Count:      %I64u\n", module->tag_count);
+    for(u64 i = 0; i < module->table_count; i += 1)
+    {
+        WASM_Table *table = &module->tables[i];
+        String8 table_string = str8f(scratch.arena, "(table (;%I64u;) %I32u %I32u %S)\n", i, table->table_type.init_size, table->table_type.max_size, wasm_string_from_type_kind(table->table_type.element_kind));
+        printf_with_indent(1, "%.*s", str8_varg(table_string));
+    }
+    for(u64 i = 0; i < module->memory_count; i += 1)
+    {
+        WASM_Memory *memory = &module->memories[i];
+        String8 memory_string = str8f(scratch.arena, "(memory (;%I64u;) %I32u", i, memory->init_page_count);
+        bool32 is_memory64 = memory->flags & WASM_MemoryFlag_Is64Bit;
+        if(memory->max_page_count != (is_memory64 ? wasm_default_max_pages_64 : wasm_default_max_pages))
+        {
+            memory_string = str8_cat(scratch.arena, memory_string, str8f(scratch.arena, " %I32u"));
+        }
+        memory_string = str8_cat(scratch.arena, memory_string, s(")\n"));
+        printf_with_indent(1, "%.*s", str8_varg(memory_string));
+    }
     fprintf(stdout, "Global Count:   %I64u\n", module->global_count);
     fprintf(stdout, "Export Count:   %I64u\n", module->export_count);
     fprintf(stdout, "Element Count:  %I64u\n", module->element_count);

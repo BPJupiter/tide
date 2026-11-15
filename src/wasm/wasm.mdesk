@@ -22,7 +22,7 @@ WASM_TypeTable://   |                 |           \             ________________
     {0x73 -13        NullFuncRef      ""            0 0 1 1 0              4          }
     {0x72 -14        NullExternRef    ""            0 0 1 1 0              4          }
     {0x71 -15        NullRef          ""            0 0 1 1 0              4          }
-    {0x70 -16        FuncRef          ""            1 0 1 1 0              4          }
+    {0x70 -16        FuncRef          "funcref"     1 0 1 1 0              4          }
     {0x6F -17        ExternRef        ""            1 0 1 1 0              4          }
     {0x6E -18        AnyRef           ""            0 0 1 1 0              4          }
     {0x6D -19        EqRef            ""            0 0 1 1 0              4          }
@@ -60,3 +60,4 @@ wasm_string_from_type_kind:
 {
     @expand(WASM_TypeTable a) `case WASM_TypeKind_$(a.name):{result = str8_lit("$(a.string)");}break`;
 }
+

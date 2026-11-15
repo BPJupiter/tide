@@ -7,6 +7,17 @@
 
 #include "generated/wasm.meta.h"
 
+////////////////
+// Memory Flag
+
+typedef u8 WASM_MemoryFlags;
+enum WASM_MemoryFlagsEnum
+{
+    WASM_MemoryFlag_HasMaxSize = (1<<0),
+    WASM_MemoryFlag_IsShared   = (1<<1),
+    WASM_MemoryFlag_Is64Bit    = (1<<2),
+};
+
 /////////////
 // Common Types
 
@@ -54,11 +65,20 @@ struct WASM_Function
 //////////
 // Table
 
+typedef struct WASM_Table_Type WASM_Table_Type;
+struct WASM_Table_Type
+{
+    u8 element_kind;
+    WASM_MemoryFlags flags;
+    bool32 possible_grow;
+    u32 init_size;
+    u32 max_size;
+};
+
 typedef struct WASM_Table WASM_Table;
 struct WASM_Table
 {
-    u64 foo;
-    // @TODO
+    WASM_Table_Type table_type;
 };
 
 //////////
@@ -67,8 +87,10 @@ struct WASM_Table
 typedef struct WASM_Memory WASM_Memory;
 struct WASM_Memory
 {
-    u64 foo;
-    // @TODO
+    WASM_MemoryFlags flags;
+    u32 num_bytes_per_page;
+    u32 init_page_count;
+    u32 max_page_count;
 };
 
 ////////////
