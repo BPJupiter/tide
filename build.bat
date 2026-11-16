@@ -137,14 +137,6 @@ if "%no_meta%"=="" if exist metagen.exe (
   echo [running metagen]
   metagen.exe || exit /b 1
 )
-if "%map%"=="1" (
-  echo [building mapgen]
-  %compile_debug% ..\src\mapgen\mapgen_main.c %compile_link% %out%mapgen.exe || exit /b 1
-)
-if "%no_map%"=="" if exist mapgen.exe (
-  echo [running mapgen]
-  mapgen.exe || exit /n 1
-)
 popd
 
 :: --- Compile Deps -----------------------------------------------------------
@@ -182,8 +174,22 @@ if "%build_detours%"=="1" (
 )
 popd
 
+:: --- Build tidelib.dll ------------------------------------------------------
+
+pushd build
+set build_tidelib=
+if "%tidelib%"=="1"                       set build_tidelib=1
+if "%tide%"=="1" if not exist tidelib.dll set build_tidelib=1
+if "%build_tidelib%"=="1" (
+  echo [building tidelib.dll]
+  %compile% %compile_dll% ..\src\tidelib\tidelib_main.c %compile_link% %out%tidelib.dll || exit /b 1
+)
+popd
+
 
 :: --- Build Everything (@build_targets) --------------------------------------
+echo [building program]
+set didbuild=0
 pushd build
 if "%torment%"=="1"           set didbuild=1 && %compile% ..\src\torment\torment_main.c                     %compile_link% %out%torment.exe           || exit /b 1
 if "%tide%"=="1"              set didbuild=1 && %compile% ..\src\tide\tide_main.c                           %compile_link% %link_icon% %out%tide.exe  || exit /b 1

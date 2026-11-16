@@ -20,14 +20,15 @@ thread_static bool32 is_async_thread = false;
 // process entry point
 internal void entry_point(Cmd_Line *cmdline);
 
-// library entry and exit points
-internal void library_init_entry_point(void);
-internal void library_close_exit_point(void);
+// library procedures called on load/unload
+internal void library_load_point(void);
+internal void library_unload_point(void);
 
 /////////////////
 // Process Entry Point Functions
 
-internal void main_thread_base_entry_point(int arguments_count, char **arguments)
+internal void
+main_thread_base_entry_point(int arguments_count, char **arguments)
 {
     ThreadNameF("main_thread");
     Temp scratch = scratch_begin(0, 0);
@@ -232,3 +233,14 @@ internal void async_thread_entry_point(void *params)
 }
 
 
+internal void
+library_base_entry_point_on_load(void)
+{
+    library_load_point();
+}
+
+internal void
+library_base_exit_point_on_unload(void)
+{
+    library_unload_point();
+}

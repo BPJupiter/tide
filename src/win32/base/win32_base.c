@@ -2063,61 +2063,9 @@ internal LONG WINAPI win32_exception_filter(EXCEPTION_POINTERS *exception_ptrs)
 #undef OS_WINDOWS // shlwapi uses its own OS_WINDOWS include inside
 #define OS_WINDOWS 1
 
-internal void w32_entry_point_caller(int argc, WCHAR **wargv)
+internal char **
+w32_setup_common_to_processes_and_libraries(bool32 large_pages_allowed, int argc, WCHAR **wargv)
 {
-    SetUnhandledExceptionFilter(&win32_exception_filter);
-
-    // Dynamically load windows functions which are not garuanteed in all SDKs
-    {
-#define X(n) w32_##n##_func = (void*)GetProcAddress(module, Stringify(n));
-        HMODULE module;
-        
-        module = LoadLibraryA("kernel32.dll");
-        W32_KERNEL32_EXT_XLIST
-        FreeLibrary(module);
-
-        module = LoadLibraryA("kernelbase.dll");
-        W32_KERNELBASE_EXT_XLIST
-        FreeLibrary(module);
-
-        if(w32_InitializeSynchronizationBarrier_func == 0)
-        {
-            w32_DeleteSynchronizationBarrier_func = 0;
-            w32_EnterSynchronizationBarrier_func = 0;
-        }
-
-        #undef X
-    }
-
-    // Try to allow large pages if we can
-    bool32 large_pages_allowed = false;
-    {
-        HANDLE token;
-        if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &token)) {
-            LUID luid;
-            if (LookupPrivilegeValue(0, SE_LOCK_MEMORY_NAME, &luid)) {
-                TOKEN_PRIVILEGES priv;
-                priv.PrivilegeCount = 1;
-                priv.Privileges[0].Luid = luid;
-                priv.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-                large_pages_allowed = !!AdjustTokenPrivileges(token, 0, &priv, sizeof(priv), 0, 0);
-            }
-            CloseHandle(token);
-        }
-    }
-
-    // get RIO extension function table
-    {
-        // NOTE: need to get functions pointers to RIO functions, and that requires a dummy socket.
-        WSADATA WinSockData;
-        WSAStartup(MAKEWORD(2, 2), &WinSockData);
-        GUID guid = WSAID_MULTIPLE_RIO;
-        DWORD rio_byte;
-        SOCKET Sock = socket(AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP);
-        WSAIoctl(Sock, SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER, &guid, sizeof(guid), (void **)&w32_rio_functions, sizeof(w32_rio_functions), &rio_byte, 0, 0);
-        closesocket(Sock);
-    }
-
     // Get system info
     SYSTEM_INFO sysinfo = {0};
     GetSystemInfo(&sysinfo);
@@ -2151,6 +2099,7 @@ internal void w32_entry_point_caller(int argc, WCHAR **wargv)
     }
 
     // extract arguments
+    // NOTE(fbt): we technically leak memory here.
     Arena *args_arena = arena_alloc(.reserve_size = Megabytes(1), .commit_size = Kilobytes(32));
     char **argv = push_array(args_arena, char *, argc);
     for (int i = 0; i < argc; i++)
@@ -2250,11 +2199,91 @@ internal void w32_entry_point_caller(int argc, WCHAR **wargv)
     InitializeCriticalSection(&w32_state.entity_mutex);
     w32_state.entity_arena = arena_alloc();
 
+    return argv;
+}
+
+internal void
+w32_entry_point_caller(int argc, WCHAR **wargv)
+{
+    SetUnhandledExceptionFilter(&win32_exception_filter);
+
+    // Dynamically load windows functions which are not garuanteed in all SDKs
+    {
+#define X(n) w32_##n##_func = (void*)GetProcAddress(module, Stringify(n));
+        HMODULE module;
+        module = LoadLibraryA("kernel32.dll");
+        W32_KERNEL32_EXT_XLIST
+        FreeLibrary(module);
+
+        module = LoadLibraryA("kernelbase.dll");
+        W32_KERNELBASE_EXT_XLIST
+        FreeLibrary(module);
+
+        if(w32_InitializeSynchronizationBarrier_func == 0)
+        {
+            w32_DeleteSynchronizationBarrier_func = 0;
+            w32_EnterSynchronizationBarrier_func = 0;
+        }
+
+        #undef X
+    }
+
+    // Try to allow large pages if we can
+    bool32 large_pages_allowed = 0;
+    {
+        HANDLE token;
+        if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &token)) {
+            LUID luid;
+            if (LookupPrivilegeValue(0, SE_LOCK_MEMORY_NAME, &luid)) {
+                TOKEN_PRIVILEGES priv;
+                priv.PrivilegeCount = 1;
+                priv.Privileges[0].Luid = luid;
+                priv.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+                large_pages_allowed = !!AdjustTokenPrivileges(token, 0, &priv, sizeof(priv), 0, 0);
+            }
+            CloseHandle(token);
+        }
+    }
+
+    // get RIO extension function table
+    {
+        // NOTE: need to get functions pointers to RIO functions, and that requires a dummy socket.
+        WSADATA WinSockData;
+        WSAStartup(MAKEWORD(2, 2), &WinSockData);
+        GUID guid = WSAID_MULTIPLE_RIO;
+        DWORD rio_byte;
+        SOCKET Sock = socket(AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP);
+        WSAIoctl(Sock, SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER, &guid, sizeof(guid), (void **)&w32_rio_functions, sizeof(w32_rio_functions), &rio_byte, 0, 0);
+        closesocket(Sock);
+    }
+
+    char **argv = w32_setup_common_to_processes_and_libraries(large_pages_allowed, argc, wargv);
+
     // call into "real" entry point
     main_thread_base_entry_point(argc, argv);
 }
 
+internal void
+w32_library_load_point_caller(void)
+{
+    WCHAR *dummy_argv = L"dummy_argument";
+    w32_setup_common_to_processes_and_libraries(0, 1, &dummy_argv);
+
+    library_base_entry_point_on_load();
+}
+
+internal void
+w32_library_unload_point_caller(void)
+{
+    library_base_exit_point_on_unload();
+}
+
 #if BUILD_DYNAMIC_LIBRARY
+// Library entry point functions
+
+// stub out process entry point
+internal void entry_point(Cmd_Line *cmdline) {}
+
 BOOL DllMain(HINSTANCE hInstance, DWORD fdwReason, LPVOID lpvReserved)
 {
     switch(fdwReason)
@@ -2262,26 +2291,34 @@ BOOL DllMain(HINSTANCE hInstance, DWORD fdwReason, LPVOID lpvReserved)
         default:{}break;
         case DLL_PROCESS_ATTACH:
         {
-            library_init_entry_point();
+            w32_library_load_point_caller();
         }break;
         case DLL_PROCESS_DETACH:
         {
-            library_close_exit_point();
+            w32_library_unload_point_caller();
         }break;
     }
     return TRUE;
 }
-#elif BUILD_CONSOLE_INTERFACE
+#else
+// Process entry point functions
+
+// stub out library entry/exit points
+internal void library_load_point(void)   {}
+internal void library_unload_point(void) {}
+
+# if BUILD_CONSOLE_INTERFACE
 int wmain(int argc, WCHAR **argv)
 {
     w32_entry_point_caller(argc, argv);
     return 0;
 }
-#else
+# else
 int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nShowCmd)
 {
     CoInitializeEx(0, COINIT_APARTMENTTHREADED);
     w32_entry_point_caller(__argc, __wargv);
     return 0;
 }
+# endif
 #endif

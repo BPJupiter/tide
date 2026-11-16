@@ -12,4 +12,9 @@ internal u64  update_tick_idx(void);
 internal bool32 update(void);
 internal void async_thread_entry_point(void *params);
 
+//////////////
+// Library Entry/Exit Point Functions
+internal void library_base_entry_point_on_load(void);
+internal void library_base_exit_point_on_unload(void);
+
 #endif // BASE_ENTRY_POINT_H
