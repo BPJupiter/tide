@@ -11,42 +11,30 @@
 // Includes
 
 #include "base/base_inc.h"
-#include "injection/injection_inc.h"
+#include "hooks/hooks_inc.h"
+#include "shell/shell_inc.h"
 
 #include "base/base_inc.c"
-#include "injection/injection_inc.c"
+#include "hooks/hooks_inc.c"
+#include "shell/shell_inc.c"
 
 
 internal void
 entry_point(Cmd_Line *cmdline)
 {
     Temp scratch = scratch_begin(0, 0);
-    
-    fprintf(stdout, "Enter Target Process EXE name: ");
-    String8 process_name = {0};
-    char input[32] = {0};
-    u64 process_id = 0;
-    if(fgets(input, sizeof(input), stdin) != 0)
-    {
-        input[strchr(input, '\n')-input] = 0;
-        process_name = str8_cstring(input);
-        process_id = pid_from_name(process_name);
-    }
 
-    String8 dll_path = full_path_from_path(scratch.arena, s("build\\typing_sound.dll"));
-    if(process_id)
+    if(cmdline->inputs.node_count == 0)
     {
-        fprintf(stdout, "Process %.*s: %I64u\n", str8_varg(process_name), process_id);
-        fprintf(stdout, "DLL to inject : %.*s\n", str8_varg(dll_path));
-        if(!inj_dll_into_pid(process_id, dll_path))
-        {
-            printf("FUCK\n");
-        }
+        fprintf(stderr, "ERROR: No exe given\n");
+        goto exit;
     }
-    else
-    {
-        fprintf(stderr, "No such process with the name %.*s!\n", str8_varg(process_name));
-    }
-    
+    String8 exe = cmdline->inputs.first->string;
+
+    String8 dll_path = s("P:/tide/build/tidelib.dll");
+    Process process = hk_parent_create_process_with_dll(exe, str8_zero(), str8_zero(), dll_path);
+    hk_parent_start_process_with_hooks(process);
+
+ exit:;
     scratch_end(scratch);
 }
