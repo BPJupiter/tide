@@ -2,7 +2,7 @@
 
 
 //////////////////
-// WASM Type Table
+// Type Table
 
 @table(id s7        name              string      t_value t_packed t_ref t_heap t_defined        size)
 WASM_TypeTable://   |                 |           \             ________________________/
@@ -59,5 +59,703 @@ WASM_TypeTable://   |                 |           \             ________________
 wasm_string_from_type_kind:
 {
     @expand(WASM_TypeTable a) `case WASM_TypeKind_$(a.name):{result = str8_lit("$(a.string)");}break`;
+}
+
+////////////////
+// OpCode Tables
+
+@table(id            name                                string)
+WASM_OpTable:
+{
+    //~ fbt: Control Instructions
+    {0x00             Unreachable                        "" }
+    {0x01             Nop                                "" }
+    {0x02             Block                              "" }
+    {0x03             Loop                               "" }
+    {0x04             If                                 "" }
+    {0x05             Else                               "" }
+    {0x06             _                                  "" }
+    {0x07             _                                  "" }
+    {0x08             Throw                              "" }
+    {0x09             _                                  "" }
+    {0x0A             ThrowRef                           "" }
+    {0x0B             End                                "" }
+    {0x0C             Br                                 "" }
+    {0x0D             BrIf                               "" }
+    {0x0E             BrTable                            "" }
+    {0x0F             Return                             "" }
+    {0x10             Call                               "" }
+    {0x11             CallIndirect                       "" }
+    {0x12             ReturnCall                         "" }
+    {0x13             ReturnCallIndirect                 "" }
+    {0x14             CallRef                            "" }
+    {0x15             ReturnCallRef                      "" }
+    {0x16             _                                  "" }
+    {0x17             _                                  "" }
+    {0x18             _                                  "" }
+    {0x19             _                                  "" }
+    {0x1A             Drop                               "" }
+    {0x1B             Select                             "" }
+    {0x1C             SelectT                            "" }
+    {0x1D             _                                  "" }
+    {0x1E             _                                  "" }
+    {0x1F             TryTable                           "" }
+
+    //~ fbt: Variable Instructions
+    {0x20             LocalGet                           "" }
+    {0x21             LocalSet                           "" }
+    {0x22             LocalTee                           "" }
+    {0x23             GlobalGet                          "" }
+    {0x24             GlobalSet                          "" }
+    {0x25             TableGet                           "" }
+    {0x26             TableSet                           "" }
+    {0x27             _                                  "" }
+    
+    {0x28             I32Load                            "" }
+    {0x29             I64Load                            "" }
+    {0x2A             F32Load                            "" }
+    {0x2B             F64Load                            "" }
+    {0x2C             I32Load8S                          "" }
+    {0x2D             I32Load8U                          "" }
+    {0x2E             I32Load16S                         "" }
+    {0x2F             I32Load16U                         "" }
+    {0x30             I64Load8S                          "" }
+    {0x31             I64Load8U                          "" }
+    {0x32             I64Load16S                         "" }
+    {0x33             I64Load16U                         "" }
+    {0x34             I64Load32S                         "" }
+    {0x35             I64Load32U                         "" }
+    
+    {0x36             I32Store                           "" }
+    {0x37             I64Store                           "" }
+    {0x38             F32Store                           "" }
+    {0x39             F64Store                           "" }
+    {0x3A             I32Store8                          "" }
+    {0x3B             I32Store16                         "" }
+    {0x3C             I64Store8                          "" }
+    {0x3D             I64Store16                         "" }
+    {0x3E             I64Store32                         "" }
+    
+    {0x3F             MemorySize                         "" }
+    {0x40             MemoryGrow                         "" }
+    {0x41             I32Const                           "" }
+    {0x42             I64Const                           "" }
+    {0x43             F32Const                           "" }
+    {0x44             F64Const                           "" }
+    
+    //~ fbt: Comparison Instructions
+    {0x45             I32Eqz                             "" }
+    {0x46             I32Eq                              "" }
+    {0x47             I32Ne                              "" }
+    {0x48             I32LtS                             "" }
+    {0x49             I32LtU                             "" }
+    {0x4A             I32GtS                             "" }
+    {0x4B             I32GtU                             "" }
+    {0x4C             I32LeS                             "" }
+    {0x4D             I32LeU                             "" }
+    {0x4E             I32GeS                             "" }
+    {0x4F             I32GeU                             "" }
+    
+    {0x50             I64Eqz                             "" }
+    {0x51             I64Eq                              "" }
+    {0x52             I64Ne                              "" }
+    {0x53             I64LtS                             "" }
+    {0x54             I64LtU                             "" }
+    {0x55             I64GtS                             "" }
+    {0x56             I64GtU                             "" }
+    {0x57             I64LeS                             "" }
+    {0x58             I64LeU                             "" }
+    {0x59             I64GeS                             "" }
+    {0x5A             I64GeU                             "" }
+    
+    {0x5B             F32Eq                              "" }
+    {0x5C             F32Ne                              "" }
+    {0x5D             F32Lt                              "" }
+    {0x5E             F32Gt                              "" }
+    {0x5F             F32Le                              "" }
+    {0x60             F32Ge                              "" }
+    
+    {0x61             F64Eq                              "" }
+    {0x62             F64Ne                              "" }
+    {0x63             F64Lt                              "" }
+    {0x64             F64Gt                              "" }
+    {0x65             F64Le                              "" }
+    {0x66             F64Ge                              "" }
+
+    //~ fbt: Arithmetic Instructions
+    {0x67             I32Clz                             "" }
+    {0x68             I32Ctz                             "" }
+    {0x69             I32PopCount                        "" }
+    {0x6A             I32Add                             "" }
+    {0x6B             I32Sub                             "" }
+    {0x6C             I32Mul                             "" }
+    {0x6D             I32DivS                            "" }
+    {0x6E             I32DivU                            "" }
+    {0x6F             I32RemS                            "" }
+    {0x70             I32RemU                            "" }
+    {0x71             I32And                             "" }
+    {0x72             I32Or                              "" }
+    {0x73             I32Xor                             "" }
+    {0x74             I32ShL                             "" }
+    {0x75             I32ShRS                            "" }
+    {0x76             I32ShRU                            "" }
+    {0x77             I32RotL                            "" }
+    {0x78             I32RotR                            "" }
+    
+    {0x79             I64Clz                             "" }
+    {0x7A             I64Ctz                             "" }
+    {0x7B             I64PopCount                        "" }
+    {0x7C             I64Add                             "" }
+    {0x7D             I64Sub                             "" }
+    {0x7E             I64Mul                             "" }
+    {0x7F             I64DivS                            "" }
+    {0x80             I64DivU                            "" }
+    {0x81             I64RemS                            "" }
+    {0x82             I64RemU                            "" }
+    {0x83             I64And                             "" }
+    {0x84             I64Or                              "" }
+    {0x85             I64Xor                             "" }
+    {0x86             I64ShL                             "" }
+    {0x87             I64ShRS                            "" }
+    {0x88             I64ShRU                            "" }
+    {0x89             I64RotL                            "" }
+    {0x8A             I64RotR                            "" }
+    
+    {0x8B             F32Abs                             "" }
+    {0x8C             F32Neg                             "" }
+    {0x8D             F32Ceil                            "" }
+    {0x8E             F32Floor                           "" }
+    {0x8F             F32Trunc                           "" }
+    {0x90             F32Nearest                         "" }
+    {0x91             F32Sqrt                            "" }
+    {0x92             F32Add                             "" }
+    {0x93             F32Sub                             "" }
+    {0x94             F32Mul                             "" }
+    {0x95             F32Div                             "" }
+    {0x96             F32Min                             "" }
+    {0x97             F32Max                             "" }
+    {0x98             F32CopySign                        "" }
+    
+    {0x99             F64Abs                             "" }
+    {0x9A             F64Neg                             "" }
+    {0x9B             F64Ceil                            "" }
+    {0x9C             F64Floor                           "" }
+    {0x9D             F64Trunc                           "" }
+    {0x9E             F64Nearest                         "" }
+    {0x9F             F64Sqrt                            "" }
+    {0xA0             F64Add                             "" }
+    {0xA1             F64Sub                             "" }
+    {0xA2             F64Mul                             "" }
+    {0xA3             F64Div                             "" }
+    {0xA4             F64Min                             "" }
+    {0xA5             F64Max                             "" }
+    {0xA6             F64CopySign                        "" }
+
+    //~ fbt: Type Conversion Instructions
+    {0xA7             I32WrapI64                         "" }
+    {0xA8             I32TruncF32S                       "" }
+    {0xA9             I32TruncF32U                       "" }
+    {0xAA             I32TruncF64S                       "" }
+    {0xAB             I32TruncF64U                       "" }
+    
+    {0xAC             I64ExtendI32S                      "" }
+    {0xAD             I64ExtendI32U                      "" }
+    {0xAE             I64TruncF32S                       "" }
+    {0xAF             I64TruncF32U                       "" }
+    {0xB0             I64TruncF64S                       "" }
+    {0xB1             I64TruncF64U                       "" }
+    
+    {0xB2             F32ConvertI32S                     "" }
+    {0xB3             F32ConvertI32U                     "" }
+    {0xB4             F32ConvertI64S                     "" }
+    {0xB5             F32ConvertI64U                     "" }
+    {0xB6             F32DemoteF64                       "" }
+    
+    {0xB7             F64ConvertI32S                     "" }
+    {0xB8             F64ConvertI32U                     "" }
+    {0xB9             F64ConvertI64S                     "" }
+    {0xBA             F64ConvertI64U                     "" }
+    {0xBB             F64PromoteF32                      "" }
+    
+    {0xBC             I32ReinterpretF32                  "" }
+    {0xBD             I64ReinterpretF64                  "" }
+    {0xBE             F32ReinterpretI32                  "" }
+    {0xBF             F64ReinterpretI64                  "" }
+    
+    {0xC0             I32Extend8S                        "" }
+    {0xC1             I32Extend16S                       "" }
+    {0xC2             I64Extend8S                        "" }
+    {0xC3             I64Extend16S                       "" }
+    {0xC4             I64Extend32S                       "" }
+    
+    {0xC5             _                                  "" }
+    {0xC6             _                                  "" }
+    {0xC7             _                                  "" }
+    {0xC8             _                                  "" }
+    {0xC9             _                                  "" }
+    {0xCA             _                                  "" }
+    {0xCB             _                                  "" }
+    {0xCC             _                                  "" }
+    {0xCD             _                                  "" }
+    {0xCE             _                                  "" }
+    {0xCF             _                                  "" }
+
+    //~ fbt: Reference Instructions
+    {0xD0             RefNull                            "" }
+    {0xD1             RefIsNull                          "" }
+    {0xD2             RefFunc                            "" }
+    {0xD3             RefEq                              "" }
+    {0xD4             RefAsNonNull                       "" }
+    
+    {0xD5             BrOnNull                           "" }
+    {0xD6             BrOnNonNull                        "" }
+    
+    {0xD7             _                                  "" }
+    {0xD8             _                                  "" }
+    {0xD9             _                                  "" }
+    {0xDA             _                                  "" }
+    {0xDB             _                                  "" }
+    {0xDC             _                                  "" }
+    {0xDD             _                                  "" }
+    {0xDE             _                                  "" }
+    {0xDF             _                                  "" }
+    {0xE0             _                                  "" }
+    {0xE1             _                                  "" }
+    {0xE2             _                                  "" }
+    {0xE3             _                                  "" }
+    {0xE4             _                                  "" }
+    {0xE5             _                                  "" }
+    {0xE6             _                                  "" }
+    {0xE7             _                                  "" }
+    {0xE8             _                                  "" }
+    {0xE9             _                                  "" }
+    {0xEA             _                                  "" }
+    {0xEB             _                                  "" }
+    {0xEC             _                                  "" }
+    {0xED             _                                  "" }
+    {0xEE             _                                  "" }
+    {0xEF             _                                  "" }
+    {0xF0             _                                  "" }
+    {0xF1             _                                  "" }
+    {0xF2             _                                  "" }
+    {0xF3             _                                  "" }
+    {0xF4             _                                  "" }
+    {0xF5             _                                  "" }
+    {0xF6             _                                  "" }
+    {0xF7             _                                  "" }
+    {0xF8             _                                  "" }
+    {0xF9             _                                  "" }
+    {0xFA             _                                  "" }
+
+    //~ fbt: Special markers to indicate that this instruction is variable length
+    {0xFB             GcPrefix                           "" }
+    {0xFC             MiscPrefix                         "" }
+    {0xFD             SimdPrefix                         "" }
+    {0xFE             AtomicPrefix                       "" }
+    {0xFF             _                                  "" }
+}
+
+@table(id            name                                string)
+WASM_GcOpTable:
+{
+    //~ fbt: Struct Instructions
+    {0x00             StructNew                          "" }
+    {0x01             StructNewDefault                   "" }
+    {0x02             StructGet                          "" }
+    {0x03             StructGetS                         "" }
+    {0x04             StructGetU                         "" }
+    {0x05             StructSet                          "" }
+
+    //~ fbt: Array Instructions
+    {0x06             ArrayNew                           "" }
+    {0x07             ArrayNewDefault                    "" }
+    {0x08             ArrayNewFixed                      "" }
+    {0x09             ArrayNewData                       "" }
+    {0x0A             ArrayNewElem                       "" }
+    {0x0B             ArrayGet                           "" }
+    {0x0C             ArrayGetS                          "" }
+    {0x0D             ArrayGetU                          "" }
+    {0x0E             ArraySet                           "" }
+    {0x0F             ArrayLen                           "" }
+    {0x10             ArrayFill                          "" }
+    {0x11             ArrayCopy                          "" }
+    {0x12             ArrayInitData                      "" }
+    {0x13             ArrayInitElem                      "" }
+
+    //~ fbt: Reference Instructions
+    {0x14             RefTest                            "" }
+    {0x15             RefTestNull                        "" }
+    {0x16             RefCast                            "" }
+    {0x17             RefCastNull                        "" }
+    {0x18             BrOnCast                           "" }
+    {0x19             BrOnCastFail                       "" }
+    {0x1A             AnyConvertExtern                   "" }
+    {0x1B             ExternConvertAny                   "" }
+    {0x1C             RefI31                             "" }
+    {0x1D             I31GetS                            "" }
+    {0x1E             I31GetU                            "" }
+    {0x1F             _                                  "" }
+}
+
+@table(id            name                                string)
+WASM_MiscOpTable:
+{
+    {0x00             I32TruncSatF32S                    "" }
+    {0x01             I32TruncSatF32U                    "" }
+    {0x02             I32TruncSatF64S                    "" }
+    {0x03             I32TruncSatF64U                    "" }
+    
+    {0x04             I64TruncSatF32S                    "" }
+    {0x05             I64TruncSatF32U                    "" }
+    {0x06             I64TruncSatF64S                    "" }
+    {0x07             I64TruncSatF64U                    "" }
+    
+    {0x08             MemoryInit                         "" }
+    {0x09             DataDrop                           "" }
+    {0x0A             MemoryCopy                         "" }
+    {0x0B             MemoryFill                         "" }
+    {0x0C             TableInit                          "" }
+    {0x0D             ElemDrop                           "" }
+    {0x0E             TableCopy                          "" }
+    {0x0F             TableGrow                          "" }
+    {0x10             TableSize                          "" }
+    {0x11             TableFill                          "" }
+    {0x12             _                                  "" }
+}
+
+@table(id            name                                string)
+WASM_SimdOpTable:
+{
+    //~ fbt: SIMD Access Instructions
+    {0x0000             V128Load                           "" }
+    {0x0001             V128Load8x8S                       "" }
+    {0x0002             V128Load8x8U                       "" }
+    {0x0003             V128Load16x4S                      "" }
+    {0x0004             V128Load16x4U                      "" }
+    {0x0005             V128Load32x2S                      "" }
+    {0x0006             V128Load32x2U                      "" }
+    {0x0007             V128Load8Splat                     "" }
+    {0x0008             V128Load16Splat                    "" }
+    {0x0009             V128Load32Splat                    "" }
+    {0x000A             V128Load64Splat                    "" }
+    {0x000B             V128Store                          "" }
+    
+    {0x000C             V128Const                          "" }
+    {0x000D             I8x16Shuffle                       "" }
+    {0x000E             I8x16Swizzle                       "" }
+    
+    {0x000F             I8x16Splat                         "" }
+    {0x0010             I16x8Splat                         "" }
+    {0x0011             I32x4Splat                         "" }
+    {0x0012             I64x2Splat                         "" }
+    {0x0013             F32x4Splat                         "" }
+    {0x0014             F64x2Splat                         "" }
+    
+    {0x0015             I8x16ExtractLaneS                  "" }
+    {0x0016             I8x16ExtractLaneU                  "" }
+    {0x0017             I8x16ReplaceLane                   "" }
+    {0x0018             I16x8ExtractLaneS                  "" }
+    {0x0019             I16x8ExtractLaneU                  "" }
+    {0x001A             I16x8ReplaceLane                   "" }
+    {0x001B             I32x4ExtractLane                   "" }
+    {0x001C             I32x4ReplaceLane                   "" }
+    {0x001D             I64x2ExtractLane                   "" }
+    {0x001E             I64x2ReplaceLane                   "" }
+    {0x001F             F32x4ExtractLane                   "" }
+    {0x0020             F32x4ReplaceLane                   "" }
+    {0x0021             F64x2ExtractLane                   "" }
+    {0x0022             F64x2ReplaceLane                   "" }
+
+    //~ fbt: SIMD Comparison Instructions
+    {0x0023             I8x16Eq                            "" }
+    {0x0024             I8x16Ne                            "" }
+    {0x0025             I8x16LtS                           "" }
+    {0x0026             I8x16LtU                           "" }
+    {0x0027             I8x16GtS                           "" }
+    {0x0028             I8x16GtU                           "" }
+    {0x0029             I8x16LeS                           "" }
+    {0x002A             I8x16LeU                           "" }
+    {0x002B             I8x16GeS                           "" }
+    {0x002C             I8x16GeU                           "" }
+    
+    {0x002D             I16x8Eq                            "" }
+    {0x002E             I16x8Ne                            "" }
+    {0x002F             I16x8LtS                           "" }
+    {0x0030             I16x8LtU                           "" }
+    {0x0031             I16x8GtS                           "" }
+    {0x0032             I16x8GtU                           "" }
+    {0x0033             I16x8LeS                           "" }
+    {0x0034             I16x8LeU                           "" }
+    {0x0035             I16x8GeS                           "" }
+    {0x0036             I16x8GeU                           "" }
+    
+    {0x0037             I32x4Eq                            "" }
+    {0x0038             I32x4Ne                            "" }
+    {0x0039             I32x4LtS                           "" }
+    {0x003A             I32x4LtU                           "" }
+    {0x003B             I32x4GtS                           "" }
+    {0x003C             I32x4GtU                           "" }
+    {0x003D             I32x4LeS                           "" }
+    {0x003E             I32x4LeU                           "" }
+    {0x003F             I32x4GeS                           "" }
+    {0x0040             I32x4GeU                           "" }
+
+    {0x0041             F32x4Eq                            "" }
+    {0x0042             F32x4Ne                            "" }
+    {0x0043             F32x4Lt                            "" }
+    {0x0044             F32x4Gt                            "" }
+    {0x0045             F32x4Le                            "" }
+    {0x0046             F32x4Ge                            "" }
+    
+    {0x0047             F64x2Eq                            "" }
+    {0x0048             F64x2Ne                            "" }
+    {0x0049             F64x2Lt                            "" }
+    {0x004A             F64x2Gt                            "" }
+    {0x004B             F64x2Le                            "" }
+    {0x004C             F64x2Ge                            "" }
+
+    {0x004D             V128Not                            "" }
+    {0x004E             V128And                            "" }
+    {0x004F             V128AndNot                         "" }
+    {0x0050             V128Or                             "" }
+    {0x0051             V128Xor                            "" }
+    {0x0052             V128BitSelect                      "" }
+    {0x0053             V128AnyTrue                        "" }
+    {0x0054             V128Load8Lane                      "" }
+    {0x0055             V128Load16Lane                     "" }
+    {0x0056             V128Load32Lane                     "" }
+    {0x0057             V128Load64Lane                     "" }
+    {0x0058             V128Store8Lane                     "" }
+    {0x0059             V128Store16Lane                    "" }
+    {0x005A             V128Store32Lane                    "" }
+    {0x005B             V128Store64Lane                    "" }
+    {0x005C             V128Load32Zero                     "" }
+    {0x005D             V128Load64Zero                     "" }
+    
+    {0x005E             F32x4DemoteF64x2Zero               "" }
+    {0x005F             F64x2PromoteLowF32x4               "" }
+    
+    {0x0060             I8x16Abs                           "" }
+    {0x0061             I8x16Neg                           "" }
+    {0x0062             I8x16PopCount                      "" }
+    {0x0063             I8x16AllTrue                       "" }
+    {0x0064             I8x16Bitmask                       "" }
+    {0x0065             I8x16NarrowI16x8S                  "" }
+    {0x0066             I8x16NarrowI16x8U                  "" }
+    
+    {0x0067             F32x4Ceil                          "" }
+    {0x0068             F32x4Floor                         "" }
+    {0x0069             F32x4Trunc                         "" }
+    {0x006A             F32x4Nearest                       "" }
+    
+    {0x006B             I8x16ShL                           "" }
+    {0x006C             I8x16ShRS                          "" }
+    {0x006D             I8x16ShRU                          "" }
+    {0x006E             I8x16Add                           "" }
+    {0x006F             I8x16AddSatS                       "" }
+    {0x0070             I8x16AddSatU                       "" }
+    {0x0071             I8x16Sub                           "" }
+    {0x0072             I8x16SubSatS                       "" }
+    {0x0073             I8x16SubSatU                       "" }
+    
+    {0x0074             F64x2Ceil                          "" }
+    {0x0075             F64x2Floor                         "" }
+    
+    {0x0076             I8x16MinS                          "" }
+    {0x0077             I8x16MinU                          "" }
+    {0x0078             I8x16MaxS                          "" }
+    {0x0079             I8x16MaxU                          "" }
+    
+    {0x007A             F64x2Trunc                         "" }
+    
+    {0x007B             I8x16AvgRoundU                     "" }
+    
+    {0x007C             I16x8ExtAddPairwiseI8x16S          "" }
+    {0x007D             I16x8ExtAddPairwiseI8x16U          "" }
+    {0x007E             I32x4ExtAddPairwiseI16x8S          "" }
+    {0x007F             I32x4ExtAddPairwiseI16x8U          "" }
+
+    {0x0080             I16x8Abs                           "" }
+    {0x0081             I16x8Neg                           "" }
+    {0x0082             I16x8Q15MulRoundSatS               "" }
+    {0x0083             I16x8AllTrue                       "" }
+    {0x0084             I16x8Bitmask                       "" }
+    {0x0085             I16x8NarrowI32x4S                  "" }
+    {0x0086             I16x8NarrowI32x4U                  "" }
+    {0x0087             I16x8ExtendLowI8x16S               "" }
+    {0x0088             I16x8ExtendHighI8x16S              "" }
+    {0x0089             I16x8ExtendLowI8x16U               "" }
+    {0x008A             I16x8ExtendHighI8x16U              "" }
+    {0x008B             I16x8ShL                           "" }
+    {0x008C             I16x8ShRS                          "" }
+    {0x008D             I16x8ShRU                          "" }
+    {0x008E             I16x8Add                           "" }
+    {0x008F             I16x8AddSatS                       "" }
+    {0x0090             I16x8AddSatU                       "" }
+    {0x0091             I16x8Sub                           "" }
+    {0x0092             I16x8SubSatS                       "" }
+    {0x0093             I16x8SubSatU                       "" }
+    
+    {0x0094             F64x2Nearest                       "" }
+    
+    {0x0095             I16x8Mul                           "" }
+    {0x0096             I16x8MinS                          "" }
+    {0x0097             I16x8MinU                          "" }
+    {0x0098             I16x8MaxS                          "" }
+    {0x0099             I16x8MaxU                          "" }
+    {0x009A             _                                  "" }
+    {0x009B             I16x8AvgRoundU                     "" }
+    {0x009C             I16x8ExtMulLowI8x16S               "" }
+    {0x009D             I16x8ExtMulHighI8x16S              "" }
+    {0x009E             I16x8ExtMulLowI8x16U               "" }
+    {0x009F             I16x8ExtMulHighI8x16U              "" }
+    
+    {0x00A0             I32x4Abs                           "" }
+    {0x00A1             I32x4Neg                           "" }
+    {0x00A2             _                                  "" }
+    {0x00A3             I32x4AllTrue                       "" }
+    {0x00A4             I32x4Bitmask                       "" }
+    {0x00A5             _                                  "" }
+    {0x00A6             _                                  "" }
+    {0x00A7             I32x4ExtendLowI16x8S               "" }
+    {0x00A8             I32x4ExtendHighI16x8S              "" }
+    {0x00A9             I32x4ExtendLowI16x8U               "" }
+    {0x00AA             I32x4ExtendHighI16x8U              "" }
+    {0x00AB             I32x4ShL                           "" }
+    {0x00AC             I32x4ShRS                          "" }
+    {0x00AD             I32x4ShRU                          "" }
+    {0x00AE             I32x4Add                           "" }
+    {0x00AF             _                                  "" }
+    {0x00B0             _                                  "" }
+    {0x00B1             I32x4Sub                           "" }
+    {0x00B2             _                                  "" }
+    {0x00B3             _                                  "" }
+    {0x00B4             _                                  "" }
+    {0x00B5             I32x4Mul                           "" }
+    {0x00B6             I32x4MinS                          "" }
+    {0x00B7             I32x4MinU                          "" }
+    {0x00B8             I32x4MaxS                          "" }
+    {0x00B9             I32x4MaxU                          "" }
+    {0x00BA             I32x4DotI16x8S                     "" }
+    {0x00BB             _                                  "" }
+    {0x00BC             I32x4ExtMulLowI16x8S               "" }
+    {0x00BD             I32x4ExtMulHighI16x8S              "" }
+    {0x00BE             I32x4ExtMulLowI16x8U               "" }
+    {0x00BF             I32x4ExtMulHighI16x8U              "" }
+
+    {0x00C0             I64x2Abs                           "" }
+    {0x00C1             I64x2Neg                           "" }
+    {0x00C2             _                                  "" }
+    {0x00C3             I64x2AllTrue                       "" }
+    {0x00C4             I64x2Bitmask                       "" }
+    {0x00C5             _                                  "" }
+    {0x00C6             _                                  "" }
+    {0x00C7             I64x2ExtendLowI32x4S               "" }
+    {0x00C8             I64x2ExtendHighI32x4S              "" }
+    {0x00C9             I64x2ExtendLowI32x4U               "" }
+    {0x00CA             I64x2ExtendHighI32x4U              "" }
+    {0x00CB             I64x2ShL                           "" }
+    {0x00CC             I64x2ShRS                          "" }
+    {0x00CD             I64x2ShRU                          "" }
+    {0x00CE             I64x2Add                           "" }
+    {0x00CF             _                                  "" }
+    {0x00D0             _                                  "" }
+    {0x00D1             I64x2Sub                           "" }
+    {0x00D2             _                                  "" }
+    {0x00D3             _                                  "" }
+    {0x00D4             _                                  "" }
+    {0x00D5             I64x2Mul                           "" }
+    {0x00D6             I64x2Eq                            "" }
+    {0x00D7             I64x2Ne                            "" }
+    {0x00D8             I64x2LtS                           "" }
+    {0x00D9             I64x2GtS                           "" }
+    {0x00DA             I64x2LeS                           "" }
+    {0x00DB             I64x2GeS                           "" }
+    {0x00DC             I64x2ExtMulLowI32x4S               "" }
+    {0x00DD             I64x2ExtMulHighI32x4S              "" }
+    {0x00DE             I64x2ExtMulLowI32x4U               "" }
+    {0x00DF             I64x2ExtMulHighI32x4U              "" }
+    
+    {0x00E0             F32x4Abs                           "" }
+    {0x00E1             F32x4Neg                           "" }
+    {0x00E2             _                                  "" }
+    {0x00E3             F32x4Sqrt                          "" }
+    {0x00E4             F32x4Add                           "" }
+    {0x00E5             F32x4Sub                           "" }
+    {0x00E6             F32x4Mul                           "" }
+    {0x00E7             F32x4Div                           "" }
+    {0x00E8             F32x4Min                           "" }
+    {0x00E9             F32x4Max                           "" }
+    {0x00EA             F32x4PMin                          "" }
+    {0x00EB             F32x4PMax                          "" }
+    
+    {0x00EC             F64x2Abs                           "" }
+    {0x00ED             F64x2Neg                           "" }
+    {0x00EE             _                                  "" }
+    {0x00EF             F64x2Sqrt                          "" }
+    {0x00F0             F64x2Add                           "" }
+    {0x00F1             F64x2Sub                           "" }
+    {0x00F2             F64x2Mul                           "" }
+    {0x00F3             F64x2Div                           "" }
+    {0x00F4             F64x2Min                           "" }
+    {0x00F5             F64x2Max                           "" }
+    {0x00F6             F64x2PMin                          "" }
+    {0x00F7             F64x2PMax                          "" }
+    {0x00F8             I32x4TruncSatF32x4S                "" }
+    {0x00F9             I32x4TruncSatF32x4U                "" }
+    {0x00FA             F32x4ConvertI32x4S                 "" }
+    {0x00FB             F32x4ConvertI32x4U                 "" }
+    {0x00FC             I32x4TruncSatF64x2SZero            "" }
+    {0x00FD             I32x4TruncSatF64x2UZero            "" }
+    {0x00FE             F64x2ConvertLowI32x4S              "" }
+    {0x00FF             F64x2ConvertLowI32x4U              "" }
+
+    //~ fbt: Relaxed SIMD Instructions
+    {0x0100             I8x16RelaxedSwizzle                "" }
+    {0x0101             I32x4RelaxedTruncF32x4S            "" }
+    {0x0102             I32x4RelaxedTruncF32x4U            "" }
+    {0x0103             I32x4RelaxedTruncF64x2S            "" }
+    {0x0104             I32x4RelaxedTruncF64x2U            "" }
+
+    // MultAdd:     (a * b) + c
+    // NegMultAdd: -(a * b) + c 
+    {0x0105             F32x4RelaxedMultAdd                "" }
+    {0x0106             F32x4RelaxedNegMultAdd             "" }
+    {0x0107             F64x2RelaxedMultAdd                "" }
+    {0x0108             F64x2RelaxedNegMultAdd             "" }
+    
+    {0x0109             I8x16RelaxedLaneSelect             "" }
+    {0x010A             I16x8RelaxedLaneSelect             "" }
+    {0x010B             I32x4RelaxedLaneSelect             "" }
+    {0x010C             I64x2RelaxedLaneSelect             "" }
+    
+    {0x010D             F32x4RelaxedMin                    "" }
+    {0x010E             F32x4RelaxedMax                    "" }
+    {0x010F             F64x2RelaxedMin                    "" }
+    {0x0110             F64x2RelaxedMax                    "" }
+    {0x0111             I16x8RelaxedQ15MulRoundS           "" }
+    {0x0112             I16x8RelaxedDotI8x16I7x16S         "" }
+    {0x0113             I32x4RelaxedDotI8x18I7x16AddS      "" }
+    {0x0114             _                                  "" }
+}
+
+@enum(u8) WASM_OpKind:
+{
+    @expand(WASM_OpTable a) `$(a.name == _ -> "Reserved"..a.id)$(a.name != _ -> a.name) = $(a.id)`,
+}
+
+@enum(u8) WASM_GcOpKind:
+{
+    @expand(WASM_GcOpTable a) `$(a.name == _ -> "Reserved"..a.id)$(a.name != _ -> a.name) = $(a.id)`,
+}
+
+@enum(u8) WASM_MiscOpKind:
+{
+    @expand(WASM_MiscOpTable a) `$(a.name == _ -> "Reserved"..a.id)$(a.name != _ -> a.name) = $(a.id)`,
+}
+
+@enum(u16) WASM_SimdOpKind:
+{
+    @expand(WASM_SimdOpTable a) `$(a.name == _ -> "Reserved"..a.id)$(a.name != _ -> a.name) = $(a.id)`,
 }
 

@@ -282,6 +282,15 @@ internal void t_entry_point(Cmd_Line *cmdline)
     //t_print_hardware_info();
     
     // Handle help
+#if OS_WINDOWS
+    {
+        HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+        DWORD mode = 0;
+        GetConsoleMode(out, &mode);
+        mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+        SetConsoleMode(out, mode);
+    }
+#endif
 
     // Gather tests
     {

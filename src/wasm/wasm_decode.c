@@ -482,6 +482,7 @@ wasm_module_decode(Arena *arena, String8 data)
     /////////////////////
     // decode global section
     //
+#undef global
     ProfScope("decode global section")
         if(sections[WASM_SectionKind_Global].size > 0)
     {
@@ -492,8 +493,51 @@ wasm_module_decode(Arena *arena, String8 data)
         if(global_count)
         {
             module->global_count = global_count;
+            module->globals = push_array(arena, WASM_Global, module->global_count);
+
+            for(u64 it = 0; it < module->global_count; it += 1)
+            {
+                WASM_Global *global = &module->globals[it];
+
+                // get type kind and mutability
+                WASM_TypeKind kind = 0;
+                section_cursor += str8_deserial_read_struct(section, section_cursor, &kind);
+
+                bool8 is_mutable = 0;
+                section_cursor += str8_deserial_read_struct(section, section_cursor, &is_mutable);
+
+                // load init expr
+                {
+                    WASM_OpKind op = 0;
+                    section_cursor += str8_deserial_read_struct(section, section_cursor, &op);
+
+                    for(;op != WASM_OpKind_End;)
+                    {
+                        switch(op)
+                        {
+                            case WASM_OpKind_I32Const:
+                            {
+                            }break;
+                            case WASM_OpKind_I64Const:
+                            {
+                            }break;
+                            case WASM_OpKind_F32Const:
+                            {
+                            }break;
+                            case WASM_OpKind_F64Const:
+                            {
+                            }break;
+                        }
+                    }
+                }
+
+                // store in module
+                global->type.kind = kind;
+                global->type.is_mutable = is_mutable;
+            }
         }
     }
+#define global static
 
     /////////////////////
     // decode export section

@@ -25,8 +25,8 @@ struct Key_Value_Pair {
 typedef struct Bucket_Node Bucket_Node;
 struct Bucket_Node {
     Key_Value_Pair v;
-    struct Bucket_Node *next;
-    struct Bucket_Node *prev;
+    Bucket_Node *next;
+    Bucket_Node *prev;
 };
 
 typedef struct Bucket_List Bucket_List;

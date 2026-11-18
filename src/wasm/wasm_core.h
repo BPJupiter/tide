@@ -7,6 +7,25 @@
 
 #include "generated/wasm.meta.h"
 
+typedef u128 v128;
+
+////////////////
+// Top-Level Types
+
+typedef union WASM_Value WASM_Value;
+union WASM_Value
+{
+    s32 s32;
+    u32 u32;
+    u32 global_index;
+    u32 ref_index;
+    s64 s64;
+    u64 u64;
+    f32 f32;
+    f64 f64;
+    u128 v128;
+};
+
 ////////////////
 // Memory Flag
 
@@ -36,11 +55,36 @@ typedef WASM_Function_Type WASM_Type;
 ////////////////
 // Global Types
 
+typedef struct WASM_Init_Expr WASM_Init_Expr;
+struct WASM_Init_Expr
+{
+    WASM_TypeKind type_kind;
+    union
+    {
+        struct
+        {
+            WASM_Value v;
+        } unary;
+        struct
+        {
+            WASM_Init_Expr *l_expr;
+            WASM_Init_Expr *r_expr;
+        } binary;
+    };
+};
+
+typedef struct WASM_Global_Type WASM_Global_Type;
+struct WASM_Global_Type
+{
+    WASM_TypeKind kind;
+    bool32 is_mutable;
+};
+
 typedef struct WASM_Global WASM_Global;
 struct WASM_Global
 {
-    u64 foo;
-    // @TODO
+    WASM_Global_Type type;
+    WASM_Init_Expr init_expr;
 };
 
 ////////////
