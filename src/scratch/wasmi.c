@@ -78,7 +78,7 @@ entry_point(Cmd_Line *cmdline)
     u64 total_import_function_count = 0;
     for(u64 i = 0; i < module->import_count; i += 1)
     {
-        String8 import_string = str8f(scratch.arena, "(import \"%S\" \"%S\" (%S (;%I64u;) (type %I32u)", module->imports[i].module_name, module->imports[i].field_name, wasm_string_from_import_kind(module->imports[i].kind), i, module->imports[i].function.func_type_index);
+        String8 import_string = str8f(scratch.arena, "(import \"%S\" \"%S\" (%S (;%I64u;) (type %I32u)", module->imports[i].names.module_name, module->imports[i].names.field_name, wasm_string_from_import_kind(module->imports[i].kind), i, module->imports[i].function_import.func_type_index);
         printf_with_indent(1, "%.*s\n", str8_varg(import_string));
         
         if(module->imports[i].kind == WASM_ImportKind_Func)

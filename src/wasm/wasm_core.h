@@ -17,10 +17,12 @@ union WASM_Value
 {
     s32 s32;
     u32 u32;
+    u32 i32;
     u32 global_index;
     u32 ref_index;
     s64 s64;
     u64 u64;
+    u64 i64;
     f32 f32;
     f64 f64;
     u128 v128;
@@ -224,7 +226,9 @@ struct WASM_Global_Import
     // base names
     String8 module_name;
     String8 field_name;
-    // @TODO
+    
+    WASM_Global base_global;
+    u32 data_offset;
 };
 
 typedef struct WASM_Import WASM_Import;
@@ -233,10 +237,10 @@ struct WASM_Import
     WASM_ImportKind kind;
     union
     {
-        WASM_Function_Import function;
-        WASM_Table_Import table;
-        WASM_Memory_Import memory;
-        WASM_Global_Import global;
+        WASM_Function_Import function_import;
+        WASM_Table_Import table_import;
+        WASM_Memory_Import memory_import;
+        WASM_Global_Import global_import;
         // base (present as first two fields of all union members)
         struct
         {
@@ -249,11 +253,12 @@ struct WASM_Import
 /////////////
 // Top-Level Module Bundle
 
-typedef enum WASM_ModuleKind
+typedef u32 WASM_ModuleKind;
+enum WASM_ModuleKindEnum
 {
     WASM_ModuleKind_Bytecode,
     WASM_ModuleKind_COUNT,
-} WASM_ModuleKind;
+};
 
 typedef struct WASM_Module WASM_Module;
 struct WASM_Module
@@ -277,6 +282,17 @@ struct WASM_Module
     // section elements
     WASM_Type           *types;
     WASM_Import         *imports;
+    struct
+    {
+        u64 function_count;
+        u64 table_count;
+        u64 memory_count;
+        u64 global_count;
+        WASM_Import *functions;
+        WASM_Import *tables;
+        WASM_Import *memories;
+        WASM_Import *globals;
+    } import_views;
     WASM_Function       *functions;
     WASM_Table          *tables;
     WASM_Memory         *memories;
@@ -307,6 +323,7 @@ internal bool32 wasm_type_match(WASM_Type *a, WASM_Type *b);
 // String Helpers
 
 internal String8 wasm_string_from_import_kind(WASM_ImportKind k);
+
 
 #endif // WASM_CORE_H
 

@@ -207,7 +207,7 @@ wasm_module_decode(Arena *arena, String8 data)
                     {
                         u64 type_index = 0;
                         section_cursor += str8_deserial_read_uleb128(section, section_cursor, &type_index);
-                        import->function.func_type_index = type_index;
+                        import->function_import.func_type_index = type_index;
                     }break;
                     case WASM_ImportKind_Table:
                     {
@@ -500,39 +500,101 @@ wasm_module_decode(Arena *arena, String8 data)
                 WASM_Global *global = &module->globals[it];
 
                 // get type kind and mutability
-                WASM_TypeKind kind = 0;
-                section_cursor += str8_deserial_read_struct(section, section_cursor, &kind);
+                WASM_TypeKind type_kind = 0;
+                section_cursor += str8_deserial_read_struct(section, section_cursor, &type_kind);
 
                 bool8 is_mutable = 0;
                 section_cursor += str8_deserial_read_struct(section, section_cursor, &is_mutable);
 
-                // load init expr
+                // resolve evlauation of global value
                 {
+                    typedef struct Constant_Expr Constant_Expr;
+                    struct Constant_Expr
+                    {
+                        // @HERE we want to create some kind of stack
+                        // that operands will be pushed into, and popped
+                        // and re-linked into a tree structure
+                        // when a binary arithmetic operation is found.
+                        u64 foo;
+                    };
                     WASM_OpKind op = 0;
                     section_cursor += str8_deserial_read_struct(section, section_cursor, &op);
 
-                    for(;op != WASM_OpKind_End;)
+                    WASM_Init_Expr expr = {0};
+                    for(;op != WASM_OpKind_End; section_cursor += str8_deserial_read_struct(section, section_cursor, &op))
                     {
+                        u64 const_val = 0;
                         switch(op)
                         {
+                            default:{}break;
                             case WASM_OpKind_I32Const:
                             {
+                                section_cursor += str8_deserial_read_uleb128(section, section_cursor, &const_val);
+                                expr.unary.v.i32 = (u32)const_val;
                             }break;
                             case WASM_OpKind_I64Const:
                             {
+                                section_cursor += str8_deserial_read_uleb128(section, section_cursor, &const_val);
+                                expr.unary.v.i64 = (u64)const_val;
                             }break;
                             case WASM_OpKind_F32Const:
                             {
+                                section_cursor += str8_deserial_read_uleb128(section, section_cursor, &const_val);
+                                MemoryCopyStruct(&expr.unary.v.f32, &const_val);
                             }break;
                             case WASM_OpKind_F64Const:
                             {
+                                section_cursor += str8_deserial_read_uleb128(section, section_cursor, &const_val);
+                                MemoryCopyStruct(&expr.unary.v.f64, &const_val);
+                            }break;
+                            case WASM_OpKind_I32Add:
+                            case WASM_OpKind_I32Sub:
+                            case WASM_OpKind_I32Mul: expr.type_kind = WASM_TypeKind_I32; goto arithmetic;
+                            case WASM_OpKind_I64Add:
+                            case WASM_OpKind_I64Sub:
+                            case WASM_OpKind_I64Mul: expr.type_kind = WASM_TypeKind_I64; goto arithmetic;
+                            arithmetic:;
+                            {
+                                
+                            }break;
+                            case WASM_OpKind_GlobalGet:
+                            {
+                                u64 global_index = 0;
+                                WASM_TypeKind global_kind = 0;
+
+                                section_cursor += str8_deserial_read_uleb128(section, section_cursor, &global_index);
+                                expr.unary.v.global_index = global_index;
+
+                                // NOTE(fbt): Currently, constant expressions occurring as initializers
+                                // of globals (with global.get instructions) are constrained by only
+                                // being allowed to refer to __imported__ globals.
+                                if(global_index >= module->import_views.global_count)
+                                {
+                                    // @TODO: error handling
+                                }
+
+                                if(module->import_views.globals[global_index].global_import.base_global.type.is_mutable)
+                                {
+                                    // @TODO: error handling
+                                }
+
+                                if(global_index < module->import_views.global_count)
+                                {
+                                    global_kind = module->import_views.globals[global_index].global_import.base_global.type.kind;
+                                }
+                                else
+                                {
+                                    global_kind = module->globals[global_index - module->import_views.global_count].type.kind;
+                                }
                             }break;
                         }
                     }
+
+                    
                 }
 
                 // store in module
-                global->type.kind = kind;
+                global->type.kind = type_kind;
                 global->type.is_mutable = is_mutable;
             }
         }

@@ -201,7 +201,7 @@ if "%wasmi%"=="1"             set didbuild=1 && %compile% ..\src\scratch\wasmi.c
 popd
 
 :: --- Warn On No Builds ------------------------------------------------------
-if "%didbuild%"=="" (
+if "%didbuild%"=="0" (
   echo [WARNING] no valid build target specified; must use build target names as arguments to this script, like `build torment` or `build rdi_from_pdb`.
   exit /b 1
 )

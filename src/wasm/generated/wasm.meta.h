@@ -677,4 +677,8 @@ X(Recursive, 0x4E, 4)\
 X(Void, 0x40, 0)\
 
 internal String8 wasm_string_from_type_kind(WASM_TypeKind v);
+internal String8 wasm_string_from_opkind(WASM_OpKind v);
+internal String8 wasm_string_from_gcopkind(WASM_GcOpKind v);
+internal String8 wasm_string_from_miscopkind(WASM_MiscOpKind v);
+internal String8 wasm_string_from_simdopkind(WASM_SimdOpKind v);
 #endif // WASM_META_H

@@ -64,679 +64,693 @@ wasm_string_from_type_kind:
 ////////////////
 // OpCode Tables
 
-@table(id            name                                string)
-WASM_OpTable:
-{
+@table(id            name                                string                       f_constant   f_foo1   f_foo2   f_foo3                            )
+WASM_OpTable://      |                                   |                            \______________              _______/
+{//                  |                                   |                                           \            /
     //~ fbt: Control Instructions
-    {0x00             Unreachable                        "" }
-    {0x01             Nop                                "" }
-    {0x02             Block                              "" }
-    {0x03             Loop                               "" }
-    {0x04             If                                 "" }
-    {0x05             Else                               "" }
-    {0x06             _                                  "" }
-    {0x07             _                                  "" }
-    {0x08             Throw                              "" }
-    {0x09             _                                  "" }
-    {0x0A             ThrowRef                           "" }
-    {0x0B             End                                "" }
-    {0x0C             Br                                 "" }
-    {0x0D             BrIf                               "" }
-    {0x0E             BrTable                            "" }
-    {0x0F             Return                             "" }
-    {0x10             Call                               "" }
-    {0x11             CallIndirect                       "" }
-    {0x12             ReturnCall                         "" }
-    {0x13             ReturnCallIndirect                 "" }
-    {0x14             CallRef                            "" }
-    {0x15             ReturnCallRef                      "" }
-    {0x16             _                                  "" }
-    {0x17             _                                  "" }
-    {0x18             _                                  "" }
-    {0x19             _                                  "" }
-    {0x1A             Drop                               "" }
-    {0x1B             Select                             "" }
-    {0x1C             SelectT                            "" }
-    {0x1D             _                                  "" }
-    {0x1E             _                                  "" }
-    {0x1F             TryTable                           "" }
+    {0x00             Unreachable                        "unreachable"                                  0  0  0  0                                     }
+    {0x01             Nop                                "nop"                                          0  0  0  0                                     }
+    {0x02             Block                              "block"                                        0  0  0  0                                     }
+    {0x03             Loop                               "loop"                                         0  0  0  0                                     }
+    {0x04             If                                 "if"                                           0  0  0  0                                     }
+    {0x05             Else                               "else"                                         0  0  0  0                                     }
+    {0x06             _                                  ""                                             0  0  0  0                                     }
+    {0x07             _                                  ""                                             0  0  0  0                                     }
+    {0x08             Throw                              "throw"                                        0  0  0  0                                     }
+    {0x09             _                                  ""                                             0  0  0  0                                     }
+    {0x0A             ThrowRef                           "throw_ref"                                    0  0  0  0                                     }
+    {0x0B             End                                "end"                                          0  0  0  0                                     }
+    {0x0C             Br                                 "br"                                           0  0  0  0                                     }
+    {0x0D             BrIf                               "br_if"                                        0  0  0  0                                     }
+    {0x0E             BrTable                            "br_table"                                     0  0  0  0                                     }
+    {0x0F             Return                             "return"                                       0  0  0  0                                     }
+    {0x10             Call                               "call"                                         0  0  0  0                                     }
+    {0x11             CallIndirect                       "call_indirect"                                0  0  0  0                                     }
+    {0x12             ReturnCall                         "return_call"                                  0  0  0  0                                     }
+    {0x13             ReturnCallIndirect                 "return_call_indirect"                         0  0  0  0                                     }
+    {0x14             CallRef                            "call_ref"                                     0  0  0  0                                     }
+    {0x15             ReturnCallRef                      "return_call_ref"                              0  0  0  0                                     }
+    {0x16             _                                  ""                                             0  0  0  0                                     }
+    {0x17             _                                  ""                                             0  0  0  0                                     }
+    {0x18             _                                  ""                                             0  0  0  0                                     }
+    {0x19             _                                  ""                                             0  0  0  0                                     }
+
+    //~ fbt: Parametric Instructions
+    {0x1A             Drop                               "drop"                                         0  0  0  0                                     }
+    {0x1B             Select                             "select"                                       0  0  0  0                                     }
+    {0x1C             SelectT                            "select"                                       0  0  0  0                                     }
+    {0x1D             _                                  ""                                             0  0  0  0                                     }
+    {0x1E             _                                  ""                                             0  0  0  0                                     }
+    {0x1F             TryTable                           "try_table"                                    0  0  0  0                                     }
 
     //~ fbt: Variable Instructions
-    {0x20             LocalGet                           "" }
-    {0x21             LocalSet                           "" }
-    {0x22             LocalTee                           "" }
-    {0x23             GlobalGet                          "" }
-    {0x24             GlobalSet                          "" }
-    {0x25             TableGet                           "" }
-    {0x26             TableSet                           "" }
-    {0x27             _                                  "" }
-    
-    {0x28             I32Load                            "" }
-    {0x29             I64Load                            "" }
-    {0x2A             F32Load                            "" }
-    {0x2B             F64Load                            "" }
-    {0x2C             I32Load8S                          "" }
-    {0x2D             I32Load8U                          "" }
-    {0x2E             I32Load16S                         "" }
-    {0x2F             I32Load16U                         "" }
-    {0x30             I64Load8S                          "" }
-    {0x31             I64Load8U                          "" }
-    {0x32             I64Load16S                         "" }
-    {0x33             I64Load16U                         "" }
-    {0x34             I64Load32S                         "" }
-    {0x35             I64Load32U                         "" }
-    
-    {0x36             I32Store                           "" }
-    {0x37             I64Store                           "" }
-    {0x38             F32Store                           "" }
-    {0x39             F64Store                           "" }
-    {0x3A             I32Store8                          "" }
-    {0x3B             I32Store16                         "" }
-    {0x3C             I64Store8                          "" }
-    {0x3D             I64Store16                         "" }
-    {0x3E             I64Store32                         "" }
-    
-    {0x3F             MemorySize                         "" }
-    {0x40             MemoryGrow                         "" }
-    {0x41             I32Const                           "" }
-    {0x42             I64Const                           "" }
-    {0x43             F32Const                           "" }
-    {0x44             F64Const                           "" }
-    
+    {0x20             LocalGet                           "local.get"                                    0  0  0  0                                     }
+    {0x21             LocalSet                           "local.set"                                    0  0  0  0                                     }
+    {0x22             LocalTee                           "local.tee"                                    0  0  0  0                                     }
+    {0x23             GlobalGet                          "global.get"                                   1  0  0  0                                     }
+    {0x24             GlobalSet                          "global.set"                                   0  0  0  0                                     }
+    {0x25             TableGet                           "table.get"                                    0  0  0  0                                     }
+    {0x26             TableSet                           "table.set"                                    0  0  0  0                                     }
+    {0x27             _                                  ""                                             0  0  0  0                                     }
+
+    //~ fbt: Memory Instructions
+    {0x28             I32Load                            "i32.load"                                     0  0  0  0                                     }
+    {0x29             I64Load                            "i64.load"                                     0  0  0  0                                     }
+    {0x2A             F32Load                            "f32.load"                                     0  0  0  0                                     }
+    {0x2B             F64Load                            "f64.load"                                     0  0  0  0                                     }
+    {0x2C             I32Load8S                          "i32.load8_s"                                  0  0  0  0                                     }
+    {0x2D             I32Load8U                          "i32.load8_u"                                  0  0  0  0                                     }
+    {0x2E             I32Load16S                         "i32.load16_s"                                 0  0  0  0                                     }
+    {0x2F             I32Load16U                         "i32.load16_u"                                 0  0  0  0                                     }
+    {0x30             I64Load8S                          "i64.load8_s"                                  0  0  0  0                                     }
+    {0x31             I64Load8U                          "i64.load8_u"                                  0  0  0  0                                     }
+    {0x32             I64Load16S                         "i64.load16_s"                                 0  0  0  0                                     }
+    {0x33             I64Load16U                         "i64.load16_u"                                 0  0  0  0                                     }
+    {0x34             I64Load32S                         "i64.load32_s"                                 0  0  0  0                                     }
+    {0x35             I64Load32U                         "i64.load32_u"                                 0  0  0  0                                     }
+
+    {0x36             I32Store                           "i32.store"                                    0  0  0  0                                     }
+    {0x37             I64Store                           "i64.store"                                    0  0  0  0                                     }
+    {0x38             F32Store                           "f32.store"                                    0  0  0  0                                     }
+    {0x39             F64Store                           "f64.store"                                    0  0  0  0                                     }
+    {0x3A             I32Store8                          "i32.store8"                                   0  0  0  0                                     }
+    {0x3B             I32Store16                         "i32.store16"                                  0  0  0  0                                     }
+    {0x3C             I64Store8                          "i64.store8"                                   0  0  0  0                                     }
+    {0x3D             I64Store16                         "i64.store16"                                  0  0  0  0                                     }
+    {0x3E             I64Store32                         "i64.store32"                                  0  0  0  0                                     }
+    {0x3F             MemorySize                         "memory.size"                                  0  0  0  0                                     }
+    {0x40             MemoryGrow                         "memory.grow"                                  0  0  0  0                                     }
+
+    //~ fbt: Constant Instructions
+    {0x41             I32Const                           "i32.const"                                    1  0  0  0                                     }
+    {0x42             I64Const                           "i64.const"                                    1  0  0  0                                     }
+    {0x43             F32Const                           "f32.const"                                    1  0  0  0                                     }
+    {0x44             F64Const                           "f64.const"                                    1  0  0  0                                     }
+
     //~ fbt: Comparison Instructions
-    {0x45             I32Eqz                             "" }
-    {0x46             I32Eq                              "" }
-    {0x47             I32Ne                              "" }
-    {0x48             I32LtS                             "" }
-    {0x49             I32LtU                             "" }
-    {0x4A             I32GtS                             "" }
-    {0x4B             I32GtU                             "" }
-    {0x4C             I32LeS                             "" }
-    {0x4D             I32LeU                             "" }
-    {0x4E             I32GeS                             "" }
-    {0x4F             I32GeU                             "" }
-    
-    {0x50             I64Eqz                             "" }
-    {0x51             I64Eq                              "" }
-    {0x52             I64Ne                              "" }
-    {0x53             I64LtS                             "" }
-    {0x54             I64LtU                             "" }
-    {0x55             I64GtS                             "" }
-    {0x56             I64GtU                             "" }
-    {0x57             I64LeS                             "" }
-    {0x58             I64LeU                             "" }
-    {0x59             I64GeS                             "" }
-    {0x5A             I64GeU                             "" }
-    
-    {0x5B             F32Eq                              "" }
-    {0x5C             F32Ne                              "" }
-    {0x5D             F32Lt                              "" }
-    {0x5E             F32Gt                              "" }
-    {0x5F             F32Le                              "" }
-    {0x60             F32Ge                              "" }
-    
-    {0x61             F64Eq                              "" }
-    {0x62             F64Ne                              "" }
-    {0x63             F64Lt                              "" }
-    {0x64             F64Gt                              "" }
-    {0x65             F64Le                              "" }
-    {0x66             F64Ge                              "" }
+    {0x45             I32Eqz                             "i32.eqz"                                      0  0  0  0                                     }
+    {0x46             I32Eq                              "i32.eq"                                       0  0  0  0                                     }
+    {0x47             I32Ne                              "i32.ne"                                       0  0  0  0                                     }
+    {0x48             I32LtS                             "i32.lt_s"                                     0  0  0  0                                     }
+    {0x49             I32LtU                             "i32.lt_u"                                     0  0  0  0                                     }
+    {0x4A             I32GtS                             "i32.gt_s"                                     0  0  0  0                                     }
+    {0x4B             I32GtU                             "i32.gt_u"                                     0  0  0  0                                     }
+    {0x4C             I32LeS                             "i32.le_s"                                     0  0  0  0                                     }
+    {0x4D             I32LeU                             "i32.le_u"                                     0  0  0  0                                     }
+    {0x4E             I32GeS                             "i32.ge_s"                                     0  0  0  0                                     }
+    {0x4F             I32GeU                             "i32.ge_u"                                     0  0  0  0                                     }
+
+    {0x50             I64Eqz                             "i64.eqz"                                      0  0  0  0                                     }
+    {0x51             I64Eq                              "i64.eq"                                       0  0  0  0                                     }
+    {0x52             I64Ne                              "i64.ne"                                       0  0  0  0                                     }
+    {0x53             I64LtS                             "i64.lt_s"                                     0  0  0  0                                     }
+    {0x54             I64LtU                             "i64.lt_u"                                     0  0  0  0                                     }
+    {0x55             I64GtS                             "i64.gt_s"                                     0  0  0  0                                     }
+    {0x56             I64GtU                             "i64.gt_u"                                     0  0  0  0                                     }
+    {0x57             I64LeS                             "i64.le_s"                                     0  0  0  0                                     }
+    {0x58             I64LeU                             "i64.le_u"                                     0  0  0  0                                     }
+    {0x59             I64GeS                             "i64.ge_s"                                     0  0  0  0                                     }
+    {0x5A             I64GeU                             "i64.ge_u"                                     0  0  0  0                                     }
+
+    {0x5B             F32Eq                              "f32.eq"                                       0  0  0  0                                     }
+    {0x5C             F32Ne                              "f32.ne"                                       0  0  0  0                                     }
+    {0x5D             F32Lt                              "f32.lt"                                       0  0  0  0                                     }
+    {0x5E             F32Gt                              "f32.gt"                                       0  0  0  0                                     }
+    {0x5F             F32Le                              "f32.le"                                       0  0  0  0                                     }
+    {0x60             F32Ge                              "f32.ge"                                       0  0  0  0                                     }
+
+    {0x61             F64Eq                              "f64.eq"                                       0  0  0  0                                     }
+    {0x62             F64Ne                              "f64.ne"                                       0  0  0  0                                     }
+    {0x63             F64Lt                              "f64.lt"                                       0  0  0  0                                     }
+    {0x64             F64Gt                              "f64.gt"                                       0  0  0  0                                     }
+    {0x65             F64Le                              "f64.le"                                       0  0  0  0                                     }
+    {0x66             F64Ge                              "f64.ge"                                       0  0  0  0                                     }
 
     //~ fbt: Arithmetic Instructions
-    {0x67             I32Clz                             "" }
-    {0x68             I32Ctz                             "" }
-    {0x69             I32PopCount                        "" }
-    {0x6A             I32Add                             "" }
-    {0x6B             I32Sub                             "" }
-    {0x6C             I32Mul                             "" }
-    {0x6D             I32DivS                            "" }
-    {0x6E             I32DivU                            "" }
-    {0x6F             I32RemS                            "" }
-    {0x70             I32RemU                            "" }
-    {0x71             I32And                             "" }
-    {0x72             I32Or                              "" }
-    {0x73             I32Xor                             "" }
-    {0x74             I32ShL                             "" }
-    {0x75             I32ShRS                            "" }
-    {0x76             I32ShRU                            "" }
-    {0x77             I32RotL                            "" }
-    {0x78             I32RotR                            "" }
-    
-    {0x79             I64Clz                             "" }
-    {0x7A             I64Ctz                             "" }
-    {0x7B             I64PopCount                        "" }
-    {0x7C             I64Add                             "" }
-    {0x7D             I64Sub                             "" }
-    {0x7E             I64Mul                             "" }
-    {0x7F             I64DivS                            "" }
-    {0x80             I64DivU                            "" }
-    {0x81             I64RemS                            "" }
-    {0x82             I64RemU                            "" }
-    {0x83             I64And                             "" }
-    {0x84             I64Or                              "" }
-    {0x85             I64Xor                             "" }
-    {0x86             I64ShL                             "" }
-    {0x87             I64ShRS                            "" }
-    {0x88             I64ShRU                            "" }
-    {0x89             I64RotL                            "" }
-    {0x8A             I64RotR                            "" }
-    
-    {0x8B             F32Abs                             "" }
-    {0x8C             F32Neg                             "" }
-    {0x8D             F32Ceil                            "" }
-    {0x8E             F32Floor                           "" }
-    {0x8F             F32Trunc                           "" }
-    {0x90             F32Nearest                         "" }
-    {0x91             F32Sqrt                            "" }
-    {0x92             F32Add                             "" }
-    {0x93             F32Sub                             "" }
-    {0x94             F32Mul                             "" }
-    {0x95             F32Div                             "" }
-    {0x96             F32Min                             "" }
-    {0x97             F32Max                             "" }
-    {0x98             F32CopySign                        "" }
-    
-    {0x99             F64Abs                             "" }
-    {0x9A             F64Neg                             "" }
-    {0x9B             F64Ceil                            "" }
-    {0x9C             F64Floor                           "" }
-    {0x9D             F64Trunc                           "" }
-    {0x9E             F64Nearest                         "" }
-    {0x9F             F64Sqrt                            "" }
-    {0xA0             F64Add                             "" }
-    {0xA1             F64Sub                             "" }
-    {0xA2             F64Mul                             "" }
-    {0xA3             F64Div                             "" }
-    {0xA4             F64Min                             "" }
-    {0xA5             F64Max                             "" }
-    {0xA6             F64CopySign                        "" }
+    {0x67             I32Clz                             "i32.clz"                                      0  0  0  0                                     }
+    {0x68             I32Ctz                             "i32.ctz"                                      0  0  0  0                                     }
+    {0x69             I32PopCount                        "i32.popcnt"                                   0  0  0  0                                     }
+    {0x6A             I32Add                             "i32.add"                                      1  0  0  0                                     }
+    {0x6B             I32Sub                             "i32.sub"                                      1  0  0  0                                     }
+    {0x6C             I32Mul                             "i32.mul"                                      1  0  0  0                                     }
+    {0x6D             I32DivS                            "i32.div_s"                                    0  0  0  0                                     }
+    {0x6E             I32DivU                            "i32.div_u"                                    0  0  0  0                                     }
+    {0x6F             I32RemS                            "i32.rem_s"                                    0  0  0  0                                     }
+    {0x70             I32RemU                            "i32.rem_u"                                    0  0  0  0                                     }
+    {0x71             I32And                             "i32.and"                                      0  0  0  0                                     }
+    {0x72             I32Or                              "i32.or"                                       0  0  0  0                                     }
+    {0x73             I32Xor                             "i32.xor"                                      0  0  0  0                                     }
+    {0x74             I32ShL                             "i32.shl"                                      0  0  0  0                                     }
+    {0x75             I32ShRS                            "i32.shr_s"                                    0  0  0  0                                     }
+    {0x76             I32ShRU                            "i32.shr_u"                                    0  0  0  0                                     }
+    {0x77             I32RotL                            "i32.rotl"                                     0  0  0  0                                     }
+    {0x78             I32RotR                            "i32.rotr"                                     0  0  0  0                                     }
+
+    {0x79             I64Clz                             "i64.clz"                                      0  0  0  0                                     }
+    {0x7A             I64Ctz                             "i64.ctz"                                      0  0  0  0                                     }
+    {0x7B             I64PopCount                        "i64.popcnt"                                   0  0  0  0                                     }
+    {0x7C             I64Add                             "i64.add"                                      1  0  0  0                                     }
+    {0x7D             I64Sub                             "i64.sub"                                      1  0  0  0                                     }
+    {0x7E             I64Mul                             "i64.mul"                                      1  0  0  0                                     }
+    {0x7F             I64DivS                            "i64.div_s"                                    0  0  0  0                                     }
+    {0x80             I64DivU                            "i64.div_u"                                    0  0  0  0                                     }
+    {0x81             I64RemS                            "i64.rem_s"                                    0  0  0  0                                     }
+    {0x82             I64RemU                            "i64.rem_u"                                    0  0  0  0                                     }
+    {0x83             I64And                             "i64.and"                                      0  0  0  0                                     }
+    {0x84             I64Or                              "i64.or"                                       0  0  0  0                                     }
+    {0x85             I64Xor                             "i64.xor"                                      0  0  0  0                                     }
+    {0x86             I64ShL                             "i64.shl"                                      0  0  0  0                                     }
+    {0x87             I64ShRS                            "i64.shr_s"                                    0  0  0  0                                     }
+    {0x88             I64ShRU                            "i64.shr_u"                                    0  0  0  0                                     }
+    {0x89             I64RotL                            "i64.rotl"                                     0  0  0  0                                     }
+    {0x8A             I64RotR                            "i64.rotr"                                     0  0  0  0                                     }
+
+    {0x8B             F32Abs                             "f32.abs"                                      0  0  0  0                                     }
+    {0x8C             F32Neg                             "f32.neg"                                      0  0  0  0                                     }
+    {0x8D             F32Ceil                            "f32.ceil"                                     0  0  0  0                                     }
+    {0x8E             F32Floor                           "f32.floor"                                    0  0  0  0                                     }
+    {0x8F             F32Trunc                           "f32.trunc"                                    0  0  0  0                                     }
+    {0x90             F32Nearest                         "f32.nearest"                                  0  0  0  0                                     }
+    {0x91             F32Sqrt                            "f32.sqrt"                                     0  0  0  0                                     }
+    {0x92             F32Add                             "f32.add"                                      0  0  0  0                                     }
+    {0x93             F32Sub                             "f32.sub"                                      0  0  0  0                                     }
+    {0x94             F32Mul                             "f32.mul"                                      0  0  0  0                                     }
+    {0x95             F32Div                             "f32.div"                                      0  0  0  0                                     }
+    {0x96             F32Min                             "f32.min"                                      0  0  0  0                                     }
+    {0x97             F32Max                             "f32.max"                                      0  0  0  0                                     }
+    {0x98             F32CopySign                        "f32.copysign"                                 0  0  0  0                                     }
+
+    {0x99             F64Abs                             "f64.abs"                                      0  0  0  0                                     }
+    {0x9A             F64Neg                             "f64.neg"                                      0  0  0  0                                     }
+    {0x9B             F64Ceil                            "f64.ceil"                                     0  0  0  0                                     }
+    {0x9C             F64Floor                           "f64.floor"                                    0  0  0  0                                     }
+    {0x9D             F64Trunc                           "f64.trunc"                                    0  0  0  0                                     }
+    {0x9E             F64Nearest                         "f64.nearest"                                  0  0  0  0                                     }
+    {0x9F             F64Sqrt                            "f64.sqrt"                                     0  0  0  0                                     }
+    {0xA0             F64Add                             "f64.add"                                      0  0  0  0                                     }
+    {0xA1             F64Sub                             "f64.sub"                                      0  0  0  0                                     }
+    {0xA2             F64Mul                             "f64.mul"                                      0  0  0  0                                     }
+    {0xA3             F64Div                             "f64.div"                                      0  0  0  0                                     }
+    {0xA4             F64Min                             "f64.min"                                      0  0  0  0                                     }
+    {0xA5             F64Max                             "f64.max"                                      0  0  0  0                                     }
+    {0xA6             F64CopySign                        "f64.copysign"                                 0  0  0  0                                     }
 
     //~ fbt: Type Conversion Instructions
-    {0xA7             I32WrapI64                         "" }
-    {0xA8             I32TruncF32S                       "" }
-    {0xA9             I32TruncF32U                       "" }
-    {0xAA             I32TruncF64S                       "" }
-    {0xAB             I32TruncF64U                       "" }
-    
-    {0xAC             I64ExtendI32S                      "" }
-    {0xAD             I64ExtendI32U                      "" }
-    {0xAE             I64TruncF32S                       "" }
-    {0xAF             I64TruncF32U                       "" }
-    {0xB0             I64TruncF64S                       "" }
-    {0xB1             I64TruncF64U                       "" }
-    
-    {0xB2             F32ConvertI32S                     "" }
-    {0xB3             F32ConvertI32U                     "" }
-    {0xB4             F32ConvertI64S                     "" }
-    {0xB5             F32ConvertI64U                     "" }
-    {0xB6             F32DemoteF64                       "" }
-    
-    {0xB7             F64ConvertI32S                     "" }
-    {0xB8             F64ConvertI32U                     "" }
-    {0xB9             F64ConvertI64S                     "" }
-    {0xBA             F64ConvertI64U                     "" }
-    {0xBB             F64PromoteF32                      "" }
-    
-    {0xBC             I32ReinterpretF32                  "" }
-    {0xBD             I64ReinterpretF64                  "" }
-    {0xBE             F32ReinterpretI32                  "" }
-    {0xBF             F64ReinterpretI64                  "" }
-    
-    {0xC0             I32Extend8S                        "" }
-    {0xC1             I32Extend16S                       "" }
-    {0xC2             I64Extend8S                        "" }
-    {0xC3             I64Extend16S                       "" }
-    {0xC4             I64Extend32S                       "" }
-    
-    {0xC5             _                                  "" }
-    {0xC6             _                                  "" }
-    {0xC7             _                                  "" }
-    {0xC8             _                                  "" }
-    {0xC9             _                                  "" }
-    {0xCA             _                                  "" }
-    {0xCB             _                                  "" }
-    {0xCC             _                                  "" }
-    {0xCD             _                                  "" }
-    {0xCE             _                                  "" }
-    {0xCF             _                                  "" }
+    {0xA7             I32WrapI64                         "i32.wrap_i64"                                 0  0  0  0                                     }
+    {0xA8             I32TruncF32S                       "i32.trunc_f32_s"                              0  0  0  0                                     }
+    {0xA9             I32TruncF32U                       "i32.trunc_f32_u"                              0  0  0  0                                     }
+    {0xAA             I32TruncF64S                       "i32.trunc_f64_s"                              0  0  0  0                                     }
+    {0xAB             I32TruncF64U                       "i32.trunc_f64_u"                              0  0  0  0                                     }
+
+    {0xAC             I64ExtendI32S                      "i64.extend_i32_s"                             0  0  0  0                                     }
+    {0xAD             I64ExtendI32U                      "i64.extend_i32_u"                             0  0  0  0                                     }
+    {0xAE             I64TruncF32S                       "i64.trunc_f32_s"                              0  0  0  0                                     }
+    {0xAF             I64TruncF32U                       "i64.trunc_f32_u"                              0  0  0  0                                     }
+    {0xB0             I64TruncF64S                       "i64.trunc_f64_s"                              0  0  0  0                                     }
+    {0xB1             I64TruncF64U                       "i64.trunc_f64_u"                              0  0  0  0                                     }
+
+    {0xB2             F32ConvertI32S                     "f32.convert_i32_s"                            0  0  0  0                                     }
+    {0xB3             F32ConvertI32U                     "f32.convert_i32_u"                            0  0  0  0                                     }
+    {0xB4             F32ConvertI64S                     "f32.convert_i64_s"                            0  0  0  0                                     }
+    {0xB5             F32ConvertI64U                     "f32.convert_i64_u"                            0  0  0  0                                     }
+    {0xB6             F32DemoteF64                       "f32.demote_f64"                               0  0  0  0                                     }
+
+    {0xB7             F64ConvertI32S                     "f64.convert_i32_s"                            0  0  0  0                                     }
+    {0xB8             F64ConvertI32U                     "f64.convert_i32_u"                            0  0  0  0                                     }
+    {0xB9             F64ConvertI64S                     "f64.convert_i64_s"                            0  0  0  0                                     }
+    {0xBA             F64ConvertI64U                     "f64.convert_i64_u"                            0  0  0  0                                     }
+    {0xBB             F64PromoteF32                      "f64.promote_f32"                              0  0  0  0                                     }
+
+    //~ fbt: Reinterpretation Instructions
+    {0xBC             I32ReinterpretF32                  "i32.reinterpret_f32"                          0  0  0  0                                     }
+    {0xBD             I64ReinterpretF64                  "i64.reinterpret_f64"                          0  0  0  0                                     }
+    {0xBE             F32ReinterpretI32                  "f32.reinterpret_i32"                          0  0  0  0                                     }
+    {0xBF             F64ReinterpretI64                  "f64.reinterpret_i64"                          0  0  0  0                                     }
+
+    {0xC0             I32Extend8S                        "i32.extend8_s"                                0  0  0  0                                     }
+    {0xC1             I32Extend16S                       "i32.extend16_s"                               0  0  0  0                                     }
+    {0xC2             I64Extend8S                        "i64.extend8_s"                                0  0  0  0                                     }
+    {0xC3             I64Extend16S                       "i64.extend16_s"                               0  0  0  0                                     }
+    {0xC4             I64Extend32S                       "i64.extend32_s"                               0  0  0  0                                     }
+
+    {0xC5             _                                  ""                                             0  0  0  0                                     }
+    {0xC6             _                                  ""                                             0  0  0  0                                     }
+    {0xC7             _                                  ""                                             0  0  0  0                                     }
+    {0xC8             _                                  ""                                             0  0  0  0                                     }
+    {0xC9             _                                  ""                                             0  0  0  0                                     }
+    {0xCA             _                                  ""                                             0  0  0  0                                     }
+    {0xCB             _                                  ""                                             0  0  0  0                                     }
+    {0xCC             _                                  ""                                             0  0  0  0                                     }
+    {0xCD             _                                  ""                                             0  0  0  0                                     }
+    {0xCE             _                                  ""                                             0  0  0  0                                     }
+    {0xCF             _                                  ""                                             0  0  0  0                                     }
 
     //~ fbt: Reference Instructions
-    {0xD0             RefNull                            "" }
-    {0xD1             RefIsNull                          "" }
-    {0xD2             RefFunc                            "" }
-    {0xD3             RefEq                              "" }
-    {0xD4             RefAsNonNull                       "" }
-    
-    {0xD5             BrOnNull                           "" }
-    {0xD6             BrOnNonNull                        "" }
-    
-    {0xD7             _                                  "" }
-    {0xD8             _                                  "" }
-    {0xD9             _                                  "" }
-    {0xDA             _                                  "" }
-    {0xDB             _                                  "" }
-    {0xDC             _                                  "" }
-    {0xDD             _                                  "" }
-    {0xDE             _                                  "" }
-    {0xDF             _                                  "" }
-    {0xE0             _                                  "" }
-    {0xE1             _                                  "" }
-    {0xE2             _                                  "" }
-    {0xE3             _                                  "" }
-    {0xE4             _                                  "" }
-    {0xE5             _                                  "" }
-    {0xE6             _                                  "" }
-    {0xE7             _                                  "" }
-    {0xE8             _                                  "" }
-    {0xE9             _                                  "" }
-    {0xEA             _                                  "" }
-    {0xEB             _                                  "" }
-    {0xEC             _                                  "" }
-    {0xED             _                                  "" }
-    {0xEE             _                                  "" }
-    {0xEF             _                                  "" }
-    {0xF0             _                                  "" }
-    {0xF1             _                                  "" }
-    {0xF2             _                                  "" }
-    {0xF3             _                                  "" }
-    {0xF4             _                                  "" }
-    {0xF5             _                                  "" }
-    {0xF6             _                                  "" }
-    {0xF7             _                                  "" }
-    {0xF8             _                                  "" }
-    {0xF9             _                                  "" }
-    {0xFA             _                                  "" }
+    {0xD0             RefNull                            "ref.null"                                     1  0  0  0                                     }
+    {0xD1             RefIsNull                          "ref.is_null"                                  0  0  0  0                                     }
+    {0xD2             RefFunc                            "ref.func"                                     1  0  0  0                                     }
+    {0xD3             RefEq                              "ref.eq"                                       0  0  0  0                                     }
+    {0xD4             RefAsNonNull                       "ref.as_non_null"                              0  0  0  0                                     }
+    {0xD5             BrOnNull                           "br_on_null"                                   0  0  0  0                                     }
+    {0xD6             BrOnNonNull                        "br_on_non_null"                               0  0  0  0                                     }
 
-    //~ fbt: Special markers to indicate that this instruction is variable length
-    {0xFB             GcPrefix                           "" }
-    {0xFC             MiscPrefix                         "" }
-    {0xFD             SimdPrefix                         "" }
-    {0xFE             AtomicPrefix                       "" }
-    {0xFF             _                                  "" }
+    {0xD7             _                                  ""                                             0  0  0  0                                     }
+    {0xD8             _                                  ""                                             0  0  0  0                                     }
+    {0xD9             _                                  ""                                             0  0  0  0                                     }
+    {0xDA             _                                  ""                                             0  0  0  0                                     }
+    {0xDB             _                                  ""                                             0  0  0  0                                     }
+    {0xDC             _                                  ""                                             0  0  0  0                                     }
+    {0xDD             _                                  ""                                             0  0  0  0                                     }
+    {0xDE             _                                  ""                                             0  0  0  0                                     }
+    {0xDF             _                                  ""                                             0  0  0  0                                     }
+    {0xE0             _                                  ""                                             0  0  0  0                                     }
+    {0xE1             _                                  ""                                             0  0  0  0                                     }
+    {0xE2             _                                  ""                                             0  0  0  0                                     }
+    {0xE3             _                                  ""                                             0  0  0  0                                     }
+    {0xE4             _                                  ""                                             0  0  0  0                                     }
+    {0xE5             _                                  ""                                             0  0  0  0                                     }
+    {0xE6             _                                  ""                                             0  0  0  0                                     }
+    {0xE7             _                                  ""                                             0  0  0  0                                     }
+    {0xE8             _                                  ""                                             0  0  0  0                                     }
+    {0xE9             _                                  ""                                             0  0  0  0                                     }
+    {0xEA             _                                  ""                                             0  0  0  0                                     }
+    {0xEB             _                                  ""                                             0  0  0  0                                     }
+    {0xEC             _                                  ""                                             0  0  0  0                                     }
+    {0xED             _                                  ""                                             0  0  0  0                                     }
+    {0xEE             _                                  ""                                             0  0  0  0                                     }
+    {0xEF             _                                  ""                                             0  0  0  0                                     }
+    {0xF0             _                                  ""                                             0  0  0  0                                     }
+    {0xF1             _                                  ""                                             0  0  0  0                                     }
+    {0xF2             _                                  ""                                             0  0  0  0                                     }
+    {0xF3             _                                  ""                                             0  0  0  0                                     }
+    {0xF4             _                                  ""                                             0  0  0  0                                     }
+    {0xF5             _                                  ""                                             0  0  0  0                                     }
+    {0xF6             _                                  ""                                             0  0  0  0                                     }
+    {0xF7             _                                  ""                                             0  0  0  0                                     }
+    {0xF8             _                                  ""                                             0  0  0  0                                     }
+    {0xF9             _                                  ""                                             0  0  0  0                                     }
+    {0xFA             _                                  ""                                             0  0  0  0                                     }
+
+    //~ fbt: Prefix markers to indicate that this instruction is variable length
+    {0xFB             GcPrefix                           "gc.prefix"                                    0  0  0  0                                     }
+    {0xFC             MiscPrefix                         "misc.prefix"                                  0  0  0  0                                     }
+    {0xFD             SimdPrefix                         "simd.prefix"                                  0  0  0  0                                     }
+    {0xFE             AtomicPrefix                       "atomic.prefix"                                0  0  0  0                                     }
+    {0xFF             _                                  ""                                             0  0  0  0                                     }
 }
 
-@table(id            name                                string)
+@table(id            name                                string                       f_constant   f_foo1   f_foo2   f_foo3                            )
 WASM_GcOpTable:
 {
     //~ fbt: Struct Instructions
-    {0x00             StructNew                          "" }
-    {0x01             StructNewDefault                   "" }
-    {0x02             StructGet                          "" }
-    {0x03             StructGetS                         "" }
-    {0x04             StructGetU                         "" }
-    {0x05             StructSet                          "" }
+    {0x00             StructNew                          "struct.new"                                   1  0  0  0                                     }
+    {0x01             StructNewDefault                   "struct.new_default"                           1  0  0  0                                     }
+    {0x02             StructGet                          "struct.get"                                   0  0  0  0                                     }
+    {0x03             StructGetS                         "struct.get_s"                                 0  0  0  0                                     }
+    {0x04             StructGetU                         "struct.get_u"                                 0  0  0  0                                     }
+    {0x05             StructSet                          "struct.set"                                   0  0  0  0                                     }
 
     //~ fbt: Array Instructions
-    {0x06             ArrayNew                           "" }
-    {0x07             ArrayNewDefault                    "" }
-    {0x08             ArrayNewFixed                      "" }
-    {0x09             ArrayNewData                       "" }
-    {0x0A             ArrayNewElem                       "" }
-    {0x0B             ArrayGet                           "" }
-    {0x0C             ArrayGetS                          "" }
-    {0x0D             ArrayGetU                          "" }
-    {0x0E             ArraySet                           "" }
-    {0x0F             ArrayLen                           "" }
-    {0x10             ArrayFill                          "" }
-    {0x11             ArrayCopy                          "" }
-    {0x12             ArrayInitData                      "" }
-    {0x13             ArrayInitElem                      "" }
+    {0x06             ArrayNew                           "array.new"                                    1  0  0  0                                     }
+    {0x07             ArrayNewDefault                    "array.new_default"                            1  0  0  0                                     }
+    {0x08             ArrayNewFixed                      "array.new_fixed"                              1  0  0  0                                     }
+    {0x09             ArrayNewData                       "array.new_data"                               0  0  0  0                                     }
+    {0x0A             ArrayNewElem                       "array.new_elem"                               0  0  0  0                                     }
+    {0x0B             ArrayGet                           "array.get"                                    0  0  0  0                                     }
+    {0x0C             ArrayGetS                          "array.get_s"                                  0  0  0  0                                     }
+    {0x0D             ArrayGetU                          "array.get_u"                                  0  0  0  0                                     }
+    {0x0E             ArraySet                           "array.set"                                    0  0  0  0                                     }
+    {0x0F             ArrayLen                           "array.len"                                    0  0  0  0                                     }
+    {0x10             ArrayFill                          "array.fill"                                   0  0  0  0                                     }
+    {0x11             ArrayCopy                          "array.copy"                                   0  0  0  0                                     }
+    {0x12             ArrayInitData                      "array.init_data"                              0  0  0  0                                     }
+    {0x13             ArrayInitElem                      "array.init_elem"                              0  0  0  0                                     }
 
     //~ fbt: Reference Instructions
-    {0x14             RefTest                            "" }
-    {0x15             RefTestNull                        "" }
-    {0x16             RefCast                            "" }
-    {0x17             RefCastNull                        "" }
-    {0x18             BrOnCast                           "" }
-    {0x19             BrOnCastFail                       "" }
-    {0x1A             AnyConvertExtern                   "" }
-    {0x1B             ExternConvertAny                   "" }
-    {0x1C             RefI31                             "" }
-    {0x1D             I31GetS                            "" }
-    {0x1E             I31GetU                            "" }
-    {0x1F             _                                  "" }
+    {0x14             RefTest                            "ref.test"                                     0  0  0  0                                     }
+    {0x15             RefTestNull                        "ref.test"                                     0  0  0  0                                     }
+    {0x16             RefCast                            "ref.cast"                                     0  0  0  0                                     }
+    {0x17             RefCastNull                        "ref.cast"                                     0  0  0  0                                     }
+    {0x18             BrOnCast                           "br_on_cast"                                   0  0  0  0                                     }
+    {0x19             BrOnCastFail                       "br_on_cast_fail"                              0  0  0  0                                     }
+    {0x1A             AnyConvertExtern                   "any.convert_extern"                           1  0  0  0                                     }
+    {0x1B             ExternConvertAny                   "extern.convert_any"                           1  0  0  0                                     }
+    {0x1C             RefI31                             "ref.i31"                                      1  0  0  0                                     }
+    {0x1D             I31GetS                            "i31.get_s"                                    0  0  0  0                                     }
+    {0x1E             I31GetU                            "i31.get_u"                                    0  0  0  0                                     }
+    {0x1F             _                                  ""                                             0  0  0  0                                     }
 }
 
-@table(id            name                                string)
+@table(id            name                                string                       f_constant   f_foo1   f_foo2   f_foo3                            )
 WASM_MiscOpTable:
 {
-    {0x00             I32TruncSatF32S                    "" }
-    {0x01             I32TruncSatF32U                    "" }
-    {0x02             I32TruncSatF64S                    "" }
-    {0x03             I32TruncSatF64U                    "" }
-    
-    {0x04             I64TruncSatF32S                    "" }
-    {0x05             I64TruncSatF32U                    "" }
-    {0x06             I64TruncSatF64S                    "" }
-    {0x07             I64TruncSatF64U                    "" }
-    
-    {0x08             MemoryInit                         "" }
-    {0x09             DataDrop                           "" }
-    {0x0A             MemoryCopy                         "" }
-    {0x0B             MemoryFill                         "" }
-    {0x0C             TableInit                          "" }
-    {0x0D             ElemDrop                           "" }
-    {0x0E             TableCopy                          "" }
-    {0x0F             TableGrow                          "" }
-    {0x10             TableSize                          "" }
-    {0x11             TableFill                          "" }
-    {0x12             _                                  "" }
+    {0x00             I32TruncSatF32S                    "i32.trunc_sat_f32_s"                          0  0  0  0                                     }
+    {0x01             I32TruncSatF32U                    "i32.trunc_sat_f32_u"                          0  0  0  0                                     }
+    {0x02             I32TruncSatF64S                    "i32.trunc_sat_f64_s"                          0  0  0  0                                     }
+    {0x03             I32TruncSatF64U                    "i32.trunc_sat_f64_u"                          0  0  0  0                                     }
+
+    {0x04             I64TruncSatF32S                    "i64.trunc_sat_f32_s"                          0  0  0  0                                     }
+    {0x05             I64TruncSatF32U                    "i64.trunc_sat_f32_u"                          0  0  0  0                                     }
+    {0x06             I64TruncSatF64S                    "i64.trunc_sat_f64_s"                          0  0  0  0                                     }
+    {0x07             I64TruncSatF64U                    "i64.trunc_sat_f64_u"                          0  0  0  0                                     }
+
+    {0x08             MemoryInit                         "memory.init"                                  0  0  0  0                                     }
+    {0x09             DataDrop                           "data.drop"                                    0  0  0  0                                     }
+    {0x0A             MemoryCopy                         "memory.copy"                                  0  0  0  0                                     }
+    {0x0B             MemoryFill                         "memory.fill"                                  0  0  0  0                                     }
+    {0x0C             TableInit                          "table.init"                                   0  0  0  0                                     }
+    {0x0D             ElemDrop                           "elem.drop"                                    0  0  0  0                                     }
+    {0x0E             TableCopy                          "table.copy"                                   0  0  0  0                                     }
+    {0x0F             TableGrow                          "table.grow"                                   0  0  0  0                                     }
+    {0x10             TableSize                          "table.size"                                   0  0  0  0                                     }
+    {0x11             TableFill                          "table.fill"                                   0  0  0  0                                     }
+    {0x12             _                                  ""                                             0  0  0  0                                     }
 }
 
-@table(id            name                                string)
+@table(id            name                                string                       f_constant   f_foo1   f_foo2   f_foo3                            )
 WASM_SimdOpTable:
 {
-    //~ fbt: SIMD Access Instructions
-    {0x0000             V128Load                           "" }
-    {0x0001             V128Load8x8S                       "" }
-    {0x0002             V128Load8x8U                       "" }
-    {0x0003             V128Load16x4S                      "" }
-    {0x0004             V128Load16x4U                      "" }
-    {0x0005             V128Load32x2S                      "" }
-    {0x0006             V128Load32x2U                      "" }
-    {0x0007             V128Load8Splat                     "" }
-    {0x0008             V128Load16Splat                    "" }
-    {0x0009             V128Load32Splat                    "" }
-    {0x000A             V128Load64Splat                    "" }
-    {0x000B             V128Store                          "" }
-    
-    {0x000C             V128Const                          "" }
-    {0x000D             I8x16Shuffle                       "" }
-    {0x000E             I8x16Swizzle                       "" }
-    
-    {0x000F             I8x16Splat                         "" }
-    {0x0010             I16x8Splat                         "" }
-    {0x0011             I32x4Splat                         "" }
-    {0x0012             I64x2Splat                         "" }
-    {0x0013             F32x4Splat                         "" }
-    {0x0014             F64x2Splat                         "" }
-    
-    {0x0015             I8x16ExtractLaneS                  "" }
-    {0x0016             I8x16ExtractLaneU                  "" }
-    {0x0017             I8x16ReplaceLane                   "" }
-    {0x0018             I16x8ExtractLaneS                  "" }
-    {0x0019             I16x8ExtractLaneU                  "" }
-    {0x001A             I16x8ReplaceLane                   "" }
-    {0x001B             I32x4ExtractLane                   "" }
-    {0x001C             I32x4ReplaceLane                   "" }
-    {0x001D             I64x2ExtractLane                   "" }
-    {0x001E             I64x2ReplaceLane                   "" }
-    {0x001F             F32x4ExtractLane                   "" }
-    {0x0020             F32x4ReplaceLane                   "" }
-    {0x0021             F64x2ExtractLane                   "" }
-    {0x0022             F64x2ReplaceLane                   "" }
+    //~ fbt: Memory Instructions
+    {0x0000           V128Load                           "v128.load"                                    0  0  0  0                                     }
+    {0x0001           V128Load8x8S                       "v128.load8x8_s"                               0  0  0  0                                     }
+    {0x0002           V128Load8x8U                       "v128.load8x8_u"                               0  0  0  0                                     }
+    {0x0003           V128Load16x4S                      "v128.load16x4_s"                              0  0  0  0                                     }
+    {0x0004           V128Load16x4U                      "v128.load16x4_u"                              0  0  0  0                                     }
+    {0x0005           V128Load32x2S                      "v128.load32x2_s"                              0  0  0  0                                     }
+    {0x0006           V128Load32x2U                      "v128.load32x2_u"                              0  0  0  0                                     }
+    {0x0007           V128Load8Splat                     "v128.load8_splat"                             0  0  0  0                                     }
+    {0x0008           V128Load16Splat                    "v128.load16_splat"                            0  0  0  0                                     }
+    {0x0009           V128Load32Splat                    "v128.load32_splat"                            0  0  0  0                                     }
+    {0x000A           V128Load64Splat                    "v128.load64_splat"                            0  0  0  0                                     }
+    {0x000B           V128Store                          "v128.store"                                   0  0  0  0                                     }
 
-    //~ fbt: SIMD Comparison Instructions
-    {0x0023             I8x16Eq                            "" }
-    {0x0024             I8x16Ne                            "" }
-    {0x0025             I8x16LtS                           "" }
-    {0x0026             I8x16LtU                           "" }
-    {0x0027             I8x16GtS                           "" }
-    {0x0028             I8x16GtU                           "" }
-    {0x0029             I8x16LeS                           "" }
-    {0x002A             I8x16LeU                           "" }
-    {0x002B             I8x16GeS                           "" }
-    {0x002C             I8x16GeU                           "" }
-    
-    {0x002D             I16x8Eq                            "" }
-    {0x002E             I16x8Ne                            "" }
-    {0x002F             I16x8LtS                           "" }
-    {0x0030             I16x8LtU                           "" }
-    {0x0031             I16x8GtS                           "" }
-    {0x0032             I16x8GtU                           "" }
-    {0x0033             I16x8LeS                           "" }
-    {0x0034             I16x8LeU                           "" }
-    {0x0035             I16x8GeS                           "" }
-    {0x0036             I16x8GeU                           "" }
-    
-    {0x0037             I32x4Eq                            "" }
-    {0x0038             I32x4Ne                            "" }
-    {0x0039             I32x4LtS                           "" }
-    {0x003A             I32x4LtU                           "" }
-    {0x003B             I32x4GtS                           "" }
-    {0x003C             I32x4GtU                           "" }
-    {0x003D             I32x4LeS                           "" }
-    {0x003E             I32x4LeU                           "" }
-    {0x003F             I32x4GeS                           "" }
-    {0x0040             I32x4GeU                           "" }
+    //~ fbt: Basic Instructions
+    {0x000C           V128Const                          "v128.const"                                   1  0  0  0                                     }
+    {0x000D           I8x16Shuffle                       "i8x16.shuffle"                                0  0  0  0                                     }
+    {0x000E           I8x16Swizzle                       "i8x16.swizzle"                                0  0  0  0                                     }
 
-    {0x0041             F32x4Eq                            "" }
-    {0x0042             F32x4Ne                            "" }
-    {0x0043             F32x4Lt                            "" }
-    {0x0044             F32x4Gt                            "" }
-    {0x0045             F32x4Le                            "" }
-    {0x0046             F32x4Ge                            "" }
-    
-    {0x0047             F64x2Eq                            "" }
-    {0x0048             F64x2Ne                            "" }
-    {0x0049             F64x2Lt                            "" }
-    {0x004A             F64x2Gt                            "" }
-    {0x004B             F64x2Le                            "" }
-    {0x004C             F64x2Ge                            "" }
+    //~ fbt: Splat Instructions
+    {0x000F           I8x16Splat                         "i8x16.splat"                                  0  0  0  0                                     }
+    {0x0010           I16x8Splat                         "i16x8.splat"                                  0  0  0  0                                     }
+    {0x0011           I32x4Splat                         "i32x4.splat"                                  0  0  0  0                                     }
+    {0x0012           I64x2Splat                         "i64x2.splat"                                  0  0  0  0                                     }
+    {0x0013           F32x4Splat                         "f32x4.splat"                                  0  0  0  0                                     }
+    {0x0014           F64x2Splat                         "f64x2.splat"                                  0  0  0  0                                     }
 
-    {0x004D             V128Not                            "" }
-    {0x004E             V128And                            "" }
-    {0x004F             V128AndNot                         "" }
-    {0x0050             V128Or                             "" }
-    {0x0051             V128Xor                            "" }
-    {0x0052             V128BitSelect                      "" }
-    {0x0053             V128AnyTrue                        "" }
-    {0x0054             V128Load8Lane                      "" }
-    {0x0055             V128Load16Lane                     "" }
-    {0x0056             V128Load32Lane                     "" }
-    {0x0057             V128Load64Lane                     "" }
-    {0x0058             V128Store8Lane                     "" }
-    {0x0059             V128Store16Lane                    "" }
-    {0x005A             V128Store32Lane                    "" }
-    {0x005B             V128Store64Lane                    "" }
-    {0x005C             V128Load32Zero                     "" }
-    {0x005D             V128Load64Zero                     "" }
-    
-    {0x005E             F32x4DemoteF64x2Zero               "" }
-    {0x005F             F64x2PromoteLowF32x4               "" }
-    
-    {0x0060             I8x16Abs                           "" }
-    {0x0061             I8x16Neg                           "" }
-    {0x0062             I8x16PopCount                      "" }
-    {0x0063             I8x16AllTrue                       "" }
-    {0x0064             I8x16Bitmask                       "" }
-    {0x0065             I8x16NarrowI16x8S                  "" }
-    {0x0066             I8x16NarrowI16x8U                  "" }
-    
-    {0x0067             F32x4Ceil                          "" }
-    {0x0068             F32x4Floor                         "" }
-    {0x0069             F32x4Trunc                         "" }
-    {0x006A             F32x4Nearest                       "" }
-    
-    {0x006B             I8x16ShL                           "" }
-    {0x006C             I8x16ShRS                          "" }
-    {0x006D             I8x16ShRU                          "" }
-    {0x006E             I8x16Add                           "" }
-    {0x006F             I8x16AddSatS                       "" }
-    {0x0070             I8x16AddSatU                       "" }
-    {0x0071             I8x16Sub                           "" }
-    {0x0072             I8x16SubSatS                       "" }
-    {0x0073             I8x16SubSatU                       "" }
-    
-    {0x0074             F64x2Ceil                          "" }
-    {0x0075             F64x2Floor                         "" }
-    
-    {0x0076             I8x16MinS                          "" }
-    {0x0077             I8x16MinU                          "" }
-    {0x0078             I8x16MaxS                          "" }
-    {0x0079             I8x16MaxU                          "" }
-    
-    {0x007A             F64x2Trunc                         "" }
-    
-    {0x007B             I8x16AvgRoundU                     "" }
-    
-    {0x007C             I16x8ExtAddPairwiseI8x16S          "" }
-    {0x007D             I16x8ExtAddPairwiseI8x16U          "" }
-    {0x007E             I32x4ExtAddPairwiseI16x8S          "" }
-    {0x007F             I32x4ExtAddPairwiseI16x8U          "" }
+    //~ fbt: Lane Instructions
+    {0x0015           I8x16ExtractLaneS                  "i8x16.extract_lane_s"                         0  0  0  0                                     }
+    {0x0016           I8x16ExtractLaneU                  "i8x16.extract_lane_u"                         0  0  0  0                                     }
+    {0x0017           I8x16ReplaceLane                   "i8x16.replace_lane"                           0  0  0  0                                     }
+    {0x0018           I16x8ExtractLaneS                  "i16x8.extract_lane_s"                         0  0  0  0                                     }
+    {0x0019           I16x8ExtractLaneU                  "i16x8.extract_lane_u"                         0  0  0  0                                     }
+    {0x001A           I16x8ReplaceLane                   "i16x8.replace_lane"                           0  0  0  0                                     }
+    {0x001B           I32x4ExtractLane                   "i32x4.extract_lane"                           0  0  0  0                                     }
+    {0x001C           I32x4ReplaceLane                   "i32x4.replace_lane"                           0  0  0  0                                     }
+    {0x001D           I64x2ExtractLane                   "i64x2.extract_lane"                           0  0  0  0                                     }
+    {0x001E           I64x2ReplaceLane                   "i64x2.replace_lane"                           0  0  0  0                                     }
+    {0x001F           F32x4ExtractLane                   "f32x4.extract_lane"                           0  0  0  0                                     }
+    {0x0020           F32x4ReplaceLane                   "f32x4.replace_lane"                           0  0  0  0                                     }
+    {0x0021           F64x2ExtractLane                   "f64x2.extract_lane"                           0  0  0  0                                     }
+    {0x0022           F64x2ReplaceLane                   "f64x2.replace_lane"                           0  0  0  0                                     }
 
-    {0x0080             I16x8Abs                           "" }
-    {0x0081             I16x8Neg                           "" }
-    {0x0082             I16x8Q15MulRoundSatS               "" }
-    {0x0083             I16x8AllTrue                       "" }
-    {0x0084             I16x8Bitmask                       "" }
-    {0x0085             I16x8NarrowI32x4S                  "" }
-    {0x0086             I16x8NarrowI32x4U                  "" }
-    {0x0087             I16x8ExtendLowI8x16S               "" }
-    {0x0088             I16x8ExtendHighI8x16S              "" }
-    {0x0089             I16x8ExtendLowI8x16U               "" }
-    {0x008A             I16x8ExtendHighI8x16U              "" }
-    {0x008B             I16x8ShL                           "" }
-    {0x008C             I16x8ShRS                          "" }
-    {0x008D             I16x8ShRU                          "" }
-    {0x008E             I16x8Add                           "" }
-    {0x008F             I16x8AddSatS                       "" }
-    {0x0090             I16x8AddSatU                       "" }
-    {0x0091             I16x8Sub                           "" }
-    {0x0092             I16x8SubSatS                       "" }
-    {0x0093             I16x8SubSatU                       "" }
-    
-    {0x0094             F64x2Nearest                       "" }
-    
-    {0x0095             I16x8Mul                           "" }
-    {0x0096             I16x8MinS                          "" }
-    {0x0097             I16x8MinU                          "" }
-    {0x0098             I16x8MaxS                          "" }
-    {0x0099             I16x8MaxU                          "" }
-    {0x009A             _                                  "" }
-    {0x009B             I16x8AvgRoundU                     "" }
-    {0x009C             I16x8ExtMulLowI8x16S               "" }
-    {0x009D             I16x8ExtMulHighI8x16S              "" }
-    {0x009E             I16x8ExtMulLowI8x16U               "" }
-    {0x009F             I16x8ExtMulHighI8x16U              "" }
-    
-    {0x00A0             I32x4Abs                           "" }
-    {0x00A1             I32x4Neg                           "" }
-    {0x00A2             _                                  "" }
-    {0x00A3             I32x4AllTrue                       "" }
-    {0x00A4             I32x4Bitmask                       "" }
-    {0x00A5             _                                  "" }
-    {0x00A6             _                                  "" }
-    {0x00A7             I32x4ExtendLowI16x8S               "" }
-    {0x00A8             I32x4ExtendHighI16x8S              "" }
-    {0x00A9             I32x4ExtendLowI16x8U               "" }
-    {0x00AA             I32x4ExtendHighI16x8U              "" }
-    {0x00AB             I32x4ShL                           "" }
-    {0x00AC             I32x4ShRS                          "" }
-    {0x00AD             I32x4ShRU                          "" }
-    {0x00AE             I32x4Add                           "" }
-    {0x00AF             _                                  "" }
-    {0x00B0             _                                  "" }
-    {0x00B1             I32x4Sub                           "" }
-    {0x00B2             _                                  "" }
-    {0x00B3             _                                  "" }
-    {0x00B4             _                                  "" }
-    {0x00B5             I32x4Mul                           "" }
-    {0x00B6             I32x4MinS                          "" }
-    {0x00B7             I32x4MinU                          "" }
-    {0x00B8             I32x4MaxS                          "" }
-    {0x00B9             I32x4MaxU                          "" }
-    {0x00BA             I32x4DotI16x8S                     "" }
-    {0x00BB             _                                  "" }
-    {0x00BC             I32x4ExtMulLowI16x8S               "" }
-    {0x00BD             I32x4ExtMulHighI16x8S              "" }
-    {0x00BE             I32x4ExtMulLowI16x8U               "" }
-    {0x00BF             I32x4ExtMulHighI16x8U              "" }
+    //~ fbt: Comparison Instructions
+    {0x0023           I8x16Eq                            "i8x16.eq"                                     0  0  0  0                                     }
+    {0x0024           I8x16Ne                            "i8x16.ne"                                     0  0  0  0                                     }
+    {0x0025           I8x16LtS                           "i8x16.lt_s"                                   0  0  0  0                                     }
+    {0x0026           I8x16LtU                           "i8x16.lt_u"                                   0  0  0  0                                     }
+    {0x0027           I8x16GtS                           "i8x16.gt_s"                                   0  0  0  0                                     }
+    {0x0028           I8x16GtU                           "i8x16.gt_u"                                   0  0  0  0                                     }
+    {0x0029           I8x16LeS                           "i8x16.le_s"                                   0  0  0  0                                     }
+    {0x002A           I8x16LeU                           "i8x16.le_u"                                   0  0  0  0                                     }
+    {0x002B           I8x16GeS                           "i8x16.ge_s"                                   0  0  0  0                                     }
+    {0x002C           I8x16GeU                           "i8x16.ge_u"                                   0  0  0  0                                     }
 
-    {0x00C0             I64x2Abs                           "" }
-    {0x00C1             I64x2Neg                           "" }
-    {0x00C2             _                                  "" }
-    {0x00C3             I64x2AllTrue                       "" }
-    {0x00C4             I64x2Bitmask                       "" }
-    {0x00C5             _                                  "" }
-    {0x00C6             _                                  "" }
-    {0x00C7             I64x2ExtendLowI32x4S               "" }
-    {0x00C8             I64x2ExtendHighI32x4S              "" }
-    {0x00C9             I64x2ExtendLowI32x4U               "" }
-    {0x00CA             I64x2ExtendHighI32x4U              "" }
-    {0x00CB             I64x2ShL                           "" }
-    {0x00CC             I64x2ShRS                          "" }
-    {0x00CD             I64x2ShRU                          "" }
-    {0x00CE             I64x2Add                           "" }
-    {0x00CF             _                                  "" }
-    {0x00D0             _                                  "" }
-    {0x00D1             I64x2Sub                           "" }
-    {0x00D2             _                                  "" }
-    {0x00D3             _                                  "" }
-    {0x00D4             _                                  "" }
-    {0x00D5             I64x2Mul                           "" }
-    {0x00D6             I64x2Eq                            "" }
-    {0x00D7             I64x2Ne                            "" }
-    {0x00D8             I64x2LtS                           "" }
-    {0x00D9             I64x2GtS                           "" }
-    {0x00DA             I64x2LeS                           "" }
-    {0x00DB             I64x2GeS                           "" }
-    {0x00DC             I64x2ExtMulLowI32x4S               "" }
-    {0x00DD             I64x2ExtMulHighI32x4S              "" }
-    {0x00DE             I64x2ExtMulLowI32x4U               "" }
-    {0x00DF             I64x2ExtMulHighI32x4U              "" }
-    
-    {0x00E0             F32x4Abs                           "" }
-    {0x00E1             F32x4Neg                           "" }
-    {0x00E2             _                                  "" }
-    {0x00E3             F32x4Sqrt                          "" }
-    {0x00E4             F32x4Add                           "" }
-    {0x00E5             F32x4Sub                           "" }
-    {0x00E6             F32x4Mul                           "" }
-    {0x00E7             F32x4Div                           "" }
-    {0x00E8             F32x4Min                           "" }
-    {0x00E9             F32x4Max                           "" }
-    {0x00EA             F32x4PMin                          "" }
-    {0x00EB             F32x4PMax                          "" }
-    
-    {0x00EC             F64x2Abs                           "" }
-    {0x00ED             F64x2Neg                           "" }
-    {0x00EE             _                                  "" }
-    {0x00EF             F64x2Sqrt                          "" }
-    {0x00F0             F64x2Add                           "" }
-    {0x00F1             F64x2Sub                           "" }
-    {0x00F2             F64x2Mul                           "" }
-    {0x00F3             F64x2Div                           "" }
-    {0x00F4             F64x2Min                           "" }
-    {0x00F5             F64x2Max                           "" }
-    {0x00F6             F64x2PMin                          "" }
-    {0x00F7             F64x2PMax                          "" }
-    {0x00F8             I32x4TruncSatF32x4S                "" }
-    {0x00F9             I32x4TruncSatF32x4U                "" }
-    {0x00FA             F32x4ConvertI32x4S                 "" }
-    {0x00FB             F32x4ConvertI32x4U                 "" }
-    {0x00FC             I32x4TruncSatF64x2SZero            "" }
-    {0x00FD             I32x4TruncSatF64x2UZero            "" }
-    {0x00FE             F64x2ConvertLowI32x4S              "" }
-    {0x00FF             F64x2ConvertLowI32x4U              "" }
+    {0x002D           I16x8Eq                            "i16x8.eq"                                     0  0  0  0                                     }
+    {0x002E           I16x8Ne                            "i16x8.ne"                                     0  0  0  0                                     }
+    {0x002F           I16x8LtS                           "i16x8.lt_s"                                   0  0  0  0                                     }
+    {0x0030           I16x8LtU                           "i16x8.lt_u"                                   0  0  0  0                                     }
+    {0x0031           I16x8GtS                           "i16x8.gt_s"                                   0  0  0  0                                     }
+    {0x0032           I16x8GtU                           "i16x8.gt_u"                                   0  0  0  0                                     }
+    {0x0033           I16x8LeS                           "i16x8.le_s"                                   0  0  0  0                                     }
+    {0x0034           I16x8LeU                           "i16x8.le_u"                                   0  0  0  0                                     }
+    {0x0035           I16x8GeS                           "i16x8.ge_s"                                   0  0  0  0                                     }
+    {0x0036           I16x8GeU                           "i16x8.ge_u"                                   0  0  0  0                                     }
 
-    //~ fbt: Relaxed SIMD Instructions
-    {0x0100             I8x16RelaxedSwizzle                "" }
-    {0x0101             I32x4RelaxedTruncF32x4S            "" }
-    {0x0102             I32x4RelaxedTruncF32x4U            "" }
-    {0x0103             I32x4RelaxedTruncF64x2S            "" }
-    {0x0104             I32x4RelaxedTruncF64x2U            "" }
+    {0x0037           I32x4Eq                            "i32x4.eq"                                     0  0  0  0                                     }
+    {0x0038           I32x4Ne                            "i32x4.ne"                                     0  0  0  0                                     }
+    {0x0039           I32x4LtS                           "i32x4.lt_s"                                   0  0  0  0                                     }
+    {0x003A           I32x4LtU                           "i32x4.lt_u"                                   0  0  0  0                                     }
+    {0x003B           I32x4GtS                           "i32x4.gt_s"                                   0  0  0  0                                     }
+    {0x003C           I32x4GtU                           "i32x4.gt_u"                                   0  0  0  0                                     }
+    {0x003D           I32x4LeS                           "i32x4.le_s"                                   0  0  0  0                                     }
+    {0x003E           I32x4LeU                           "i32x4.le_u"                                   0  0  0  0                                     }
+    {0x003F           I32x4GeS                           "i32x4.ge_s"                                   0  0  0  0                                     }
+    {0x0040           I32x4GeU                           "i32x4.ge_u"                                   0  0  0  0                                     }
+
+    {0x0041           F32x4Eq                            "f32x4.eq"                                     0  0  0  0                                     }
+    {0x0042           F32x4Ne                            "f32x4.ne"                                     0  0  0  0                                     }
+    {0x0043           F32x4Lt                            "f32x4.lt"                                     0  0  0  0                                     }
+    {0x0044           F32x4Gt                            "f32x4.gt"                                     0  0  0  0                                     }
+    {0x0045           F32x4Le                            "f32x4.le"                                     0  0  0  0                                     }
+    {0x0046           F32x4Ge                            "f32x4.ge"                                     0  0  0  0                                     }
+
+    {0x0047           F64x2Eq                            "f64x2.eq"                                     0  0  0  0                                     }
+    {0x0048           F64x2Ne                            "f64x2.ne"                                     0  0  0  0                                     }
+    {0x0049           F64x2Lt                            "f64x2.lt"                                     0  0  0  0                                     }
+    {0x004A           F64x2Gt                            "f64x2.gt"                                     0  0  0  0                                     }
+    {0x004B           F64x2Le                            "f64x2.le"                                     0  0  0  0                                     }
+    {0x004C           F64x2Ge                            "f64x2.ge"                                     0  0  0  0                                     }
+
+    //~ fbt: V128 Instructions
+    {0x004D           V128Not                            "v128.not"                                     0  0  0  0                                     }
+    {0x004E           V128And                            "v128.and"                                     0  0  0  0                                     }
+    {0x004F           V128AndNot                         "v128.andnot"                                  0  0  0  0                                     }
+    {0x0050           V128Or                             "v128.or"                                      0  0  0  0                                     }
+    {0x0051           V128Xor                            "v128.xor"                                     0  0  0  0                                     }
+    {0x0052           V128BitSelect                      "v128.bitselect"                               0  0  0  0                                     }
+    {0x0053           V128AnyTrue                        "v128.any_true"                                0  0  0  0                                     }
+
+    //~ fbt: Lane Load/Store Instructions
+    {0x0054           V128Load8Lane                      "v128.load8_lane"                              0  0  0  0                                     }
+    {0x0055           V128Load16Lane                     "v128.load16_lane"                             0  0  0  0                                     }
+    {0x0056           V128Load32Lane                     "v128.load32_lane"                             0  0  0  0                                     }
+    {0x0057           V128Load64Lane                     "v128.load64_lane"                             0  0  0  0                                     }
+    {0x0058           V128Store8Lane                     "v128.store8_lane"                             0  0  0  0                                     }
+    {0x0059           V128Store16Lane                    "v128.store16_lane"                            0  0  0  0                                     }
+    {0x005A           V128Store32Lane                    "v128.store32_lane"                            0  0  0  0                                     }
+    {0x005B           V128Store64Lane                    "v128.store64_lane"                            0  0  0  0                                     }
+    {0x005C           V128Load32Zero                     "v128.load32_zero"                             0  0  0  0                                     }
+    {0x005D           V128Load64Zero                     "v128.load64_zero"                             0  0  0  0                                     }
+
+    //~ fbt: Float Conversion Instructions
+    {0x005E           F32x4DemoteF64x2Zero               "f32x4.demote_f64x2_zero"                      0  0  0  0                                     }
+    {0x005F           F64x2PromoteLowF32x4               "f64x2.promote_low_f32x4"                      0  0  0  0                                     }
+
+    //~ fbt: General Instructions
+    {0x0060           I8x16Abs                           "i8x16.abs"                                    0  0  0  0                                     }
+    {0x0061           I8x16Neg                           "i8x16.neg"                                    0  0  0  0                                     }
+    {0x0062           I8x16PopCount                      "i8x16.popcnt"                                 0  0  0  0                                     }
+    {0x0063           I8x16AllTrue                       "i8x16.all_true"                               0  0  0  0                                     }
+    {0x0064           I8x16Bitmask                       "i8x16.bitmask"                                0  0  0  0                                     }
+    {0x0065           I8x16NarrowI16x8S                  "i8x16.narrow_i16x8_s"                         0  0  0  0                                     }
+    {0x0066           I8x16NarrowI16x8U                  "i8x16.narrow_i16x8_u"                         0  0  0  0                                     }
+
+    {0x0067           F32x4Ceil                          "f32x4.ceil"                                   0  0  0  0                                     }
+    {0x0068           F32x4Floor                         "f32x4.floor"                                  0  0  0  0                                     }
+    {0x0069           F32x4Trunc                         "f32x4.trunc"                                  0  0  0  0                                     }
+    {0x006A           F32x4Nearest                       "f32x4.nearest"                                0  0  0  0                                     }
+
+    {0x006B           I8x16ShL                           "i8x16.shl"                                    0  0  0  0                                     }
+    {0x006C           I8x16ShRS                          "i8x16.shr_s"                                  0  0  0  0                                     }
+    {0x006D           I8x16ShRU                          "i8x16.shr_u"                                  0  0  0  0                                     }
+    {0x006E           I8x16Add                           "i8x16.add"                                    0  0  0  0                                     }
+    {0x006F           I8x16AddSatS                       "i8x16.add_sat_s"                              0  0  0  0                                     }
+    {0x0070           I8x16AddSatU                       "i8x16.add_sat_u"                              0  0  0  0                                     }
+    {0x0071           I8x16Sub                           "i8x16.sub"                                    0  0  0  0                                     }
+    {0x0072           I8x16SubSatS                       "i8x16.sub_sat_s"                              0  0  0  0                                     }
+    {0x0073           I8x16SubSatU                       "i8x16.sub_sat_u"                              0  0  0  0                                     }
+
+    {0x0074           F64x2Ceil                          "f64x2.ceil"                                   0  0  0  0                                     }
+    {0x0075           F64x2Floor                         "f64x2.floor"                                  0  0  0  0                                     }
+
+    {0x0076           I8x16MinS                          "i8x16.min_s"                                  0  0  0  0                                     }
+    {0x0077           I8x16MinU                          "i8x16.min_u"                                  0  0  0  0                                     }
+    {0x0078           I8x16MaxS                          "i8x16.max_s"                                  0  0  0  0                                     }
+    {0x0079           I8x16MaxU                          "i8x16.max_u"                                  0  0  0  0                                     }
+
+    {0x007A           F64x2Trunc                         "f64x2.trunc"                                  0  0  0  0                                     }
+
+    {0x007B           I8x16AvgRoundU                     "i8x16.avgr_u"                                 0  0  0  0                                     }
+
+    {0x007C           I16x8ExtAddPairwiseI8x16S          "i16x8.extadd_pairwise_i8x16_s"                0  0  0  0                                     }
+    {0x007D           I16x8ExtAddPairwiseI8x16U          "i16x8.extadd_pairwise_i8x16_u"                0  0  0  0                                     }
+    {0x007E           I32x4ExtAddPairwiseI16x8S          "i32x4.extadd_pairwise_i16x8_s"                0  0  0  0                                     }
+    {0x007F           I32x4ExtAddPairwiseI16x8U          "i32x4.extadd_pairwise_i16x8_u"                0  0  0  0                                     }
+
+    {0x0080           I16x8Abs                           "i16x8.abs"                                    0  0  0  0                                     }
+    {0x0081           I16x8Neg                           "i16x8.neg"                                    0  0  0  0                                     }
+    {0x0082           I16x8Q15MulRoundSatS               "i16x8.q15mulr_sat_s"                          0  0  0  0                                     }
+    {0x0083           I16x8AllTrue                       "i16x8.all_true"                               0  0  0  0                                     }
+    {0x0084           I16x8Bitmask                       "i16x8.bitmask"                                0  0  0  0                                     }
+    {0x0085           I16x8NarrowI32x4S                  "i16x8.narrow_i32x4_s"                         0  0  0  0                                     }
+    {0x0086           I16x8NarrowI32x4U                  "i16x8.narrow_i32x4.u"                         0  0  0  0                                     }
+    {0x0087           I16x8ExtendLowI8x16S               "i16x8.extend_low_i8x16_s"                     0  0  0  0                                     }
+    {0x0088           I16x8ExtendHighI8x16S              "i16x8.extend_high_i8x16_s"                    0  0  0  0                                     }
+    {0x0089           I16x8ExtendLowI8x16U               "i16x8.extend_low_i8x16_u"                     0  0  0  0                                     }
+    {0x008A           I16x8ExtendHighI8x16U              "i16x8.extend_high_i8x16_u"                    0  0  0  0                                     }
+    {0x008B           I16x8ShL                           "i16x8.shl"                                    0  0  0  0                                     }
+    {0x008C           I16x8ShRS                          "i16x8.shr_s"                                  0  0  0  0                                     }
+    {0x008D           I16x8ShRU                          "i16x8.shr_u"                                  0  0  0  0                                     }
+    {0x008E           I16x8Add                           "i16x8.add"                                    0  0  0  0                                     }
+    {0x008F           I16x8AddSatS                       "i16x8.add_sat_s"                              0  0  0  0                                     }
+    {0x0090           I16x8AddSatU                       "i16x8.add_sat_u"                              0  0  0  0                                     }
+    {0x0091           I16x8Sub                           "i16x8.sub"                                    0  0  0  0                                     }
+    {0x0092           I16x8SubSatS                       "i16x8.sub_sat_s"                              0  0  0  0                                     }
+    {0x0093           I16x8SubSatU                       "i16x8.sub_sat_u"                              0  0  0  0                                     }
+
+    {0x0094           F64x2Nearest                       "f64x2.nearest"                                0  0  0  0                                     }
+
+    {0x0095           I16x8Mul                           "i16x8.mul"                                    0  0  0  0                                     }
+    {0x0096           I16x8MinS                          "i16x8.min_s"                                  0  0  0  0                                     }
+    {0x0097           I16x8MinU                          "i16x8.min_u"                                  0  0  0  0                                     }
+    {0x0098           I16x8MaxS                          "i16x8.max_s"                                  0  0  0  0                                     }
+    {0x0099           I16x8MaxU                          "i16x8.max_u"                                  0  0  0  0                                     }
+    {0x009A           _                                  ""                                             0  0  0  0                                     }
+    {0x009B           I16x8AvgRoundU                     "i16x8.avgr_u"                                 0  0  0  0                                     }
+    {0x009C           I16x8ExtMulLowI8x16S               "i16x8.extmul_low_i8x16_s"                     0  0  0  0                                     }
+    {0x009D           I16x8ExtMulHighI8x16S              "i16x8.extmul_high_i8x16_s"                    0  0  0  0                                     }
+    {0x009E           I16x8ExtMulLowI8x16U               "i16x8.extmul_low_i8x16_u"                     0  0  0  0                                     }
+    {0x009F           I16x8ExtMulHighI8x16U              "i16x8.extmul_high_i8x16_u"                    0  0  0  0                                     }
+
+    {0x00A0           I32x4Abs                           "i32x4.abs"                                    0  0  0  0                                     }
+    {0x00A1           I32x4Neg                           "i32x4.neg"                                    0  0  0  0                                     }
+    {0x00A2           _                                  ""                                             0  0  0  0                                     }
+    {0x00A3           I32x4AllTrue                       "i32x4.all_true"                               0  0  0  0                                     }
+    {0x00A4           I32x4Bitmask                       "i32x4.bitmask"                                0  0  0  0                                     }
+    {0x00A5           _                                  ""                                             0  0  0  0                                     }
+    {0x00A6           _                                  ""                                             0  0  0  0                                     }
+    {0x00A7           I32x4ExtendLowI16x8S               "i32x4.extend_low_i16x8_s"                     0  0  0  0                                     }
+    {0x00A8           I32x4ExtendHighI16x8S              "i32x4.extend_high_i16x8_s"                    0  0  0  0                                     }
+    {0x00A9           I32x4ExtendLowI16x8U               "i32x4.extend_low_i16x8_u"                     0  0  0  0                                     }
+    {0x00AA           I32x4ExtendHighI16x8U              "i32x4.extend_high_i16x8_u"                    0  0  0  0                                     }
+    {0x00AB           I32x4ShL                           "i32x4.shl"                                    0  0  0  0                                     }
+    {0x00AC           I32x4ShRS                          "i32x4.shr_s"                                  0  0  0  0                                     }
+    {0x00AD           I32x4ShRU                          "i32x4.shr_u"                                  0  0  0  0                                     }
+    {0x00AE           I32x4Add                           "i32x4.add"                                    0  0  0  0                                     }
+    {0x00AF           _                                  ""                                             0  0  0  0                                     }
+    {0x00B0           _                                  ""                                             0  0  0  0                                     }
+    {0x00B1           I32x4Sub                           "i32x4.sub"                                    0  0  0  0                                     }
+    {0x00B2           _                                  ""                                             0  0  0  0                                     }
+    {0x00B3           _                                  ""                                             0  0  0  0                                     }
+    {0x00B4           _                                  ""                                             0  0  0  0                                     }
+    {0x00B5           I32x4Mul                           "i32x4.mul"                                    0  0  0  0                                     }
+    {0x00B6           I32x4MinS                          "i32x4.min_s"                                  0  0  0  0                                     }
+    {0x00B7           I32x4MinU                          "i32x4.min_u"                                  0  0  0  0                                     }
+    {0x00B8           I32x4MaxS                          "i32x4.max_s"                                  0  0  0  0                                     }
+    {0x00B9           I32x4MaxU                          "i32x4.max_u"                                  0  0  0  0                                     }
+    {0x00BA           I32x4DotI16x8S                     "i32x4.dot_i16x8_s"                            0  0  0  0                                     }
+    {0x00BB           _                                  ""                                             0  0  0  0                                     }
+    {0x00BC           I32x4ExtMulLowI16x8S               "i32x4.extmul_low_i16x8_s"                     0  0  0  0                                     }
+    {0x00BD           I32x4ExtMulHighI16x8S              "i32x4.extmul_high_i16x8_s"                    0  0  0  0                                     }
+    {0x00BE           I32x4ExtMulLowI16x8U               "i32x4.extmul_low_i16x8_u"                     0  0  0  0                                     }
+    {0x00BF           I32x4ExtMulHighI16x8U              "i32x4.extmul_high_i16x8_u"                    0  0  0  0                                     }
+
+    {0x00C0           I64x2Abs                           "i64x2.abs"                                    0  0  0  0                                     }
+    {0x00C1           I64x2Neg                           "i64x2.neg"                                    0  0  0  0                                     }
+    {0x00C2           _                                  ""                                             0  0  0  0                                     }
+    {0x00C3           I64x2AllTrue                       "i64x2.all_true"                               0  0  0  0                                     }
+    {0x00C4           I64x2Bitmask                       "i64x2.bitmask"                                0  0  0  0                                     }
+    {0x00C5           _                                  ""                                             0  0  0  0                                     }
+    {0x00C6           _                                  ""                                             0  0  0  0                                     }
+    {0x00C7           I64x2ExtendLowI32x4S               "i64x2.extend_low_i32x4_s"                     0  0  0  0                                     }
+    {0x00C8           I64x2ExtendHighI32x4S              "i64x2.extend_high_i32x4_s"                    0  0  0  0                                     }
+    {0x00C9           I64x2ExtendLowI32x4U               "i64x2.extend_low_i32x4_u"                     0  0  0  0                                     }
+    {0x00CA           I64x2ExtendHighI32x4U              "i64x2.extend_high_i32x4_u"                    0  0  0  0                                     }
+    {0x00CB           I64x2ShL                           "i64x2.shl"                                    0  0  0  0                                     }
+    {0x00CC           I64x2ShRS                          "i64x2.shr_s"                                  0  0  0  0                                     }
+    {0x00CD           I64x2ShRU                          "i64x2.shr_u"                                  0  0  0  0                                     }
+    {0x00CE           I64x2Add                           "i64x2.add"                                    0  0  0  0                                     }
+    {0x00CF           _                                  ""                                             0  0  0  0                                     }
+    {0x00D0           _                                  ""                                             0  0  0  0                                     }
+    {0x00D1           I64x2Sub                           "i64x2.sub"                                    0  0  0  0                                     }
+    {0x00D2           _                                  ""                                             0  0  0  0                                     }
+    {0x00D3           _                                  ""                                             0  0  0  0                                     }
+    {0x00D4           _                                  ""                                             0  0  0  0                                     }
+    {0x00D5           I64x2Mul                           "i64x2.mul"                                    0  0  0  0                                     }
+    {0x00D6           I64x2Eq                            "i64x2.eq"                                     0  0  0  0                                     }
+    {0x00D7           I64x2Ne                            "i64x2.ne"                                     0  0  0  0                                     }
+    {0x00D8           I64x2LtS                           "i64x2.lt_s"                                   0  0  0  0                                     }
+    {0x00D9           I64x2GtS                           "i64x2.gt_s"                                   0  0  0  0                                     }
+    {0x00DA           I64x2LeS                           "i64x2.le_s"                                   0  0  0  0                                     }
+    {0x00DB           I64x2GeS                           "i64x2.ge_s"                                   0  0  0  0                                     }
+    {0x00DC           I64x2ExtMulLowI32x4S               "i64x2.extmul_low_i32x4_s"                     0  0  0  0                                     }
+    {0x00DD           I64x2ExtMulHighI32x4S              "i64x2.extmul_high_i32x4_s"                    0  0  0  0                                     }
+    {0x00DE           I64x2ExtMulLowI32x4U               "i64x2.extmul_low_i32x4_u"                     0  0  0  0                                     }
+    {0x00DF           I64x2ExtMulHighI32x4U              "i64x2.extmul_high_i32x4_u"                    0  0  0  0                                     }
+
+    {0x00E0           F32x4Abs                           "f32x4.abs"                                    0  0  0  0                                     }
+    {0x00E1           F32x4Neg                           "f32x4.neg"                                    0  0  0  0                                     }
+    {0x00E2           _                                  ""                                             0  0  0  0                                     }
+    {0x00E3           F32x4Sqrt                          "f32x4.sqrt"                                   0  0  0  0                                     }
+    {0x00E4           F32x4Add                           "f32x4.add"                                    0  0  0  0                                     }
+    {0x00E5           F32x4Sub                           "f32x4.sub"                                    0  0  0  0                                     }
+    {0x00E6           F32x4Mul                           "f32x4.mul"                                    0  0  0  0                                     }
+    {0x00E7           F32x4Div                           "f32x4.div"                                    0  0  0  0                                     }
+    {0x00E8           F32x4Min                           "f32x4.min"                                    0  0  0  0                                     }
+    {0x00E9           F32x4Max                           "f32x4.max"                                    0  0  0  0                                     }
+    {0x00EA           F32x4PMin                          "f32x4.pmin"                                   0  0  0  0                                     }
+    {0x00EB           F32x4PMax                          "f32x4.pmax"                                   0  0  0  0                                     }
+
+    {0x00EC           F64x2Abs                           "f64x2.abs"                                    0  0  0  0                                     }
+    {0x00ED           F64x2Neg                           "f64x2.neg"                                    0  0  0  0                                     }
+    {0x00EE           _                                  ""                                             0  0  0  0                                     }
+    {0x00EF           F64x2Sqrt                          "f64x2.sqrt"                                   0  0  0  0                                     }
+    {0x00F0           F64x2Add                           "f64x2.add"                                    0  0  0  0                                     }
+    {0x00F1           F64x2Sub                           "f64x2.sub"                                    0  0  0  0                                     }
+    {0x00F2           F64x2Mul                           "f64x2.mul"                                    0  0  0  0                                     }
+    {0x00F3           F64x2Div                           "f64x2.div"                                    0  0  0  0                                     }
+    {0x00F4           F64x2Min                           "f64x2.min"                                    0  0  0  0                                     }
+    {0x00F5           F64x2Max                           "f64x2.max"                                    0  0  0  0                                     }
+    {0x00F6           F64x2PMin                          "f64x2.pmin"                                   0  0  0  0                                     }
+    {0x00F7           F64x2PMax                          "f64x2.pmax"                                   0  0  0  0                                     }
+
+    //~ fbt: Conversation Instructions
+    {0x00F8           I32x4TruncSatF32x4S                "i32x4.trunc_sat_f32x4_s"                      0  0  0  0                                     }
+    {0x00F9           I32x4TruncSatF32x4U                "i32x4.trunc_sat_f32x4_u"                      0  0  0  0                                     }
+    {0x00FA           F32x4ConvertI32x4S                 "f32x4.convert_i32x4_s"                        0  0  0  0                                     }
+    {0x00FB           F32x4ConvertI32x4U                 "f32x4.convert_i32x4_u"                        0  0  0  0                                     }
+    {0x00FC           I32x4TruncSatF64x2SZero            "i32x4.trunc_sat_f64x2_s_zero"                 0  0  0  0                                     }
+    {0x00FD           I32x4TruncSatF64x2UZero            "i32x4.turnc_sat_f64x2_u_zero"                 0  0  0  0                                     }
+    {0x00FE           F64x2ConvertLowI32x4S              "f64x2.convert_low_i32x4_s"                    0  0  0  0                                     }
+    {0x00FF           F64x2ConvertLowI32x4U              "f64x2.convert_low_i32x4_u"                    0  0  0  0                                     }
+
+    //~ fbt: Relaxed Instructions
+    {0x0100           I8x16RelaxedSwizzle                "i8x16.relaxed_swizzle"                        0  0  0  0                                     }
+    {0x0101           I32x4RelaxedTruncF32x4S            "i32x4.relaxed_trunc_f32x4_s"                  0  0  0  0                                     }
+    {0x0102           I32x4RelaxedTruncF32x4U            "i32x4.relaxed_trunc_f32x4_u"                  0  0  0  0                                     }
+    {0x0103           I32x4RelaxedTruncF64x2S            "i32x4.relaxed_trunc_f64x2_s"                  0  0  0  0                                     }
+    {0x0104           I32x4RelaxedTruncF64x2U            "i32x4.relaxed_trunc_f64x2_u"                  0  0  0  0                                     }
 
     // MultAdd:     (a * b) + c
-    // NegMultAdd: -(a * b) + c 
-    {0x0105             F32x4RelaxedMultAdd                "" }
-    {0x0106             F32x4RelaxedNegMultAdd             "" }
-    {0x0107             F64x2RelaxedMultAdd                "" }
-    {0x0108             F64x2RelaxedNegMultAdd             "" }
-    
-    {0x0109             I8x16RelaxedLaneSelect             "" }
-    {0x010A             I16x8RelaxedLaneSelect             "" }
-    {0x010B             I32x4RelaxedLaneSelect             "" }
-    {0x010C             I64x2RelaxedLaneSelect             "" }
-    
-    {0x010D             F32x4RelaxedMin                    "" }
-    {0x010E             F32x4RelaxedMax                    "" }
-    {0x010F             F64x2RelaxedMin                    "" }
-    {0x0110             F64x2RelaxedMax                    "" }
-    {0x0111             I16x8RelaxedQ15MulRoundS           "" }
-    {0x0112             I16x8RelaxedDotI8x16I7x16S         "" }
-    {0x0113             I32x4RelaxedDotI8x18I7x16AddS      "" }
-    {0x0114             _                                  "" }
+    // NegMultAdd: -(a * b) + c
+    {0x0105           F32x4RelaxedMultAdd                "f32x4.relaxed_madd"                           0  0  0  0                                     }
+    {0x0106           F32x4RelaxedNegMultAdd             "f32x4.relaxed_nmadd"                          0  0  0  0                                     }
+    {0x0107           F64x2RelaxedMultAdd                "f64x2.relaxed_madd"                           0  0  0  0                                     }
+    {0x0108           F64x2RelaxedNegMultAdd             "f64x2.relaxed_nmadd"                          0  0  0  0                                     }
+
+    {0x0109           I8x16RelaxedLaneSelect             "i8x16.relaxed_laneselect"                     0  0  0  0                                     }
+    {0x010A           I16x8RelaxedLaneSelect             "i16x8.relaxed_laneselect"                     0  0  0  0                                     }
+    {0x010B           I32x4RelaxedLaneSelect             "i32x4.relaxed_laneselect"                     0  0  0  0                                     }
+    {0x010C           I64x2RelaxedLaneSelect             "i64x2.relaxed_laneselect"                     0  0  0  0                                     }
+
+    {0x010D           F32x4RelaxedMin                    "f32x4.relaxed_min"                            0  0  0  0                                     }
+    {0x010E           F32x4RelaxedMax                    "f32x4.relaxed_max"                            0  0  0  0                                     }
+    {0x010F           F64x2RelaxedMin                    "f64x2.relaxed_min"                            0  0  0  0                                     }
+    {0x0110           F64x2RelaxedMax                    "f64x2.relaxed_max"                            0  0  0  0                                     }
+    {0x0111           I16x8RelaxedQ15MulRoundS           "i16x8.relaxed_q15mulr_s"                      0  0  0  0                                     }
+    {0x0112           I16x8RelaxedDotI8x16I7x16S         "i16x8.relaxed_dot_i8x16_i7x16_s"              0  0  0  0                                     }
+    {0x0113           I32x4RelaxedDotI8x18I7x16AddS      "i16x8.relaxed_dot_i8x16_i7x16_add_s"          0  0  0  0                                     }
+    {0x0114           _                                  ""                                             0  0  0  0                                     }
 }
 
 @enum(u8) WASM_OpKind:
@@ -744,9 +758,21 @@ WASM_SimdOpTable:
     @expand(WASM_OpTable a) `$(a.name == _ -> "Reserved"..a.id)$(a.name != _ -> a.name) = $(a.id)`,
 }
 
+@enum2string_switch(WASM_OpKind)
+wasm_string_from_opkind:
+{
+    @expand(WASM_OpTable a) `case WASM_OpKind_$(a.name == _ -> "Reserved"..a.id)$(a.name != _ -> a.name):{result = s("$(a.name == _ -> "reserved."..a.id)$(a.name != _ -> a.string)");}break`;
+}
+
 @enum(u8) WASM_GcOpKind:
 {
     @expand(WASM_GcOpTable a) `$(a.name == _ -> "Reserved"..a.id)$(a.name != _ -> a.name) = $(a.id)`,
+}
+
+@enum2string_switch(WASM_GcOpKind)
+wasm_string_from_gcopkind:
+{
+    @expand(WASM_GcOpTable a) `case WASM_GcOpKind_$(a.name == _ -> "Reserved"..a.id)$(a.name != _ -> a.name):{result = s("$(a.name == _ -> "reserved."..a.id)$(a.name != _ -> a.string)");}break`;
 }
 
 @enum(u8) WASM_MiscOpKind:
@@ -754,8 +780,19 @@ WASM_SimdOpTable:
     @expand(WASM_MiscOpTable a) `$(a.name == _ -> "Reserved"..a.id)$(a.name != _ -> a.name) = $(a.id)`,
 }
 
+@enum2string_switch(WASM_MiscOpKind)
+wasm_string_from_miscopkind:
+{
+    @expand(WASM_MiscOpTable a) `case WASM_MiscOpKind_$(a.name == _ -> "Reserved"..a.id)$(a.name != _ -> a.name):{result = s("$(a.name == _ -> "reserved."..a.id)$(a.name != _ -> a.string)");}break`;
+}
+
 @enum(u16) WASM_SimdOpKind:
 {
     @expand(WASM_SimdOpTable a) `$(a.name == _ -> "Reserved"..a.id)$(a.name != _ -> a.name) = $(a.id)`,
-}
 
+}
+@enum2string_switch(WASM_SimdOpKind)
+wasm_string_from_simdopkind:
+{
+    @expand(WASM_SimdOpTable a) `case WASM_SimdOpKind_$(a.name == _ -> "Reserved"..a.id)$(a.name != _ -> a.name):{result = s("$(a.name == _ -> "reserved."..a.id)$(a.name != _ -> a.string)");}break`;
+}
